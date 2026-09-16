@@ -26,7 +26,8 @@ language model makes that answer from nothing but your move names and the millis
 between them — it never sees the figure, or you — and both phrases are drawn at the same
 scale so one can be read against the other.
 
-**[Source](https://github.com/cvd9683-gif/shared-minds-learning-the-steps)**
+**[Teach the dancer](https://cvd9683-gif.github.io/shared-minds-learning-the-steps/)**
+· [Source](https://github.com/cvd9683-gif/shared-minds-learning-the-steps)
 
-Runs locally with `npm start`. The dancer's own turn needs a Replicate API key; teaching and
-replaying your phrase work without one.
+In the demo you can teach a phrase and play it back. The dancer answering you needs a model
+behind a server — run it with `npm start`, or see the README.
