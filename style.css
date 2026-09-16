@@ -1,0 +1,154 @@
+/* ------------------------------------------------
+   Shared Minds index.
+   Same dark palette and serif as the Week 1 piece,
+   so the index belongs to the same set of work.
+   ------------------------------------------------ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  padding: 0 24px 64px;
+  background: #0e1117;
+  font-family: Georgia, serif;
+  color: #e0dcd4;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------
+   HEADER
+   ------------------------------------------------ */
+
+.top {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 64px 0 28px;
+  border-bottom: 1px solid #2a2f3a;
+}
+
+h1 {
+  font-size: 40px;
+  font-weight: normal;
+  letter-spacing: 0.01em;
+}
+
+.who {
+  margin-top: 8px;
+  font-size: 15px;
+  color: #8a9b82;
+}
+
+/* ------------------------------------------------
+   THE WEEKS
+   One entry per assignment, in order.
+   ------------------------------------------------ */
+
+.weeks {
+  max-width: 760px;
+  margin: 0 auto;
+  list-style: none;
+}
+
+.week {
+  padding: 32px 0;
+  border-bottom: 1px solid #2a2f3a;
+}
+
+.num {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #5c8a5e;
+}
+
+.week h2 {
+  margin-top: 6px;
+  font-size: 27px;
+  font-weight: normal;
+}
+
+.week h2 a {
+  color: #e0dcd4;
+  text-decoration: none;
+  border-bottom: 1px solid #3b5e3d;
+}
+
+.week h2 a:hover {
+  border-bottom-color: #8a9b82;
+}
+
+.what {
+  margin-top: 12px;
+  max-width: 62ch;
+  font-size: 16px;
+  color: #c3bfb6;
+}
+
+.what b {
+  font-weight: normal;
+  color: #e0dcd4;
+}
+
+/* --- The links themselves, kept large and together --- */
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 18px;
+}
+
+.go,
+.src {
+  padding: 9px 18px;
+  font-size: 15px;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.go {
+  color: #e0dcd4;
+  background: #2e4a30;
+  border: 1px solid #5c8a5e;
+}
+
+.go:hover {
+  background: #3b5e3d;
+}
+
+.src {
+  color: #8a9b82;
+  border: 1px solid #2a2f3a;
+}
+
+.src:hover {
+  color: #e0dcd4;
+  border-color: #5c8a5e;
+}
+
+.note {
+  flex-basis: 100%;
+  font-size: 14px;
+  color: #8a9b82;
+}
+
+.note code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  color: #c3bfb6;
+}
+
+/* ------------------------------------------------
+   NARROW SCREENS
+   ------------------------------------------------ */
+
+@media (max-width: 600px) {
+  .top { padding-top: 40px; }
+  h1 { font-size: 32px; }
+  .week h2 { font-size: 23px; }
+}
