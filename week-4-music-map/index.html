@@ -26,7 +26,7 @@
         </button>
         <button type="button" role="radio" class="mm-view" id="view-history" data-view="history" aria-checked="false">
           <span class="mm-swatch mm-swatch--release" aria-hidden="true"></span>
-          <span><strong>Music history</strong><small>ordered by release date</small></span>
+          <span><strong>Historical timeline</strong><small>ordered by release date</small></span>
         </button>
       </div>
 
@@ -47,6 +47,7 @@
         <button type="button" class="mm-chip" id="explorer-btn"></button>
         <button type="button" class="mm-chip" id="storage-btn"></button>
         <button type="button" class="mm-chip mm-chip--spotify" id="spotify-btn"></button>
+        <button type="button" class="mm-chip" id="panel-btn" aria-controls="panel" aria-expanded="false">Journeys</button>
       </div>
     </header>
 
@@ -54,7 +55,8 @@
       <section class="mm-stage" id="stage" aria-label="Map" data-view="timeline">
         <nav class="mm-pathbar" id="pathbar" aria-label="Your path" hidden></nav>
 
-        <div class="mm-field" id="field"></div>
+        <div class="mm-canvas" id="canvas" aria-label="Timeline. Scroll sideways to move through time."></div>
+        <div class="mm-year-view" id="year-view" hidden></div>
         <div class="mm-axis" id="axis" hidden></div>
         <svg class="mm-edges" id="edges" aria-hidden="true"></svg>
         <div class="mm-nodes" id="nodes"></div>
@@ -63,7 +65,7 @@
         <div class="mm-stage-tools" id="stage-tools" hidden>
           <label class="mm-toggle"><input type="checkbox" id="wider-toggle" /> Show wider web</label>
         </div>
-        <div class="mm-rail" id="rail"></div>
+        <nav class="mm-yearnav" id="yearnav" aria-label="Jump to year"></nav>
         <div class="mm-tooltip" id="tooltip" role="tooltip" hidden></div>
       </section>
 

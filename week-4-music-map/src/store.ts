@@ -3,7 +3,7 @@
 // localStorage until a Firebase Realtime Database is configured, then to Firebase
 // under the explorer's name (entered with prompt(); Firebase Auth can come later).
 
-import type { ExplorerData, Journey } from './types';
+import type { ExplorerData, Journey, YearData } from './types';
 
 export interface Store {
   readonly kind: 'local' | 'firebase';
@@ -18,6 +18,7 @@ export interface Store {
   loadExplorer(explorer: string): Promise<ExplorerData>;
   saveNote(explorer: string, trackId: string, text: string): Promise<void>;
   saveHidden(explorer: string, ids: string[]): Promise<void>;
+  saveYear(explorer: string, year: string, data: YearData): Promise<void>;
 }
 
 const ROOT = 'musicMap';
@@ -56,6 +57,13 @@ function clean<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
+/** Firebase drops empty arrays, so thoughts may come back missing. */
+function normalizeYears(raw?: Record<string, Partial<YearData>>): Record<string, YearData> {
+  const out: Record<string, YearData> = {};
+  Object.entries(raw ?? {}).forEach(([k, v]) => (out[k] = { label: v.label, thoughts: v.thoughts ?? [] }));
+  return out;
+}
+
 function normalizeJourney(j: Journey): Journey {
   return { ...j, steps: j.steps ?? [], nodes: j.nodes ?? {}, relLabels: j.relLabels ?? {} };
 }
@@ -65,7 +73,7 @@ function normalizeJourney(j: Journey): Journey {
 interface LocalShape {
   explorers: Record<
     string,
-    { name: string; journeys?: Record<string, Journey>; notes?: Record<string, string>; hidden?: string[] }
+    { name: string; journeys?: Record<string, Journey>; notes?: Record<string, string>; hidden?: string[]; years?: Record<string, YearData> }
   >;
 }
 
@@ -128,7 +136,7 @@ class LocalStore implements Store {
 
   async loadExplorer(explorer: string): Promise<ExplorerData> {
     const ex = this.read().explorers[safeKey(explorer)];
-    return { notes: ex?.notes ?? {}, hidden: ex?.hidden ?? [] };
+    return { notes: ex?.notes ?? {}, hidden: ex?.hidden ?? [], years: normalizeYears(ex?.years) };
   }
 
   async saveNote(explorer: string, trackId: string, text: string): Promise<void> {
@@ -143,6 +151,13 @@ class LocalStore implements Store {
   async saveHidden(explorer: string, ids: string[]): Promise<void> {
     const data = this.read();
     this.explorer(data, explorer).hidden = ids;
+    this.write(data);
+  }
+
+  async saveYear(explorer: string, year: string, yearData: YearData): Promise<void> {
+    const data = this.read();
+    const ex = this.explorer(data, explorer);
+    (ex.years ??= {})[year] = clean(yearData);
     this.write(data);
   }
 }
@@ -234,7 +249,7 @@ async function createFirebaseStore(settings: FirebaseSettings): Promise<Store> {
       Object.entries((val.notes ?? {}) as Record<string, { trackId: string; text: string }>).forEach(
         ([, n]) => (notes[n.trackId] = n.text),
       );
-      return { notes, hidden: val.hidden ?? [] };
+      return { notes, hidden: val.hidden ?? [], years: normalizeYears(val.years) };
     },
 
     async saveNote(explorer, trackId, text) {
@@ -245,6 +260,10 @@ async function createFirebaseStore(settings: FirebaseSettings): Promise<Store> {
 
     async saveHidden(explorer, ids) {
       await db.set(path(safeKey(explorer), 'hidden'), ids);
+    },
+
+    async saveYear(explorer, year, yearData) {
+      await db.set(path(safeKey(explorer), 'years', idKey(year)), clean(yearData));
     },
   };
 }

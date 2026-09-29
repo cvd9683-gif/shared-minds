@@ -21,24 +21,25 @@ listening history.
 
 ## The journey
 
-1. **My timeline.** Covers float through depth by the date they were saved. Scroll,
-   drag, use the arrow keys or drag the rail. The dashed frame shows the period
-   you're viewing, and year frames pass you as you move forward.
-2. **Select a cover.** It becomes the starting track: it keeps a vermilion ring on
-   the map and a fixed card at the top of the panel. Title, artist, release date
-   and saved date are separate fields.
-3. **Read a connection.** Select a node, or pick it from the panel list. The panel
-   gives the relationship in plain words, its direction, a short explanation, and
-   its evidence: source, and whether it is documented, disputed or unconfirmed.
-4. **Follow it.** Select it again or press *Follow*. The path bar keeps every
-   step, with *Back*, a clickable breadcrumb for each step, and *Return*.
-5. **Return and listen.** When authorized playback exists (Spotify's embedded
-   player), you can load it. An optional *What do you notice now?* box is saved
-   with the journey. Nothing is scored.
-6. **Music history.** Switch the date system at any time without losing your
-   selection or path. Recordings move onto a release-date axis. Empty decades are
-   compressed and marked. Unknown dates go in their own box. People sit in a
-   separate lane and are never given a date.
+1. **My timeline.** A side-scrolling canvas, one section per year saved, like a
+   paper timeline. Covers sit in a thin strip along the axis. Hover (or, on a
+   phone, swipe so they pass the middle) and nearby covers bloom into a collage,
+   then settle back into the line. Scroll, drag, or jump with the year buttons.
+2. **Step into a year.** Clicking a cover opens its year. The cover flies into
+   place as the featured track, with the year's collage beside it. Write what was
+   going on that year ("senior year", "moved cities"), then add, edit or delete
+   thoughts about the year or about one track. Only you write these words;
+   nothing is guessed from listening data.
+3. **See where the song comes from.** From the year, or by clicking a cover in the
+   **Historical timeline** (the same canvas ordered by release year, older years
+   grouped by decade, gaps and unknown dates marked), open the track's connected
+   history: samples, interpolations and credits, each with its source.
+4. **Read and follow connections.** Select a node to read the relationship in plain
+   words, with its direction, explanation and evidence. Select it again to follow
+   it. The path bar keeps every step, with *Back* and *Return*.
+5. **Return and listen.** When authorized playback exists (Spotify's player), you
+   can listen again and answer *What do you notice now?* if you like. *Close*
+   takes you back into the year you came from.
 
 ## Assignment mapping (Shared Minds)
 
@@ -47,6 +48,7 @@ listening history.
 | Organize data in JSON | `src/data/demo-collection.json` holds tracks, people, collection entries and relationships as separate lists. Journeys are JSON too (`types.ts → Journey`). |
 | Save to localStorage | `store.ts → LocalStore`, the default. |
 | Replace it with Firebase | `store.ts → createFirebaseStore` uses the Realtime Database once a config is present. The same interface, so nothing else changes. |
+| Record your own thoughts | Year captions and thoughts (`types.ts → YearData`) save under `musicMap/explorers/<name>/years/<year>`. |
 | Record and recall a description of the scene | Every journey stores a generated, factual `scene` description plus your own optional `description`. Both are shown in the panel and in the journey list. |
 | `prompt()` for names | `store.ts → askExplorer()`. It asks on your first selection, and again from the "Exploring as" chip. Data is stored under `musicMap/explorers/<name>/…`. |
 | Record a sequence of things | `journey.ts` records each select, follow, back, return, view change, listen and reflection as a step. *Replay* plays a sequence back on the map. |
@@ -60,6 +62,7 @@ musicMap/explorers/<name-key>/
   name: "Ada"
   journeys/<id>: { explorer, originId, steps[], nodes{}, relLabels{}, scene, description?, reflection?, … }
   notes/<trackId>: { trackId, text, updatedAt }
+  years/<year>: { label?, thoughts: [{ id, text, at, trackId? }] }
   hidden: [trackId, …]
 ```
 
@@ -113,7 +116,7 @@ index.html                    page shell
 site/                         built app (committed)
 src/
   main.ts                     app state, navigation, panel, search, replay
-  field.ts                    3D "My timeline" field + rail (flat list on narrow screens)
+  canvas.ts                   side-scrolling timeline canvas with the hover bloom
   network.ts                  local network, both layouts, history axis
   graph.ts                    graph index, relationship sentences, date formatting
   journey.ts                  sequence recording and scene descriptions

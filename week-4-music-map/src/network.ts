@@ -6,7 +6,7 @@
 //   lane below it and are never given a date.
 
 import { coverUrl, seeded } from './covers';
-import { escapeHtml } from './field';
+import { escapeHtml } from './canvas';
 import {
   edgeLabel,
   formatPartialDate,

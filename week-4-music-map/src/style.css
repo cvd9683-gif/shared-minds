@@ -179,8 +179,8 @@ a {
 
 .mm-search {
   display: flex;
-  flex: 1 1 260px;
-  max-width: 460px;
+  flex: 1 1 150px;
+  max-width: 360px;
   border: 1px solid var(--rule);
   border-radius: 10px;
   overflow: hidden;
@@ -208,6 +208,16 @@ a {
   gap: 6px;
   margin-left: auto;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+@media (min-width: 1100px) {
+  .mm-top {
+    flex-wrap: nowrap;
+  }
+  .mm-account {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
 }
 
 .mm-chip {
@@ -265,222 +275,428 @@ a {
   outline: none;
 }
 
-/* ---- Timeline field ------------------------------------------------------------- */
+/* ---- Timeline canvas ------------------------------------------------------------- */
 
-.mm-field {
+/* The panel steps aside on the canvas and returns for the map, search and journeys. */
+body:not(.panel-open) .mm-main {
+  grid-template-columns: 1fr 0;
+}
+body:not(.panel-open) .mm-panel {
+  visibility: hidden;
+  padding: 0;
+  border: 0;
+}
+#panel-btn[aria-expanded='true'] {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.mm-canvas {
   position: absolute;
   inset: 0;
-  transition: opacity 0.5s var(--ease);
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+  transition: opacity 0.4s var(--ease);
 }
-.mm-stage.has-selection .mm-field {
-  opacity: 0.05;
-  pointer-events: none;
+.mm-canvas.is-dragging {
+  cursor: grabbing;
 }
-.mm-stage.has-selection .mm-cover__label,
-.mm-stage.has-selection .mm-frame span {
-  display: none;
-}
-.mm-stage[data-view='history'] .mm-field {
+.mm-stage.has-selection .mm-canvas,
+.mm-stage.has-year .mm-canvas {
   opacity: 0;
   visibility: hidden;
 }
-
-.mm-frame {
+.mm-canvas__world {
+  position: relative;
+  height: 100%;
+}
+.mm-canvas__axis {
   position: absolute;
   left: 0;
+  height: 0;
+  border-top: 1.5px solid var(--ink);
+}
+.mm-canvas__axis::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: -6px;
+  border-left: 9px solid var(--ink);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+/* Year sections: dividers and big years, like the paper timeline */
+.mm-sec {
+  position: absolute;
   top: 0;
-  border: 1px solid var(--rule);
+  border-left: 1.5px solid var(--sec-accent, var(--saved));
   pointer-events: none;
 }
-.mm-frame span {
+.mm-canvas[data-accent='release'] {
+  --sec-accent: var(--release);
+}
+.mm-sec__head {
   position: absolute;
-  top: 6px;
-  left: 8px;
+  left: 16px;
+  right: 16px;
+  top: 18px;
+  pointer-events: auto;
+}
+.mm-sec__year {
+  margin: 0;
+  font: 600 44px/1 var(--font);
+  letter-spacing: -0.03em;
+  color: var(--sec-accent, var(--saved));
+}
+.mm-sec__caption {
+  display: block;
+  margin: 6px 0 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  font: 500 14px var(--font);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  max-width: 100%;
+}
+.mm-sec__caption.is-empty {
+  color: var(--muted);
+  font-weight: 400;
+}
+.mm-sec__caption:not(.is-static):hover {
+  text-decoration: underline;
+}
+.mm-sec__caption.is-static {
+  cursor: default;
+  color: var(--muted);
+  font-weight: 400;
+}
+.mm-sec__count {
+  margin: 4px 0 0;
   font: 500 11px var(--mono);
   color: var(--muted);
 }
-.mm-frame--focus {
-  border: 1px dashed rgba(217, 64, 31, 0.45);
-  z-index: 999;
+.mm-canvas__gap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 7px, var(--rule) 7px 8px);
+  opacity: 0.7;
 }
-.mm-frame--focus span {
-  color: var(--saved);
-  top: -22px;
-  left: 0;
+.mm-canvas__gap span {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%) rotate(-90deg);
+  transform-origin: center;
+  white-space: nowrap;
+  font: 500 10.5px var(--mono);
+  color: var(--release);
+  background: var(--paper);
+  padding: 0 4px;
 }
 
-.mm-cover {
+/* Tiles: a thin strip at rest, a collage near the pointer */
+.mm-tile {
   position: absolute;
   left: 0;
   top: 0;
   padding: 0;
   border: 0;
-  background: none;
+  background: var(--paper-2);
   cursor: pointer;
-  will-change: transform, opacity;
+  will-change: transform, width, height;
+  box-shadow: 0 1px 2px rgba(26, 29, 51, 0.15);
 }
-.mm-cover__art {
-  display: block;
-  aspect-ratio: 1;
-  perspective: 700px;
-}
-.mm-cover__art img {
+.mm-tile img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
-  transform: rotateY(var(--tilt, 0deg));
-  box-shadow: 0 10px 30px rgba(26, 29, 51, 0.18);
-  transition: transform 0.4s var(--ease), box-shadow 0.3s;
-}
-.mm-cover:hover .mm-cover__art img,
-.mm-cover:focus-visible .mm-cover__art img {
-  transform: rotateY(0deg) scale(1.04);
-  box-shadow: 0 16px 40px rgba(26, 29, 51, 0.28);
-}
-.mm-cover.is-highlight .mm-cover__art img {
-  outline: 3px solid var(--saved);
-  outline-offset: 3px;
-}
-.mm-cover__label {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  width: max(100%, 130px);
-  text-align: left;
-  opacity: 0;
-  transition: opacity 0.3s;
   pointer-events: none;
 }
-.mm-cover.is-legible .mm-cover__label,
-.mm-cover:focus-visible .mm-cover__label {
-  opacity: 1;
+.mm-tile.is-bloomed {
+  box-shadow: 0 10px 28px rgba(26, 29, 51, 0.28);
 }
-.mm-cover__title {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.25;
+.mm-tile:hover,
+.mm-tile:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  z-index: 200 !important;
 }
-.mm-cover__saved {
-  display: block;
-  font: 500 10.5px var(--mono);
-  color: var(--saved);
+.mm-tile.is-outside {
+  opacity: 0.8;
 }
-
-/* Flat list (narrow screens) */
-.mm-field.is-flat {
-  position: static;
-  padding: 12px 16px 40px;
-}
-.mm-list__year h3 {
-  position: sticky;
-  top: 0;
-  margin: 0;
-  padding: 10px 0 6px;
-  background: var(--paper);
-  font: 600 12px var(--mono);
-  color: var(--saved);
-  z-index: 1;
-}
-.mm-list__grid {
-  display: grid;
-  gap: 10px;
-}
-.mm-list__item {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  border: 0;
-  background: transparent;
-  padding: 4px;
-  text-align: left;
-  cursor: pointer;
-  border-radius: 6px;
-}
-.mm-list__item img {
-  width: 64px;
-  height: 64px;
-  flex: none;
-  box-shadow: 0 4px 12px rgba(26, 29, 51, 0.15);
-}
-.mm-list__artist {
-  display: block;
-  font-size: 12px;
-  color: var(--ink-2);
-}
-
-/* ---- Rail ------------------------------------------------------------------------ */
-
-.mm-rail {
-  position: absolute;
-  left: 24px;
-  right: 24px;
-  bottom: 14px;
-  z-index: 1200;
-}
-.mm-stage.has-selection .mm-rail,
-.mm-stage[data-view='history'] .mm-rail,
-.is-narrow .mm-rail {
-  display: none;
-}
-.mm-rail__head {
-  display: flex;
-  justify-content: space-between;
-  font: 500 11px var(--mono);
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-.mm-rail__readout {
-  color: var(--saved);
-  font-weight: 500;
-}
-.mm-rail__track {
-  position: relative;
-  height: 30px;
-  border-top: 1px solid var(--ink-2);
-  cursor: pointer;
-}
-.mm-rail__tick {
-  position: absolute;
-  top: -5px;
-  width: 1px;
-  height: 9px;
-  background: var(--saved);
-}
-.mm-rail__year {
-  position: absolute;
-  top: 6px;
-  transform: translateX(-50%);
-  font: 500 10px var(--mono);
-  color: var(--muted);
-}
-.mm-rail__year::before {
+.mm-tile.is-outside::after {
   content: '';
   position: absolute;
-  top: -7px;
-  left: 50%;
-  width: 1px;
-  height: 5px;
-  background: var(--ink-2);
+  inset: -3px;
+  border: 1px dashed var(--ink-2);
+  pointer-events: none;
 }
-.mm-rail__window {
-  position: absolute;
-  top: -4px;
-  height: 7px;
-  background: var(--saved-soft);
-  border-left: 1px solid var(--saved);
+.mm-tile.is-highlight {
+  outline: 3px solid var(--saved);
+  outline-offset: 3px;
+  z-index: 200 !important;
 }
-.mm-rail__handle {
+
+/* Year jump bar */
+.mm-yearnav {
   position: absolute;
-  top: -9px;
-  width: 16px;
-  height: 16px;
-  margin-left: -8px;
-  border-radius: 50%;
-  background: var(--saved);
-  border: 3px solid var(--paper);
-  box-shadow: 0 0 0 1px var(--saved);
+  left: 16px;
+  right: 16px;
+  bottom: 12px;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mm-stage.has-selection .mm-yearnav,
+.mm-stage.has-year .mm-yearnav {
+  display: none;
+}
+.mm-yearnav__dir {
+  font: 500 11px var(--mono);
+  color: var(--muted);
+  padding: 0 6px;
+  white-space: nowrap;
+}
+.mm-yearnav__btn {
+  border: 1px solid var(--rule);
+  background: rgba(243, 240, 233, 0.9);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: 500 11.5px var(--mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mm-yearnav__btn.is-current {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* ---- Year experience -------------------------------------------------------------- */
+
+.mm-year-view {
+  position: absolute;
+  inset: 0;
+  z-index: 1250;
+  overflow-y: auto;
+  background: var(--paper);
+  animation: mm-rise 0.45s var(--ease);
+}
+@keyframes mm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.mm-year {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 28px 60px;
+}
+.mm-year__bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--paper);
+  padding: 6px 0 10px;
+}
+.mm-year__nav {
+  display: flex;
+  gap: 6px;
+}
+.mm-year__grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) 1fr;
+  gap: 40px;
+  align-items: start;
+}
+.mm-year__feature {
+  position: sticky;
+  top: 56px;
+}
+.mm-year__cover {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 18px 40px rgba(26, 29, 51, 0.25);
+  outline: 3px solid var(--saved);
+  outline-offset: 4px;
+  margin-bottom: 16px;
+}
+.mm-year__track {
+  font-size: 20px;
+  margin: 0 0 10px;
+  letter-spacing: -0.01em;
+}
+.mm-year__track:focus {
+  outline: none;
+}
+.mm-btn.mm-btn--history {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  background: var(--release);
+  border-color: var(--release);
+  color: #fff;
+  font-weight: 500;
+}
+.mm-btn.mm-btn--history:hover:not(:disabled) {
+  background: #213cae;
+}
+.mm-year__title {
+  margin: 0;
+  font: 600 88px/0.95 var(--font);
+  letter-spacing: -0.04em;
+  color: var(--saved);
+}
+.mm-year__label {
+  width: 100%;
+  margin: 10px 0 4px;
+  border: 0;
+  border-bottom: 1.5px dashed var(--rule);
+  background: transparent;
+  font: 500 20px var(--font);
+  color: var(--ink);
+  padding: 4px 0;
+}
+.mm-year__label:focus {
+  outline: none;
+  border-bottom-color: var(--saved);
+}
+.mm-year__label::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+.mm-collage {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  grid-auto-flow: dense;
+  gap: 4px;
+  margin: 18px 0 8px;
+}
+.mm-collage__item {
+  padding: 0;
+  border: 0;
+  background: var(--paper-2);
+  aspect-ratio: 1;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease);
+}
+.mm-collage__item.is-big {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+.mm-collage__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.mm-collage__item:hover {
+  transform: scale(1.05);
+  z-index: 1;
+  position: relative;
+}
+.mm-collage__item.is-featured {
+  outline: 3px solid var(--saved);
+  outline-offset: 2px;
+  z-index: 1;
+  position: relative;
+}
+.mm-thought-form textarea {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: #fffdf8;
+  resize: vertical;
+}
+.mm-thought-form .mm-actions {
+  justify-content: space-between;
+}
+.mm-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.mm-thoughts {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+.mm-thought {
+  padding: 12px 0;
+  border-top: 1px dashed var(--rule);
+}
+.mm-thought.is-about-featured {
+  box-shadow: inset 3px 0 0 var(--saved);
+  padding-left: 12px;
+}
+.mm-thought__text {
+  margin: 0 0 6px;
+  font-size: 15px;
+  white-space: pre-wrap;
+}
+.mm-thought__meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font: 500 11px var(--mono);
+  color: var(--muted);
+}
+.mm-thought__about {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.mm-thought__about img {
+  width: 18px;
+  height: 18px;
+}
+.mm-thought__about.is-year {
+  cursor: default;
+  color: var(--saved);
+}
+.mm-thought textarea {
+  width: 100%;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.mm-ghost {
+  position: fixed;
+  z-index: 3000;
+  object-fit: cover;
+  pointer-events: none;
+  box-shadow: 0 18px 40px rgba(26, 29, 51, 0.3);
 }
 
 /* ---- Stage chrome -------------------------------------------------------------- */
@@ -488,7 +704,7 @@ a {
 .mm-stage-note {
   position: absolute;
   left: 24px;
-  bottom: 86px;
+  bottom: 50px;
   max-width: 460px;
   font-size: 12px;
   color: var(--ink-2);
@@ -500,7 +716,7 @@ a {
 .mm-stage.has-selection .mm-stage-note {
   bottom: 14px;
 }
-.mm-stage[data-view='history'] .mm-stage-note {
+.mm-stage[data-view='history'].has-selection .mm-stage-note {
   top: 12px;
   bottom: auto;
 }
@@ -1558,30 +1774,48 @@ details summary {
     display: block;
   }
   .mm-stage {
-    height: auto;
-    min-height: 0;
+    height: 74vh;
     touch-action: auto;
   }
-  .mm-stage.has-selection,
-  .mm-stage[data-view='history'] {
-    height: 78vh;
+  .mm-stage.has-year {
+    height: auto;
+    min-height: 74vh;
   }
-  .mm-stage.has-selection .mm-field,
-  .mm-stage[data-view='history'] .mm-field {
-    display: none;
+  .mm-stage.has-year .mm-year-view {
+    position: static;
   }
   .mm-stage-note {
-    position: static;
-    margin: 10px 16px 0;
-    background: none;
-  }
-  .mm-stage.has-selection .mm-stage-note,
-  .mm-stage[data-view='history'] .mm-stage-note {
-    position: absolute;
     left: 12px;
     right: 12px;
-    bottom: 8px;
-    margin: 0;
+  }
+  .mm-sec__year {
+    font-size: 34px;
+  }
+  .mm-year {
+    padding: 10px 16px 40px;
+  }
+  .mm-year__grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .mm-year__feature {
+    position: static;
+  }
+  .mm-year__main {
+    order: -1;
+  }
+  .mm-stage-note {
+    font-size: 11px;
+    bottom: 46px;
+  }
+  .mm-year__cover {
+    max-width: 260px;
+  }
+  .mm-year__title {
+    font-size: 60px;
+  }
+  body:not(.panel-open) .mm-panel {
+    display: none;
   }
   /* Keep the narrow layout simple: no wider-web overlay. */
   .mm-stage-tools {
@@ -1617,7 +1851,7 @@ details summary {
     animation-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .mm-cover__art img {
-    transform: none;
+  .mm-year-view {
+    animation: none;
   }
 }

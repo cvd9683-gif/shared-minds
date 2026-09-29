@@ -6,7 +6,7 @@
 import './style.css';
 import demoData from './data/demo-collection.json';
 import { coverUrl } from './covers';
-import { DAY, TimelineField, TimelineRail, escapeHtml as h, type FieldItem } from './field';
+import { TimelineCanvas, escapeHtml as h, type CanvasSection } from './canvas';
 import {
   MusicGraph,
   formatPartialDate,
@@ -31,7 +31,7 @@ import {
   saveFirebaseSettings,
   type Store,
 } from './store';
-import type { Dataset, Journey, Node, Relationship, Track, ViewMode } from './types';
+import type { Dataset, Journey, Node, Relationship, Thought, Track, ViewMode, YearData } from './types';
 
 const DATASET_KEY = 'musicMap:dataset';
 const LIBRARY_KEY = 'musicMap:spotifyLibrary';
@@ -54,6 +54,7 @@ class MusicMapApp {
   private explorer: string | null = getExplorer();
   private notes: Record<string, string> = {};
   private hidden = new Set<string>();
+  private years: Record<string, YearData> = {};
   private recording = true;
 
   // Exploration state
@@ -72,6 +73,13 @@ class MusicMapApp {
   private importStatus = '';
   private flash = '';
   private playerLoaded = new Set<string>();
+  /** The year experience opened from My timeline. */
+  private yearOpen: { year: string; featuredId: string | null } | null = null;
+  /** Where "Close" on the history network should return to, if opened from a year. */
+  private returnYear: { year: string; featuredId: string | null } | null = null;
+  private editingThought: string | null = null;
+  private panelPinned = false;
+  private canvasKey = '';
 
   // Environment
   private narrow = matchMedia('(max-width: 760px)');
@@ -84,18 +92,18 @@ class MusicMapApp {
   private tooltip = document.getElementById('tooltip')!;
   private note = document.getElementById('stage-note')!;
   private announcer = document.getElementById('announcer')!;
-  private field: TimelineField;
-  private rail: TimelineRail;
+  private yearEl = document.getElementById('year-view')!;
+  private canvas: TimelineCanvas;
   private network: NetworkView;
   private recorder: JourneyRecorder;
 
   constructor() {
-    this.field = new TimelineField(document.getElementById('field')!, {
-      onSelect: (id, rect) => this.selectOrigin(id, rect),
-      onCursor: (ms) => this.rail.setCursor(ms),
+    this.canvas = new TimelineCanvas(document.getElementById('canvas')!, document.getElementById('yearnav')!, {
+      // My timeline opens the year a track was saved in; the Historical timeline opens its connections.
+      onSelect: (id, key, rect) => (this.view === 'timeline' ? this.openYear(key, id, rect) : this.selectOrigin(id, rect)),
       onHover: (id, el) => this.showTooltip(id, el),
+      onCaption: (key) => this.openYear(key, null),
     });
-    this.rail = new TimelineRail(document.getElementById('rail')!, (ms) => this.field.setCursor(ms));
     this.network = new NetworkView(
       document.getElementById('nodes')!,
       document.getElementById('edges') as unknown as SVGSVGElement,
@@ -157,16 +165,81 @@ class MusicMapApp {
     }
     this.path = [];
     this.inspected = null;
-    this.refreshField();
+    this.yearOpen = null;
+    this.refreshCanvas(true);
   }
 
-  private refreshField(): void {
-    const items: FieldItem[] = this.graph
-      .savedTracks(this.hidden)
-      .map(({ entry, track }) => ({ id: track.id, track, savedMs: Date.parse(entry.savedAt) }));
-    this.field.setItems(items);
-    this.rail.setData(this.field.range, items.map((i) => i.savedMs));
-    this.rail.setCursor(this.field.cursorMs);
+  /** Rebuilds the canvas when the view or its data changed. */
+  private refreshCanvas(force = false): void {
+    const labels = Object.entries(this.years).map(([k, v]) => `${k}:${v.label ?? ''}`).join('|');
+    const key = `${this.view}|${this.graph.tracks.size}|${this.graph.collection.size}|${[...this.hidden].join()}|${labels}`;
+    if (!force && key === this.canvasKey) return;
+    this.canvasKey = key;
+    const history = this.view === 'history';
+    this.canvas.setSections(history ? this.releaseSections() : this.savedSections(), history ? 'release' : 'saved');
+  }
+
+  /** My timeline: one section per year saved, captioned by the explorer. */
+  private savedSections(): CanvasSection[] {
+    const byYear = new Map<string, CanvasSection>();
+    for (const { entry, track } of this.graph.savedTracks(this.hidden)) {
+      const year = `${new Date(entry.savedAt).getFullYear()}`;
+      let sec = byYear.get(year);
+      if (!sec) {
+        sec = { key: year, title: year, caption: this.years[year]?.label, editable: true, items: [] };
+        byYear.set(year, sec);
+      }
+      sec.items.push({ id: track.id, track, dateText: `Saved ${formatSaved(entry.savedAt)}` });
+    }
+    return [...byYear.values()];
+  }
+
+  /**
+   * Historical timeline: every recording in the map by release year. Empty years
+   * are marked as gaps, and recordings without a verified date sit apart at the end.
+   */
+  private releaseSections(): CanvasSection[] {
+    const tracks = [...this.graph.tracks.values()].filter((t) => !this.hidden.has(t.id));
+    const known = tracks.filter((t) => t.release).sort((a, b) => a.release!.value.localeCompare(b.release!.value));
+    const item = (t: Track) => {
+      const saved = this.graph.savedAt(t.id);
+      return {
+        id: t.id,
+        track: t,
+        dateText: `Released ${formatPartialDate(t.release)}. ${saved ? `Saved ${formatSaved(saved)}` : 'Outside your collection'}`,
+        outside: !saved,
+      };
+    };
+    // Older, sparser years are grouped by decade; recent years get their own section.
+    const DECADE_BEFORE = 2010;
+    const sections: CanvasSection[] = [];
+    let prevEnd: number | null = null;
+    for (const t of known) {
+      const y = Number(t.release!.value.slice(0, 4));
+      const decade = y < DECADE_BEFORE;
+      const start = decade ? Math.floor(y / 10) * 10 : y;
+      const key = decade ? `${start}s` : `${y}`;
+      let sec = sections[sections.length - 1];
+      if (!sec || sec.key !== key) {
+        const gap = prevEnd !== null ? start - prevEnd - 1 : 0;
+        sec = {
+          key,
+          title: key,
+          caption: decade ? 'Grouped by decade' : undefined,
+          editable: false,
+          items: [],
+          gapBefore: gap > 0 ? `${gap} yr${gap === 1 ? '' : 's'} not shown` : undefined,
+        };
+        sections.push(sec);
+        prevEnd = decade ? start + 9 : y;
+      }
+      sec.items.push(item(t));
+    }
+    const unknown = tracks.filter((t) => !t.release);
+    if (unknown.length) {
+      sections.push({ key: 'unknown', title: 'Date unknown', caption: 'No verified release date', editable: false, items: unknown.map(item), gapBefore: 'kept apart' });
+    }
+    return sections;
   }
 
   private async loadExplorerData(): Promise<void> {
@@ -175,6 +248,13 @@ class MusicMapApp {
       const data = await this.store.loadExplorer(this.explorer);
       this.notes = data.notes;
       this.hidden = new Set(data.hidden);
+      // Keep anything written before the name was known (e.g. the first thought).
+      for (const [year, local] of Object.entries(this.years)) {
+        const saved = (data.years[year] ??= { thoughts: [] });
+        saved.label = local.label ?? saved.label;
+        local.thoughts.forEach((t) => saved.thoughts.some((x) => x.id === t.id) || saved.thoughts.push(t));
+      }
+      this.years = data.years;
     } catch (err) {
       console.error(err);
     }
@@ -241,37 +321,18 @@ class MusicMapApp {
       }
     });
 
-    this.stage.addEventListener(
-      'wheel',
-      (e) => {
-        if (this.view !== 'timeline' || this.path.length || this.narrow.matches) return;
-        e.preventDefault();
-        this.field.nudge((e.deltaY + e.deltaX) * DAY * 0.35);
-      },
-      { passive: false },
-    );
-
     document.addEventListener('keydown', (e) => {
       const target = e.target as HTMLElement;
       if (target.matches('input, textarea, select')) return;
       if (e.key === 'Escape') {
         if (this.inspected) this.inspect(null);
+        else if (this.yearOpen && !this.path.length) this.closeYear();
         else if (this.path.length > 1) this.back();
         else if (this.path.length) this.closeSelection();
       } else if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft')) {
         if (this.path.length > 1) {
           e.preventDefault();
           this.back();
-        }
-      } else if (!this.path.length && this.view === 'timeline' && !target.closest('.mm-panel, .mm-top, .mm-rail')) {
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-          e.preventDefault();
-          const item = this.field.step(1);
-          if (item) this.field.focusCover(item.id);
-        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-          e.preventDefault();
-          const item = this.field.step(-1);
-          if (item) this.field.focusCover(item.id);
         }
       }
     });
@@ -286,6 +347,27 @@ class MusicMapApp {
     this.pathbar.addEventListener('click', onAction);
     this.panel.addEventListener('input', (e) => this.handleInput(e.target as HTMLElement));
     this.panel.addEventListener('focusout', (e) => this.handleCommit(e.target as HTMLElement));
+    this.yearEl.addEventListener('click', onAction);
+    this.yearEl.addEventListener('focusout', (e) => this.handleCommit(e.target as HTMLElement));
+    this.yearEl.addEventListener('keydown', (e) => {
+      const t = e.target as HTMLElement;
+      if (e.key === 'Enter' && t.id === 'year-label') t.blur();
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && t.matches('textarea')) {
+        e.preventDefault();
+        t.closest('form')?.requestSubmit();
+      }
+    });
+    this.yearEl.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      if (form.dataset.form === 'thought') this.addThought(form);
+      if (form.dataset.form === 'edit-thought') this.saveThoughtEdit(form);
+    });
+    document.getElementById('panel-btn')!.addEventListener('click', () => {
+      this.panelPinned = !this.panelPinned;
+      this.render();
+      if (this.panelPinned) this.panel.focus();
+    });
 
     document.getElementById('search-form')!.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -323,7 +405,7 @@ class MusicMapApp {
 
     new ResizeObserver(() => {
       const r = this.stage.getBoundingClientRect();
-      this.field.resize(r.width, r.height);
+      this.canvas.resize(r.width, r.height);
       this.network.resize(r.width, r.height);
     }).observe(this.stage);
     this.narrow.addEventListener('change', () => this.applyEnvironment());
@@ -332,9 +414,8 @@ class MusicMapApp {
   }
 
   private applyEnvironment(): void {
-    this.field.setReducedMotion(this.reducedMotion.matches);
+    this.canvas.setReducedMotion(this.reducedMotion.matches);
     this.network.setReducedMotion(this.reducedMotion.matches);
-    this.field.setFlat(this.narrow.matches);
     document.body.classList.toggle('is-narrow', this.narrow.matches);
   }
 
@@ -372,8 +453,9 @@ class MusicMapApp {
     this.explorer = name;
     this.recording = true;
     this.recorder.setExplorer(name);
+    this.years = {};
     await this.loadExplorerData();
-    this.refreshField();
+    this.refreshCanvas();
     this.renderChrome();
     this.render();
   }
@@ -406,6 +488,7 @@ class MusicMapApp {
   private setView(view: ViewMode): void {
     if (view === this.view) return;
     this.view = view;
+    this.yearOpen = null;
     this.record('view', this.currentId);
     this.say(view === 'timeline' ? 'My timeline: ordered by the date each track was saved.' : 'Music history: recordings ordered by release date.');
     this.render();
@@ -420,6 +503,7 @@ class MusicMapApp {
     this.reflecting = false;
     this.search = null;
     this.showData = false;
+    this.yearOpen = null;
     if (this.explorer && this.recording) this.recorder.start(this.explorer, id, this.view);
     else this.recorder.journey = null;
     this.say(`Selected ${nameOf(this.graph, id)}. ${this.neighborsOf(id).length} direct connections.`);
@@ -498,19 +582,243 @@ class MusicMapApp {
     this.path = [];
     this.inspected = null;
     this.reflecting = false;
+    // Opened from a year? Go back into that year, in My timeline.
+    if (this.returnYear) {
+      this.view = 'timeline';
+      this.yearOpen = this.returnYear;
+      this.returnYear = null;
+      this.render();
+      return;
+    }
     this.render();
-    if (origin && this.view === 'timeline') {
-      this.field.highlightId = origin;
-      this.field.bringForward(origin, true);
-      this.field.focusCover(origin);
-      setTimeout(() => {
-        this.field.highlightId = null;
-        this.field.render();
-      }, 2400);
+    if (origin) {
+      this.canvas.scrollToItem(origin, true);
+      this.canvas.focusItem(origin);
     }
   }
 
-  private record(action: 'follow' | 'back' | 'return' | 'view' | 'listen' | 'reflect', nodeId: string | null, relId?: string, text?: string): void {
+  // ---- Year experience ----------------------------------------------------------
+
+  private yearData(year: string): YearData {
+    return (this.years[year] ??= { thoughts: [] });
+  }
+
+  private yearTracks(year: string): { track: Track; savedAt: string }[] {
+    return this.graph
+      .savedTracks(this.hidden)
+      .filter(({ entry }) => `${new Date(entry.savedAt).getFullYear()}` === year)
+      .map(({ entry, track }) => ({ track, savedAt: entry.savedAt }));
+  }
+
+  /** Opens a year from My timeline. The clicked cover flies into place as the featured track. */
+  private openYear(year: string, featuredId: string | null, from?: DOMRect): void {
+    const tracks = this.yearTracks(year);
+    if (!tracks.length) return;
+    this.yearOpen = { year, featuredId: featuredId ?? tracks[tracks.length - 1].track.id };
+    this.editingThought = null;
+    if (this.recorder.journey && featuredId) this.record('year', featuredId, undefined, year);
+    this.say(`${year}: ${tracks.length} tracks saved.${featuredId ? ` Showing ${nameOf(this.graph, featuredId)}.` : ''}`);
+    this.render();
+    this.yearEl.scrollTop = 0;
+    const target = this.yearEl.querySelector<HTMLImageElement>('#year-feature-img');
+    if (from && target && !this.reducedMotion.matches) this.flyCover(from, target);
+    if (featuredId) this.yearEl.querySelector<HTMLElement>('#year-feature-title')?.focus({ preventScroll: true });
+    else this.yearEl.querySelector<HTMLElement>('#year-label')?.focus({ preventScroll: true });
+  }
+
+  private closeYear(): void {
+    const id = this.yearOpen?.featuredId;
+    this.yearOpen = null;
+    this.editingThought = null;
+    this.render();
+    if (id) {
+      this.canvas.scrollToItem(id, true);
+      this.canvas.focusItem(id);
+    }
+  }
+
+  /** Animates a copy of the cover from where it was clicked to its place in the year view. */
+  private flyCover(from: DOMRect, target: HTMLImageElement): void {
+    const to = target.getBoundingClientRect();
+    const ghost = target.cloneNode() as HTMLImageElement;
+    ghost.removeAttribute('id');
+    ghost.className = 'mm-ghost';
+    Object.assign(ghost.style, { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px` });
+    document.body.appendChild(ghost);
+    target.style.visibility = 'hidden';
+    const dx = from.left - to.left;
+    const dy = from.top - to.top;
+    const k = from.width / to.width;
+    ghost
+      .animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px) scale(${k})`, transformOrigin: '0 0' },
+          { transform: 'translate(0, 0) scale(1)', transformOrigin: '0 0' },
+        ],
+        { duration: 620, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+      )
+      .finished.finally(() => {
+        target.style.visibility = '';
+        ghost.remove();
+      });
+  }
+
+  private async saveYear(year: string): Promise<boolean> {
+    if (!this.explorer) {
+      this.recording = true;
+      this.ensureExplorer();
+      if (!this.explorer) {
+        this.flash = 'Set a name to save what you write.';
+        this.renderPanel();
+        return false;
+      }
+      // Merge with anything already saved under this name before writing over it.
+      await this.loadExplorerData();
+    }
+    try {
+      await this.store.saveYear(this.explorer, year, this.yearData(year));
+      return true;
+    } catch (err) {
+      this.say(`Couldn't save: ${(err as Error).message}`);
+      return false;
+    }
+  }
+
+  private async addThought(form: HTMLFormElement): Promise<void> {
+    if (!this.yearOpen) return;
+    const text = (form.querySelector('textarea') as HTMLTextAreaElement).value.trim();
+    if (!text) return;
+    const about = form.querySelector<HTMLInputElement>('input[name="about"]');
+    const data = this.yearData(this.yearOpen.year);
+    const thought: Thought = {
+      id: `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+      text,
+      at: new Date().toISOString(),
+      ...(about?.checked && this.yearOpen.featuredId ? { trackId: this.yearOpen.featuredId } : {}),
+    };
+    data.thoughts.push(thought);
+    if (await this.saveYear(this.yearOpen.year)) this.say('Thought saved.');
+    this.renderYear();
+    this.yearEl.querySelector<HTMLTextAreaElement>('#thought-text')?.focus();
+  }
+
+  private async saveThoughtEdit(form: HTMLFormElement): Promise<void> {
+    if (!this.yearOpen || !this.editingThought) return;
+    const data = this.yearData(this.yearOpen.year);
+    const t = data.thoughts.find((x) => x.id === this.editingThought);
+    const text = (form.querySelector('textarea') as HTMLTextAreaElement).value.trim();
+    if (t && text) t.text = text;
+    this.editingThought = null;
+    await this.saveYear(this.yearOpen.year);
+    this.renderYear();
+  }
+
+  private async deleteThought(id: string): Promise<void> {
+    if (!this.yearOpen || !confirm('Delete this thought?')) return;
+    const data = this.yearData(this.yearOpen.year);
+    data.thoughts = data.thoughts.filter((t) => t.id !== id);
+    await this.saveYear(this.yearOpen.year);
+    this.renderYear();
+  }
+
+  private renderYear(): void {
+    const open = this.yearOpen && !this.path.length;
+    this.yearEl.hidden = !open;
+    if (!open) {
+      this.yearEl.innerHTML = '';
+      return;
+    }
+    const { year } = this.yearOpen!;
+    const tracks = this.yearTracks(year);
+    const featured = tracks.find((t) => t.track.id === this.yearOpen!.featuredId) ?? tracks[tracks.length - 1];
+    const t = featured.track;
+    const data = this.years[year] ?? { thoughts: [] };
+    const allYears = [...new Set(this.graph.savedTracks(this.hidden).map(({ entry }) => `${new Date(entry.savedAt).getFullYear()}`))];
+    const i = allYears.indexOf(year);
+    const prev = allYears[i - 1];
+    const next = allYears[i + 1];
+
+    // A loose collage: a few covers take up more room, the featured one is ringed.
+    const collage = tracks
+      .map(({ track, savedAt }, n) => {
+        const big = (n * 7 + track.id.length) % 5 === 0;
+        const on = track.id === t.id;
+        return `<button type="button" class="mm-collage__item ${big ? 'is-big' : ''} ${on ? 'is-featured' : ''}" data-action="feature" data-id="${h(track.id)}" aria-pressed="${on}" title="${h(track.title)} · Saved ${formatSaved(savedAt)}">
+          <img src="${coverUrl(track.cover, track.title)}" alt="${h(track.title)} by ${h(track.artistCredit)}, saved ${formatSaved(savedAt)}" loading="lazy" /></button>`;
+      })
+      .join('');
+
+    const thoughts = [...data.thoughts].sort((a, b) => b.at.localeCompare(a.at));
+    const thoughtItems = thoughts
+      .map((th) => {
+        const about = th.trackId ? this.graph.tracks.get(th.trackId) : undefined;
+        const tag = about
+          ? `<button type="button" class="mm-thought__about" data-action="feature" data-id="${h(about.id)}"><img src="${coverUrl(about.cover, about.title)}" alt="" />${h(about.title)}</button>`
+          : `<span class="mm-thought__about is-year">About ${h(year)}</span>`;
+        if (this.editingThought === th.id) {
+          return `<li class="mm-thought is-editing"><form data-form="edit-thought">
+            <label class="sr-only" for="edit-thought-text">Edit thought</label>
+            <textarea id="edit-thought-text" rows="3">${h(th.text)}</textarea>
+            <div class="mm-actions"><button type="submit" class="mm-btn mm-btn--primary mm-btn--small">Save</button><button type="button" class="mm-btn mm-btn--small" data-action="cancel-edit">Cancel</button></div>
+          </form></li>`;
+        }
+        return `<li class="mm-thought ${th.trackId === t.id ? 'is-about-featured' : ''}">
+          <p class="mm-thought__text">${h(th.text)}</p>
+          <p class="mm-thought__meta">${tag}<span>${formatSaved(th.at, true)}</span>
+            <button type="button" class="mm-link mm-small" data-action="edit-thought" data-id="${h(th.id)}">Edit</button>
+            <button type="button" class="mm-link mm-small" data-action="delete-thought" data-id="${h(th.id)}">Delete</button></p>
+        </li>`;
+      })
+      .join('');
+
+    const listen = t.spotify
+      ? `<a class="mm-link" href="${h(t.spotify.url)}" target="_blank" rel="noopener">Listen on Spotify ↗</a>`
+      : t.origin === 'demo'
+        ? '<p class="mm-muted mm-small">Fictional demo track: no audio.</p>'
+        : '';
+
+    this.yearEl.innerHTML = `
+      <div class="mm-year" role="region" aria-label="${h(year)}">
+        <div class="mm-year__bar">
+          <button type="button" class="mm-btn mm-btn--small" data-action="close-year">← Back to timeline</button>
+          <div class="mm-year__nav">
+            ${prev ? `<button type="button" class="mm-btn mm-btn--small" data-action="year-nav" data-year="${prev}">‹ ${prev}</button>` : ''}
+            ${next ? `<button type="button" class="mm-btn mm-btn--small" data-action="year-nav" data-year="${next}">${next} ›</button>` : ''}
+          </div>
+        </div>
+        <div class="mm-year__grid">
+          <section class="mm-year__feature" aria-labelledby="year-feature-title">
+            <img id="year-feature-img" class="mm-year__cover" src="${coverUrl(t.cover, t.title)}" alt="Cover of ${h(t.title)}" />
+            <h3 id="year-feature-title" class="mm-year__track" tabindex="-1">${h(t.title)}</h3>
+            ${this.dateFields(t)}
+            ${this.demoNotice(t)}
+            <button type="button" class="mm-btn mm-btn--history" data-action="year-history" data-id="${h(t.id)}">See where this song comes from →</button>
+            <p class="mm-muted mm-small">Opens the Historical timeline: the recordings, samples and people connected to it.</p>
+            ${listen}
+          </section>
+          <section class="mm-year__main">
+            <h2 class="mm-year__title">${h(year)}</h2>
+            <label class="sr-only" for="year-label">What was going on in ${h(year)}?</label>
+            <input id="year-label" class="mm-year__label" data-input="year-label" value="${h(data.label ?? '')}" placeholder="What was going on in ${h(year)}? e.g. senior year, a move, a new job" maxlength="80" autocomplete="off" />
+            <p class="mm-muted mm-small">${tracks.length} track${tracks.length === 1 ? '' : 's'} saved this year. Only you write the words here; nothing is guessed from your listening.</p>
+            <div class="mm-collage">${collage}</div>
+            <h3 class="mm-subhead">Thoughts</h3>
+            <form class="mm-thought-form" data-form="thought">
+              <label class="sr-only" for="thought-text">Add a thought</label>
+              <textarea id="thought-text" rows="3" placeholder="What do you remember, or notice now?"></textarea>
+              <div class="mm-actions">
+                <label class="mm-check"><input type="checkbox" name="about" checked /> About “${h(t.title)}”</label>
+                <button type="submit" class="mm-btn mm-btn--primary mm-btn--small">Add thought</button>
+              </div>
+            </form>
+            ${thoughtItems ? `<ul class="mm-thoughts">${thoughtItems}</ul>` : `<p class="mm-muted">No thoughts for ${h(year)} yet.</p>`}
+            ${this.explorer ? '' : '<p class="mm-muted mm-small">You\'ll be asked for a name the first time you save, so your words are kept under it.</p>'}
+          </section>
+        </div>
+      </div>`;
+  }
+
+  private record(action: 'follow' | 'back' | 'return' | 'view' | 'listen' | 'reflect' | 'year', nodeId: string | null, relId?: string, text?: string): void {
     if (!nodeId || this.replay) return;
     this.recorder.record({ action, nodeId, relId, view: this.view, text });
   }
@@ -603,17 +911,6 @@ class MusicMapApp {
     };
   }
 
-  private overviewScene(): Scene {
-    return {
-      mode: 'history',
-      nodes: this.graph.savedTracks(this.hidden).map(({ track }) => ({ id: track.id, role: 'overview' as const })),
-      edges: [],
-      path: [],
-      inspectedId: null,
-      inspectedRelId: null,
-    };
-  }
-
   // ---- Rendering --------------------------------------------------------------
 
   private render(spawn?: { id: string; rect: DOMRect }): void {
@@ -626,14 +923,15 @@ class MusicMapApp {
       b.tabIndex = on ? 0 : -1;
     });
 
+    const year = !selected && !!this.yearOpen;
+    this.stage.classList.toggle('has-year', year);
     if (selected) {
       this.network.show(this.buildScene(), spawn);
-    } else if (this.view === 'history') {
-      this.network.show(this.overviewScene());
     } else {
       this.network.clear();
-      this.field.render();
+      this.refreshCanvas();
     }
+    this.renderYear();
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
     this.renderStageNote();
     this.renderPathbar();
@@ -647,10 +945,10 @@ class MusicMapApp {
     if (!cur) {
       text =
         this.view === 'timeline'
-          ? this.narrow.matches
-            ? 'Your saved tracks, newest first. Select one to open its connections.'
-            : 'Scroll, drag or use the arrow keys to move through the dates you saved tracks. Covers come closer as you reach the date they were saved. Select one to open its connections.'
-          : 'Your saved tracks placed by release date: the same songs as My timeline, on a different clock. Select one to see its connections.';
+          ? matchMedia('(hover: none)').matches
+            ? 'Swipe sideways through the years you saved tracks. Covers open up as they pass the middle; tap one to step into that year.'
+            : 'Scroll sideways or drag through the years you saved tracks. Hover to open up a stretch of covers; click one to step into that year.'
+          : 'Every recording in this map by release year: the same songs on a different clock. Dashed covers are outside your collection. Click one to see what it is connected to.';
     } else {
       const total = this.neighborsOf(cur).length;
       const shown = this.expanded.has(cur) ? total : Math.min(total, NEIGHBOR_LIMIT);
@@ -723,6 +1021,10 @@ class MusicMapApp {
   // ---- Panel ------------------------------------------------------------------
 
   private renderPanel(): void {
+    // On the canvas the panel steps aside; it opens for the map, search, data, replays, or on request.
+    const panelOpen = this.path.length > 0 || this.panelPinned || !!this.search || this.showData || !!this.replay;
+    document.body.classList.toggle('panel-open', panelOpen);
+    document.getElementById('panel-btn')!.setAttribute('aria-expanded', `${panelOpen}`);
     const active = document.activeElement as HTMLElement | null;
     const focusKey = active && this.panel.contains(active) ? active.dataset.focusKey : undefined;
     let html = '';
@@ -1184,6 +1486,33 @@ class MusicMapApp {
         return this.startReplay(id);
       case 'stop-replay':
         return this.stopReplay();
+      case 'close-year':
+        return this.closeYear();
+      case 'year-nav':
+        return this.openYear(el.dataset.year!, null);
+      case 'feature':
+        if (this.yearOpen) this.yearOpen.featuredId = id;
+        this.renderYear();
+        this.yearEl.querySelector<HTMLElement>('#year-feature-title')?.focus();
+        return;
+      case 'year-history':
+        // Step from the personal year into the song's connected history.
+        this.returnYear = this.yearOpen;
+        this.view = 'history';
+        return this.selectOrigin(id, this.yearEl.querySelector('#year-feature-img')?.getBoundingClientRect());
+      case 'edit-thought':
+        this.editingThought = id;
+        this.renderYear();
+        this.yearEl.querySelector<HTMLTextAreaElement>('#edit-thought-text')?.focus();
+        return;
+      case 'cancel-edit':
+        this.editingThought = null;
+        return this.renderYear();
+      case 'delete-thought':
+        return void this.deleteThought(id);
+      case 'toggle-panel':
+        this.panelPinned = !this.panelPinned;
+        return this.render();
       case 'delete-journey':
         if (this.explorer && confirm('Delete this journey? This cannot be undone.')) void this.store.deleteJourney(this.explorer, id);
         return;
@@ -1208,6 +1537,14 @@ class MusicMapApp {
     if (el.dataset.input === 'reflection' && (el as HTMLTextAreaElement).value.trim()) {
       this.record('reflect', this.originId, undefined, (el as HTMLTextAreaElement).value.trim());
     }
+    if (el.dataset.input === 'year-label' && this.yearOpen) {
+      const label = (el as HTMLInputElement).value.trim();
+      const data = this.yearData(this.yearOpen.year);
+      if ((data.label ?? '') === label) return;
+      data.label = label || undefined;
+      void this.saveYear(this.yearOpen.year);
+      this.refreshCanvas();
+    }
   }
 
   private async saveNote(trackId: string, text: string): Promise<void> {
@@ -1225,7 +1562,7 @@ class MusicMapApp {
     if (this.explorer) void this.store.saveHidden(this.explorer, [...this.hidden]);
     this.flash = `Hidden “${nameOf(this.graph, id)}” from this map. Your Spotify library is unchanged.`;
     this.closeSelection();
-    this.refreshField();
+    this.refreshCanvas();
     this.render();
   }
 

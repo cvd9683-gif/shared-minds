@@ -103,7 +103,7 @@ export type ViewMode = 'timeline' | 'history';
 /** One recorded moment in an exploration. */
 export interface JourneyStep {
   at: string;
-  action: 'select' | 'follow' | 'back' | 'return' | 'view' | 'listen' | 'reflect';
+  action: 'select' | 'follow' | 'back' | 'return' | 'view' | 'listen' | 'reflect' | 'year';
   nodeId: string;
   /** Relationship crossed to reach nodeId (for "follow"). */
   relId?: string;
@@ -140,7 +140,23 @@ export interface Journey {
   dataset: string;
 }
 
+/** Something the explorer wrote. Never generated from listening data. */
+export interface Thought {
+  id: string;
+  text: string;
+  at: string;
+  /** Set when the thought is about one track rather than the whole year. */
+  trackId?: string;
+}
+
+/** The explorer's own words about a year of saving: a caption and thoughts. */
+export interface YearData {
+  label?: string;
+  thoughts: Thought[];
+}
+
 export interface ExplorerData {
   notes: Record<string, string>;
   hidden: string[];
+  years: Record<string, YearData>;
 }
