@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:," />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A personal music timeline that opens into a map of music history: when you saved a song, and the recordings, samples, interpolations and people connected to it." />
+    <title>Music Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="./assets/index-BJaESCOA.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Dau9BCq3.css">
+  </head>
+  <body class="mm">
+    <a class="mm-skip" href="#panel">Skip to details</a>
+
+    <header class="mm-top">
+      <div class="mm-brand">
+        <h1>Music Map</h1>
+        <button type="button" class="mm-badge" id="dataset-badge"></button>
+      </div>
+
+      <div class="mm-views" role="radiogroup" aria-label="Date system">
+        <button type="button" role="radio" class="mm-view" id="view-timeline" data-view="timeline" aria-checked="true">
+          <span class="mm-swatch mm-swatch--saved" aria-hidden="true"></span>
+          <span><strong>My timeline</strong><small>ordered by date saved</small></span>
+        </button>
+        <button type="button" role="radio" class="mm-view" id="view-history" data-view="history" aria-checked="false">
+          <span class="mm-swatch mm-swatch--release" aria-hidden="true"></span>
+          <span><strong>Music history</strong><small>ordered by release date</small></span>
+        </button>
+      </div>
+
+      <form class="mm-search" id="search-form" role="search">
+        <label class="sr-only" for="search-kind">Search in</label>
+        <select id="search-kind">
+          <option value="all">All</option>
+          <option value="track">Tracks</option>
+          <option value="artist">Artists</option>
+          <option value="album">Albums</option>
+          <option value="genre">Genres</option>
+        </select>
+        <label class="sr-only" for="search-input">Search</label>
+        <input id="search-input" type="search" placeholder="Search artists, albums, tracks, genres" autocomplete="off" />
+      </form>
+
+      <div class="mm-account">
+        <button type="button" class="mm-chip" id="explorer-btn"></button>
+        <button type="button" class="mm-chip" id="storage-btn"></button>
+        <button type="button" class="mm-chip mm-chip--spotify" id="spotify-btn"></button>
+      </div>
+    </header>
+
+    <main class="mm-main">
+      <section class="mm-stage" id="stage" aria-label="Map" data-view="timeline">
+        <nav class="mm-pathbar" id="pathbar" aria-label="Your path" hidden></nav>
+
+        <div class="mm-field" id="field"></div>
+        <div class="mm-axis" id="axis" hidden></div>
+        <svg class="mm-edges" id="edges" aria-hidden="true"></svg>
+        <div class="mm-nodes" id="nodes"></div>
+
+        <div class="mm-stage-note" id="stage-note" aria-live="polite"></div>
+        <div class="mm-stage-tools" id="stage-tools" hidden>
+          <label class="mm-toggle"><input type="checkbox" id="wider-toggle" /> Show wider web</label>
+        </div>
+        <div class="mm-rail" id="rail"></div>
+        <div class="mm-tooltip" id="tooltip" role="tooltip" hidden></div>
+      </section>
+
+      <aside class="mm-panel" id="panel" tabindex="-1" aria-label="Details"></aside>
+    </main>
+
+    <dialog class="mm-dialog" id="settings-dialog" aria-labelledby="settings-title">
+      <form method="dialog" id="settings-form">
+        <h2 id="settings-title">Connections</h2>
+        <p class="mm-muted">Both are optional. Without them the map uses fictional demo data and saves to this browser.</p>
+
+        <fieldset>
+          <legend>Spotify</legend>
+          <label for="spotify-client-id">Client ID</label>
+          <input id="spotify-client-id" autocomplete="off" spellcheck="false" placeholder="From developer.spotify.com/dashboard" />
+          <p class="mm-muted">Register this Redirect URI on your Spotify app:<br /><code id="redirect-uri"></code></p>
+          <p class="mm-muted">Only the <code>user-library-read</code> permission is requested, to read saved tracks and the dates you saved them. Nothing is written to your Spotify account.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Firebase Realtime Database</legend>
+          <label for="firebase-config">Web app config</label>
+          <textarea id="firebase-config" rows="7" spellcheck="false" placeholder="Paste the firebaseConfig object from Firebase → Project settings → Your apps. It must include databaseURL."></textarea>
+          <p class="mm-muted">When connected, journeys, notes and hidden items save under your explorer name, and everyone using the same database can read each other's journeys.</p>
+        </fieldset>
+
+        <p class="mm-error" id="settings-error" role="alert"></p>
+        <div class="mm-dialog__actions">
+          <button type="button" class="mm-btn" id="settings-cancel">Cancel</button>
+          <button type="submit" class="mm-btn mm-btn--primary" value="save">Save &amp; reload</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="sr-only" aria-live="polite" id="announcer"></div>
+  </body>
+</html>

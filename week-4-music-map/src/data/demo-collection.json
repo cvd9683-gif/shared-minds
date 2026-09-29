@@ -1,0 +1,2398 @@
+{
+  "meta": {
+    "name": "Fictional demo collection",
+    "fictional": true,
+    "description": "Invented tracks, people, saved dates and relationships for demonstrating the interface. None of it describes real music or anyone's real listening history."
+  },
+  "tracks": [
+    {
+      "id": "h_sundial",
+      "kind": "track",
+      "title": "Sundial Waltz",
+      "artistCredit": "Solenne Marchetti",
+      "release": {
+        "value": "1968",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_sundial"
+      },
+      "genres": [
+        "chamber",
+        "instrumental"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "producer"
+      ]
+    },
+    {
+      "id": "h_paper",
+      "kind": "track",
+      "title": "Paper Moons Over Ohio",
+      "artistCredit": "Amos Delacroix-Byrd",
+      "release": {
+        "value": "1971-09",
+        "precision": "month"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_paper"
+      },
+      "genres": [
+        "soul"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "producer"
+      ]
+    },
+    {
+      "id": "h_lowtide",
+      "kind": "track",
+      "title": "Low Tide Signal",
+      "artistCredit": "The Harbor Lights",
+      "release": {
+        "value": "1974-06-03",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_lowtide"
+      },
+      "genres": [
+        "soul",
+        "funk"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "producer"
+      ]
+    },
+    {
+      "id": "h_brass",
+      "kind": "track",
+      "title": "Brass for the Weary",
+      "artistCredit": "The Harbor Lights",
+      "release": null,
+      "releaseNote": "No release date appears in the demo liner notes.",
+      "cover": {
+        "kind": "generated",
+        "seed": "h_brass"
+      },
+      "genres": [
+        "soul"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "producer",
+        "writer"
+      ]
+    },
+    {
+      "id": "h_copper",
+      "kind": "track",
+      "title": "Copper Rain",
+      "artistCredit": "Beatrix Oyelaran",
+      "release": {
+        "value": "1986",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_copper"
+      },
+      "genres": [
+        "ambient",
+        "harp"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "h_neon",
+      "kind": "track",
+      "title": "Neon Psalm",
+      "artistCredit": "Velvet Arcade",
+      "release": {
+        "value": "1993-03-15",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_neon"
+      },
+      "genres": [
+        "alternative",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "h_dial",
+      "kind": "track",
+      "title": "Dial Tone Heart",
+      "artistCredit": "June Okafor-Lind",
+      "release": {
+        "value": "1999-05-20",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_dial"
+      },
+      "genres": [
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "h_ghost",
+      "kind": "track",
+      "title": "Ghost Frequencies",
+      "artistCredit": "Static Garden",
+      "release": {
+        "value": "2004-10-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_ghost"
+      },
+      "genres": [
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_glass",
+      "kind": "track",
+      "title": "Glass Harbor",
+      "artistCredit": "Mara Quell",
+      "release": {
+        "value": "2019-02-08",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_glass"
+      },
+      "genres": [
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_nightbus",
+      "kind": "track",
+      "title": "Night Bus Hymn",
+      "artistCredit": "June Okafor-Lind feat. Dashiell Rook",
+      "release": {
+        "value": "2018-11-02",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_nightbus"
+      },
+      "genres": [
+        "r&b",
+        "hip hop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_satellite",
+      "kind": "track",
+      "title": "Satellite Lullaby",
+      "artistCredit": "Static Garden",
+      "release": {
+        "value": "2019-09-27",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_satellite"
+      },
+      "genres": [
+        "electronic",
+        "ambient"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_orchard",
+      "kind": "track",
+      "title": "Orchard Static",
+      "artistCredit": "Lena Moravec",
+      "release": {
+        "value": "2020-03-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_orchard"
+      },
+      "genres": [
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_fever",
+      "kind": "track",
+      "title": "Fever Almanac",
+      "artistCredit": "Dashiell Rook",
+      "release": {
+        "value": "2020-06-19",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_fever"
+      },
+      "genres": [
+        "hip hop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_undertow",
+      "kind": "track",
+      "title": "Undertow Choir",
+      "artistCredit": "Mara Quell",
+      "release": {
+        "value": "2020-10-09",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_undertow"
+      },
+      "genres": [
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_loose",
+      "kind": "track",
+      "title": "Loose Tape No. 4",
+      "artistCredit": "Yuki Arden",
+      "release": null,
+      "releaseNote": "Self-released; the upload page shows no release date.",
+      "cover": {
+        "kind": "generated",
+        "seed": "c_loose"
+      },
+      "genres": [
+        "beat tape",
+        "instrumental"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "writer"
+      ]
+    },
+    {
+      "id": "c_ceiling",
+      "kind": "track",
+      "title": "Ceiling Fan Gospel",
+      "artistCredit": "Calla Marsh",
+      "release": {
+        "value": "2021-04-30",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_ceiling"
+      },
+      "genres": [
+        "folk",
+        "gospel"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_mercury",
+      "kind": "track",
+      "title": "Mercury Porch",
+      "artistCredit": "Moth Choir",
+      "release": {
+        "value": "2021-08-20",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_mercury"
+      },
+      "genres": [
+        "indie rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_ferry",
+      "kind": "track",
+      "title": "Last Ferry to Nowhere",
+      "artistCredit": "Odin Vale feat. Mara Quell",
+      "release": {
+        "value": "2021-11-05",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_ferry"
+      },
+      "genres": [
+        "electronic",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_quiet",
+      "kind": "track",
+      "title": "Quiet Machinery",
+      "artistCredit": "Static Garden",
+      "release": {
+        "value": "2022-02-18",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_quiet"
+      },
+      "genres": [
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_saltwater",
+      "kind": "track",
+      "title": "Saltwater Receipts",
+      "artistCredit": "Dashiell Rook & Calla Marsh",
+      "release": {
+        "value": "2022-05-06",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_saltwater"
+      },
+      "genres": [
+        "hip hop",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_hollow",
+      "kind": "track",
+      "title": "Hollow Radio",
+      "artistCredit": "Iris Vantongeren",
+      "release": {
+        "value": "2022-11-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_hollow"
+      },
+      "genres": [
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_amber",
+      "kind": "track",
+      "title": "Amber Interval",
+      "artistCredit": "Beatrix Oyelaran & Lena Moravec",
+      "release": {
+        "value": "2023-03-03",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_amber"
+      },
+      "genres": [
+        "ambient",
+        "harp"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_signal",
+      "kind": "track",
+      "title": "Signal Fire (Low Tide Version)",
+      "artistCredit": "Mara Quell",
+      "release": {
+        "value": "2023-06-16",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_signal"
+      },
+      "genres": [
+        "indie pop",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_orbit",
+      "kind": "track",
+      "title": "Orbit of Small Things",
+      "artistCredit": "Moth Choir",
+      "release": {
+        "value": "2023-09-22",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_orbit"
+      },
+      "genres": [
+        "indie rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_ghostnote",
+      "kind": "track",
+      "title": "Ghost Note Parade",
+      "artistCredit": "Tomás Echeverri-Blum",
+      "release": {
+        "value": "2024",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_ghostnote"
+      },
+      "genres": [
+        "jazz",
+        "instrumental"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_borrowed",
+      "kind": "track",
+      "title": "Borrowed Light",
+      "artistCredit": "Calla Marsh",
+      "release": {
+        "value": "2024-04-12",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_borrowed"
+      },
+      "genres": [
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_tidal",
+      "kind": "track",
+      "title": "Tidal Arithmetic",
+      "artistCredit": "Noor Halabi",
+      "release": {
+        "value": "2024-07-19",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_tidal"
+      },
+      "genres": [
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_porch",
+      "kind": "track",
+      "title": "Porchlight Standard",
+      "artistCredit": "June Okafor-Lind",
+      "release": {
+        "value": "2024-10-04",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_porch"
+      },
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_ferryback",
+      "kind": "track",
+      "title": "Ferry Back",
+      "artistCredit": "Mara Quell & Odin Vale",
+      "release": {
+        "value": "2025-02-14",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_ferryback"
+      },
+      "genres": [
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "c_undertone",
+      "kind": "track",
+      "title": "Undertone",
+      "artistCredit": "Dashiell Rook",
+      "release": {
+        "value": "2025-05-30",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_undertone"
+      },
+      "genres": [
+        "hip hop"
+      ],
+      "origin": "demo"
+    }
+  ],
+  "people": [
+    {
+      "id": "p_mara",
+      "kind": "person",
+      "name": "Mara Quell",
+      "origin": "demo",
+      "description": "Singer-songwriter."
+    },
+    {
+      "id": "p_odin",
+      "kind": "person",
+      "name": "Odin Vale",
+      "origin": "demo",
+      "description": "Producer and occasional performer."
+    },
+    {
+      "id": "p_ines",
+      "kind": "person",
+      "name": "Ines Arroyo-Weil",
+      "origin": "demo",
+      "description": "Songwriter."
+    },
+    {
+      "id": "p_june",
+      "kind": "person",
+      "name": "June Okafor-Lind",
+      "origin": "demo",
+      "description": "Vocalist and songwriter."
+    },
+    {
+      "id": "p_dash",
+      "kind": "person",
+      "name": "Dashiell Rook",
+      "origin": "demo",
+      "description": "Rapper and songwriter."
+    },
+    {
+      "id": "p_noor",
+      "kind": "person",
+      "name": "Noor Halabi",
+      "origin": "demo",
+      "description": "Producer."
+    },
+    {
+      "id": "p_lena",
+      "kind": "person",
+      "name": "Lena Moravec",
+      "origin": "demo",
+      "description": "Keyboardist and composer."
+    },
+    {
+      "id": "p_amos",
+      "kind": "person",
+      "name": "Amos Delacroix-Byrd",
+      "origin": "demo",
+      "description": "Singer and songwriter."
+    },
+    {
+      "id": "p_kit",
+      "kind": "person",
+      "name": "Kit Harrow",
+      "origin": "demo",
+      "description": "Bassist and songwriter."
+    },
+    {
+      "id": "p_sol",
+      "kind": "person",
+      "name": "Solenne Marchetti",
+      "origin": "demo",
+      "description": "Composer."
+    },
+    {
+      "id": "p_bea",
+      "kind": "person",
+      "name": "Beatrix Oyelaran",
+      "origin": "demo",
+      "description": "Harpist and composer."
+    },
+    {
+      "id": "p_wes",
+      "kind": "person",
+      "name": "Wesley Tan-Morrow",
+      "origin": "demo",
+      "description": "Recording engineer."
+    },
+    {
+      "id": "p_rafe",
+      "kind": "person",
+      "name": "Rafe Castellan",
+      "origin": "demo",
+      "description": "Producer."
+    },
+    {
+      "id": "p_iris",
+      "kind": "person",
+      "name": "Iris Vantongeren",
+      "origin": "demo",
+      "description": "Vocalist and songwriter."
+    },
+    {
+      "id": "p_tomas",
+      "kind": "person",
+      "name": "Tomás Echeverri-Blum",
+      "origin": "demo",
+      "description": "Drummer."
+    },
+    {
+      "id": "p_yuki",
+      "kind": "person",
+      "name": "Yuki Arden",
+      "origin": "demo",
+      "description": "Producer."
+    },
+    {
+      "id": "p_calla",
+      "kind": "person",
+      "name": "Calla Marsh",
+      "origin": "demo",
+      "description": "Singer and songwriter."
+    },
+    {
+      "id": "g_harbor",
+      "kind": "group",
+      "name": "The Harbor Lights",
+      "origin": "demo",
+      "description": "Soul group."
+    },
+    {
+      "id": "g_velvet",
+      "kind": "group",
+      "name": "Velvet Arcade",
+      "origin": "demo",
+      "description": "Band."
+    },
+    {
+      "id": "g_static",
+      "kind": "group",
+      "name": "Static Garden",
+      "origin": "demo",
+      "description": "Electronic duo."
+    },
+    {
+      "id": "g_moth",
+      "kind": "group",
+      "name": "Moth Choir",
+      "origin": "demo",
+      "description": "Band."
+    }
+  ],
+  "collection": [
+    {
+      "trackId": "c_glass",
+      "savedAt": "2019-04-12T21:14:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_nightbus",
+      "savedAt": "2019-07-30T01:52:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_satellite",
+      "savedAt": "2019-11-05T08:03:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_orchard",
+      "savedAt": "2020-03-21T23:40:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_fever",
+      "savedAt": "2020-08-02T17:22:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_undertow",
+      "savedAt": "2020-12-24T04:11:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_loose",
+      "savedAt": "2021-02-14T13:37:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_ceiling",
+      "savedAt": "2021-05-03T09:30:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "h_lowtide",
+      "savedAt": "2021-06-11T22:05:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_mercury",
+      "savedAt": "2021-09-02T18:48:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_ferry",
+      "savedAt": "2021-11-19T00:26:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_quiet",
+      "savedAt": "2022-03-07T07:15:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_saltwater",
+      "savedAt": "2022-06-01T19:59:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "h_dial",
+      "savedAt": "2022-09-09T02:44:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_hollow",
+      "savedAt": "2023-01-15T15:02:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_amber",
+      "savedAt": "2023-03-10T11:18:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_signal",
+      "savedAt": "2023-07-04T20:31:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_orbit",
+      "savedAt": "2023-10-30T06:49:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_ghostnote",
+      "savedAt": "2024-01-20T14:25:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_borrowed",
+      "savedAt": "2024-04-13T10:10:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_tidal",
+      "savedAt": "2024-08-08T21:00:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_porch",
+      "savedAt": "2024-12-01T16:33:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_ferryback",
+      "savedAt": "2025-02-20T12:12:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_undertone",
+      "savedAt": "2025-06-18T23:58:00Z",
+      "source": "demo"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r001",
+      "type": "samples",
+      "from": "c_glass",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The opening drum break and horn stab of “Low Tide Signal” are looped under the first verse of “Glass Harbor”. The original recording itself is used."
+      }
+    },
+    {
+      "id": "r002",
+      "type": "interpolates",
+      "from": "c_signal",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "“Signal Fire” re-sings the chorus melody and lyric of “Low Tide Signal” with new instrumentation. No audio from the 1974 recording is used, so the link is to the composition."
+      }
+    },
+    {
+      "id": "r003",
+      "type": "interpolates",
+      "from": "c_nightbus",
+      "to": "h_paper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The hook of “Night Bus Hymn” re-performs the melody of the “Paper Moons Over Ohio” chorus with rewritten lyrics."
+      }
+    },
+    {
+      "id": "r004",
+      "type": "samples",
+      "from": "c_satellite",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "A slowed harp figure from “Copper Rain” runs through the whole of “Satellite Lullaby”."
+      }
+    },
+    {
+      "id": "r005",
+      "type": "samples",
+      "from": "c_fever",
+      "to": "h_neon",
+      "evidence": {
+        "status": "disputed",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "A two-bar keyboard phrase in “Fever Almanac” closely resembles the intro of “Neon Psalm”.",
+        "caveat": "The demo liner notes credit a sample, but the demo label catalog lists no clearance and the producer described the part as replayed. Treat as unconfirmed."
+      }
+    },
+    {
+      "id": "r006",
+      "type": "samples",
+      "from": "c_loose",
+      "to": "h_brass",
+      "evidence": {
+        "status": "undocumented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "A fan post says the horn loop in “Loose Tape No. 4” comes from “Brass for the Weary”.",
+        "caveat": "Only a fictional forum post names this sample. There are no liner notes or clearance records in the demo data."
+      }
+    },
+    {
+      "id": "r007",
+      "type": "interpolates",
+      "from": "c_ceiling",
+      "to": "h_sundial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The verse melody of “Ceiling Fan Gospel” is adapted from the main theme of “Sundial Waltz”, moved into 4/4."
+      }
+    },
+    {
+      "id": "r008",
+      "type": "samples",
+      "from": "c_quiet",
+      "to": "h_ghost",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Static Garden sample their own 2004 recording: a reversed vocal from “Ghost Frequencies” becomes the pad in “Quiet Machinery”."
+      }
+    },
+    {
+      "id": "r009",
+      "type": "samples",
+      "from": "c_saltwater",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The guitar intro of “Glass Harbor” is chopped into the beat of “Saltwater Receipts”. The sample passes through “Glass Harbor”, which itself samples “Low Tide Signal”."
+      }
+    },
+    {
+      "id": "r010",
+      "type": "samples",
+      "from": "c_borrowed",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "A single plucked harp chord from “Copper Rain” is pitched down and repeated in the bridge of “Borrowed Light”."
+      }
+    },
+    {
+      "id": "r011",
+      "type": "interpolates",
+      "from": "c_porch",
+      "to": "h_sundial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The piano introduction of “Porchlight Standard” quotes the first eight bars of the “Sundial Waltz” theme."
+      }
+    },
+    {
+      "id": "r012",
+      "type": "samples",
+      "from": "c_undertone",
+      "to": "h_dial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The vocal run at the end of “Dial Tone Heart” is sampled and looped as the hook of “Undertone”. June Okafor-Lind is also credited as a writer."
+      }
+    },
+    {
+      "id": "r013",
+      "type": "credit",
+      "from": "g_harbor",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Harbor Lights is credited as primary artist on “Low Tide Signal”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r014",
+      "type": "credit",
+      "from": "g_harbor",
+      "to": "h_brass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Harbor Lights is credited as primary artist on “Brass for the Weary”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r015",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "h_paper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd is credited as primary artist on “Paper Moons Over Ohio”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r016",
+      "type": "credit",
+      "from": "p_sol",
+      "to": "h_sundial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Solenne Marchetti is credited as primary artist on “Sundial Waltz”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r017",
+      "type": "credit",
+      "from": "p_bea",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Beatrix Oyelaran is credited as primary artist on “Copper Rain”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r018",
+      "type": "credit",
+      "from": "g_velvet",
+      "to": "h_neon",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Velvet Arcade is credited as primary artist on “Neon Psalm”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r019",
+      "type": "credit",
+      "from": "p_june",
+      "to": "h_dial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as primary artist on “Dial Tone Heart”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r020",
+      "type": "credit",
+      "from": "g_static",
+      "to": "h_ghost",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Static Garden is credited as primary artist on “Ghost Frequencies”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r021",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as primary artist on “Glass Harbor”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r022",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as primary artist on “Night Bus Hymn”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r023",
+      "type": "credit",
+      "from": "g_static",
+      "to": "c_satellite",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Static Garden is credited as primary artist on “Satellite Lullaby”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r024",
+      "type": "credit",
+      "from": "p_lena",
+      "to": "c_orchard",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Lena Moravec is credited as primary artist on “Orchard Static”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r025",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_fever",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as primary artist on “Fever Almanac”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r026",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_undertow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as primary artist on “Undertow Choir”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r027",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_loose",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as primary artist on “Loose Tape No. 4”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r028",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_ceiling",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as primary artist on “Ceiling Fan Gospel”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r029",
+      "type": "credit",
+      "from": "g_moth",
+      "to": "c_mercury",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Moth Choir is credited as primary artist on “Mercury Porch”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r030",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as primary artist on “Last Ferry to Nowhere”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r031",
+      "type": "credit",
+      "from": "g_static",
+      "to": "c_quiet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Static Garden is credited as primary artist on “Quiet Machinery”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r032",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as primary artist on “Saltwater Receipts”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r033",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as primary artist on “Saltwater Receipts”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r034",
+      "type": "credit",
+      "from": "p_iris",
+      "to": "c_hollow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Iris Vantongeren is credited as primary artist on “Hollow Radio”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r035",
+      "type": "credit",
+      "from": "p_bea",
+      "to": "c_amber",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Beatrix Oyelaran is credited as primary artist on “Amber Interval”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r036",
+      "type": "credit",
+      "from": "p_lena",
+      "to": "c_amber",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Lena Moravec is credited as primary artist on “Amber Interval”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r037",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as primary artist on “Signal Fire (Low Tide Version)”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r038",
+      "type": "credit",
+      "from": "g_moth",
+      "to": "c_orbit",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Moth Choir is credited as primary artist on “Orbit of Small Things”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r039",
+      "type": "credit",
+      "from": "p_tomas",
+      "to": "c_ghostnote",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is credited as primary artist on “Ghost Note Parade”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r040",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_borrowed",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as primary artist on “Borrowed Light”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r041",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_tidal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as primary artist on “Tidal Arithmetic”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r042",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_porch",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as primary artist on “Porchlight Standard”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r043",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_ferryback",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as primary artist on “Ferry Back”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r044",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferryback",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as primary artist on “Ferry Back”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r045",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_undertone",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as primary artist on “Undertone”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r046",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as featured artist on “Night Bus Hymn”."
+      },
+      "role": "featured artist"
+    },
+    {
+      "id": "r047",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as featured artist on “Last Ferry to Nowhere”."
+      },
+      "role": "featured artist"
+    },
+    {
+      "id": "r048",
+      "type": "credit",
+      "from": "p_tomas",
+      "to": "c_mercury",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is credited as drums on “Mercury Porch”."
+      },
+      "role": "drums"
+    },
+    {
+      "id": "r049",
+      "type": "credit",
+      "from": "p_lena",
+      "to": "c_quiet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Lena Moravec is credited as keyboards on “Quiet Machinery”."
+      },
+      "role": "keyboards"
+    },
+    {
+      "id": "r050",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "h_neon",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Neon Psalm”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r051",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "h_dial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Dial Tone Heart”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r052",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "h_ghost",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Ghost Frequencies”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r053",
+      "type": "credit",
+      "from": "p_bea",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Beatrix Oyelaran is credited as producer on “Copper Rain”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r054",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Glass Harbor”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r055",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Night Bus Hymn”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r056",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_satellite",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Satellite Lullaby”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r057",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_orchard",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Orchard Static”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r058",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "c_fever",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Fever Almanac”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r059",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_undertow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Undertow Choir”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r060",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_loose",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Loose Tape No. 4”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r061",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_ceiling",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Ceiling Fan Gospel”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r062",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_mercury",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Mercury Porch”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r063",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Last Ferry to Nowhere”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r064",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_quiet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Quiet Machinery”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r065",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Saltwater Receipts”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r066",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "c_hollow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Hollow Radio”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r067",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_amber",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Amber Interval”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r068",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Signal Fire (Low Tide Version)”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r069",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_orbit",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Orbit of Small Things”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r070",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "c_ghostnote",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Ghost Note Parade”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r071",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_borrowed",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Borrowed Light”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r072",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_tidal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Tidal Arithmetic”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r073",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_porch",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Porchlight Standard”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r074",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferryback",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Ferry Back”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r075",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_undertone",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Undertone”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r076",
+      "type": "credit",
+      "from": "p_wes",
+      "to": "c_orchard",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Wesley Tan-Morrow is credited as recording engineer on “Orchard Static”."
+      },
+      "role": "recording engineer"
+    },
+    {
+      "id": "r077",
+      "type": "credit",
+      "from": "p_wes",
+      "to": "c_tidal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Wesley Tan-Morrow is credited as recording engineer on “Tidal Arithmetic”."
+      },
+      "role": "recording engineer"
+    },
+    {
+      "id": "r078",
+      "type": "credit",
+      "from": "p_sol",
+      "to": "h_sundial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Solenne Marchetti is credited as writer on “Sundial Waltz”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r079",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "h_paper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd is credited as writer on “Paper Moons Over Ohio”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r080",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd is credited as writer on “Low Tide Signal”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r081",
+      "type": "credit",
+      "from": "p_kit",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Kit Harrow is credited as writer on “Low Tide Signal”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r082",
+      "type": "credit",
+      "from": "p_bea",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Beatrix Oyelaran is credited as writer on “Copper Rain”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r083",
+      "type": "credit",
+      "from": "p_iris",
+      "to": "h_neon",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Iris Vantongeren is credited as writer on “Neon Psalm”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r084",
+      "type": "credit",
+      "from": "p_tomas",
+      "to": "h_neon",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is credited as writer on “Neon Psalm”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r085",
+      "type": "credit",
+      "from": "p_june",
+      "to": "h_dial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as writer on “Dial Tone Heart”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r086",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Glass Harbor”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r087",
+      "type": "credit",
+      "from": "p_ines",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Ines Arroyo-Weil is credited as writer on “Glass Harbor”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r088",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_undertow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Undertow Choir”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r089",
+      "type": "credit",
+      "from": "p_ines",
+      "to": "c_undertow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Ines Arroyo-Weil is credited as writer on “Undertow Choir”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r090",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_fever",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as writer on “Fever Almanac”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r091",
+      "type": "credit",
+      "from": "p_iris",
+      "to": "c_hollow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Iris Vantongeren is credited as writer on “Hollow Radio”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r092",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as writer on “Last Ferry to Nowhere”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r093",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Last Ferry to Nowhere”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r094",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as writer on “Saltwater Receipts”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r095",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as writer on “Saltwater Receipts”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r096",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Saltwater Receipts”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r097",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_borrowed",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as writer on “Borrowed Light”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r098",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_porch",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as writer on “Porchlight Standard”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r099",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_undertone",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as writer on “Undertone”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r100",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_undertone",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as writer on “Undertone”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r101",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as writer on “Night Bus Hymn”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r102",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as writer on “Night Bus Hymn”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r103",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd receives a writing credit on “Night Bus Hymn” because it interpolates his composition “Paper Moons Over Ohio”."
+      },
+      "role": "writer (interpolated composition)"
+    },
+    {
+      "id": "r104",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Signal Fire (Low Tide Version)”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r105",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited as a writer because “Signal Fire” re-performs the “Low Tide Signal” composition he co-wrote."
+      },
+      "role": "writer (interpolated composition)"
+    },
+    {
+      "id": "r106",
+      "type": "credit",
+      "from": "p_kit",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited as a writer because “Signal Fire” re-performs the “Low Tide Signal” composition he co-wrote."
+      },
+      "role": "writer (interpolated composition)"
+    },
+    {
+      "id": "r107",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_ceiling",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as writer on “Ceiling Fan Gospel”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r108",
+      "type": "credit",
+      "from": "p_sol",
+      "to": "c_ceiling",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Solenne Marchetti is credited as a composer because the verse melody adapts her “Sundial Waltz”."
+      },
+      "role": "composer (interpolated composition)"
+    },
+    {
+      "id": "r109",
+      "type": "credit",
+      "from": "p_sol",
+      "to": "c_porch",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited because the piano introduction quotes her “Sundial Waltz” theme."
+      },
+      "role": "composer (interpolated composition)"
+    },
+    {
+      "id": "r110",
+      "type": "member_of",
+      "from": "p_amos",
+      "to": "g_harbor",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd is listed as a member of The Harbor Lights (1969–1978)."
+      },
+      "role": "1969–1978"
+    },
+    {
+      "id": "r111",
+      "type": "member_of",
+      "from": "p_kit",
+      "to": "g_harbor",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Kit Harrow is listed as a member of The Harbor Lights (1969–1978)."
+      },
+      "role": "1969–1978"
+    },
+    {
+      "id": "r112",
+      "type": "member_of",
+      "from": "p_iris",
+      "to": "g_velvet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Iris Vantongeren is listed as a member of Velvet Arcade (1990–1997)."
+      },
+      "role": "1990–1997"
+    },
+    {
+      "id": "r113",
+      "type": "member_of",
+      "from": "p_tomas",
+      "to": "g_velvet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is listed as a member of Velvet Arcade (1990–1997)."
+      },
+      "role": "1990–1997"
+    },
+    {
+      "id": "r114",
+      "type": "member_of",
+      "from": "p_noor",
+      "to": "g_static",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is listed as a member of Static Garden (2002–present)."
+      },
+      "role": "2002–present"
+    },
+    {
+      "id": "r115",
+      "type": "member_of",
+      "from": "p_lena",
+      "to": "g_static",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Lena Moravec is listed as a member of Static Garden (2002–present)."
+      },
+      "role": "2002–present"
+    },
+    {
+      "id": "r116",
+      "type": "member_of",
+      "from": "p_calla",
+      "to": "g_moth",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is listed as a member of Moth Choir (2020–present)."
+      },
+      "role": "2020–present"
+    },
+    {
+      "id": "r117",
+      "type": "member_of",
+      "from": "p_yuki",
+      "to": "g_moth",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is listed as a member of Moth Choir (2020–present)."
+      },
+      "role": "2020–present"
+    },
+    {
+      "id": "r118",
+      "type": "member_of",
+      "from": "p_tomas",
+      "to": "g_moth",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is listed as a member of Moth Choir (2020–present)."
+      },
+      "role": "2020–present"
+    },
+    {
+      "id": "r119",
+      "type": "collaboration",
+      "from": "p_mara",
+      "to": "p_odin",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited together on “Glass Harbor”, “Undertow Choir”, “Last Ferry to Nowhere”, “Signal Fire (Low Tide Version)” and “Ferry Back”. This records shared credits only; it says nothing about their personal relationship."
+      },
+      "role": "5 shared credits"
+    },
+    {
+      "id": "r120",
+      "type": "collaboration",
+      "from": "p_dash",
+      "to": "p_rafe",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited together on “Fever Almanac” and “Saltwater Receipts”. Shared credits only."
+      },
+      "role": "2 shared credits"
+    }
+  ]
+}
