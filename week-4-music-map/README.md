@@ -21,25 +21,29 @@ listening history.
 
 ## The journey
 
-1. **My timeline.** A side-scrolling canvas, one section per year saved, like a
-   paper timeline. Covers sit in a thin strip along the axis. Hover (or, on a
-   phone, swipe so they pass the middle) and nearby covers bloom into a collage,
-   then settle back into the line. Scroll, drag, or jump with the year buttons.
-2. **Step into a year.** Clicking a cover opens its year. The cover flies into
-   place as the featured track, with the year's collage beside it. Write what was
-   going on that year ("senior year", "moved cities"), then add, edit or delete
-   thoughts about the year or about one track. Only you write these words;
-   nothing is guessed from listening data.
-3. **See where the song comes from.** From the year, or by clicking a cover in the
-   **Historical timeline** (the same canvas ordered by release year, older years
-   grouped by decade, gaps and unknown dates marked), open the track's connected
-   history: samples, interpolations and credits, each with its source.
-4. **Read and follow connections.** Select a node to read the relationship in plain
-   words, with its direction, explanation and evidence. Select it again to follow
-   it. The path bar keeps every step, with *Back* and *Return*.
-5. **Return and listen.** When authorized playback exists (Spotify's player), you
-   can listen again and answer *What do you notice now?* if you like. *Close*
-   takes you back into the year you came from.
+The top bar holds only **Personal Timeline ● Historical Timeline** and a search
+box. Everything else (Spotify, your name, storage, journeys, data source) lives in
+the **⋯** menu.
+
+1. **Personal Timeline.** A horizontal axis with a tick per year, like the paper
+   timeline. Each year's covers are packed into a collage column under the axis.
+   Hover a year and a magnifier box above the axis shows it at a readable size,
+   joined to its stretch of the axis by two lines. Scroll or drag sideways; the box
+   follows the year in the middle.
+2. **Pick a cover.** The magnifier pins: the cover grows, and beside it are
+   **1 · your memories** (add, edit, delete), **2 · date added**, and
+   **3 · playlists it's in** (playlists you made on Spotify). From there, *Step into
+   the year* opens the full year view with its caption and thoughts.
+3. **Historical Timeline.** The same canvas by release year. Older years are
+   grouped by decade, with gaps and unknown dates marked. Picking a cover (or *See
+   where it comes from*) puts the song on a release-date axis. Its samples,
+   interpolations and people branch off it, and people branch on to a few of their
+   other works. A **blurb** box explains the song using only its stored, sourced
+   relationships.
+4. **Read and follow connections.** Select a node and the blurb shows how it's
+   linked, with its evidence. Select it again, or press *Follow*, to move there. The
+   path bar keeps every step, with *Back* and *Return*. *Close* takes you back to
+   the cover you started from.
 
 ## Assignment mapping (Shared Minds)
 
@@ -80,7 +84,9 @@ Connections** in the app (they're stored in this browser).
 1. Create an app at <https://developer.spotify.com/dashboard> and choose Web API.
 2. Add the Redirect URI `http://127.0.0.1:5173/` (and the deployed `…/week-4-music-map/site/` address). Spotify no longer
    accepts `localhost`, which is why the dev server binds to `127.0.0.1`.
-3. Put the Client ID in `VITE_SPOTIFY_CLIENT_ID`, or paste it in the app.
+3. Put the Client ID in `VITE_SPOTIFY_CLIENT_ID`, or paste it in the app (**⋯ → Set up Spotify**).
+   The app asks only for read access: saved tracks (`user-library-read`) and your
+   playlists (`playlist-read-private`, `playlist-read-collaborative`).
 4. In Development Mode, add each classmate's Spotify account under *User
    Management*, or their requests will be refused (403).
 
@@ -116,7 +122,7 @@ index.html                    page shell
 site/                         built app (committed)
 src/
   main.ts                     app state, navigation, panel, search, replay
-  canvas.ts                   side-scrolling timeline canvas with the hover bloom
+  canvas.ts                   timeline canvas: year columns, magnifier box, pinned cover
   network.ts                  local network, both layouts, history axis
   graph.ts                    graph index, relationship sentences, date formatting
   journey.ts                  sequence recording and scene descriptions

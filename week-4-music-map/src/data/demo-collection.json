@@ -6802,5 +6802,185 @@
         "explanation": "Colm Holloway is credited as primary artist on “Amber Satellites”."
       }
     }
+  ],
+  "playlists": [
+    {
+      "id": "pl0",
+      "name": "late night drives",
+      "trackIds": [
+        "f_t017",
+        "f_t014",
+        "f_t037",
+        "f_t045",
+        "f_t097",
+        "f_t046",
+        "c_glass",
+        "f_t012",
+        "f_t060",
+        "f_t093",
+        "f_t105",
+        "f_t106",
+        "f_t054",
+        "f_t032",
+        "f_t008",
+        "h_lowtide"
+      ]
+    },
+    {
+      "id": "pl1",
+      "name": "senior year",
+      "trackIds": [
+        "c_orchard",
+        "f_t108",
+        "c_nightbus",
+        "f_t092",
+        "c_ferry",
+        "f_t042",
+        "f_t027",
+        "f_t012",
+        "c_glass"
+      ]
+    },
+    {
+      "id": "pl2",
+      "name": "rainy walks",
+      "trackIds": [
+        "f_t019",
+        "f_t000",
+        "f_t056",
+        "c_ceiling",
+        "f_t084",
+        "f_t051",
+        "c_ferryback",
+        "f_t089",
+        "f_t031",
+        "f_t065",
+        "f_t001",
+        "f_t023",
+        "f_t071",
+        "c_nightbus",
+        "f_t093",
+        "f_t070",
+        "f_t078",
+        "f_t049",
+        "f_t058",
+        "f_t044",
+        "f_t008",
+        "f_t028"
+      ]
+    },
+    {
+      "id": "pl3",
+      "name": "gym (don't judge)",
+      "trackIds": [
+        "f_t079",
+        "f_t100",
+        "f_t020",
+        "f_t098",
+        "f_t031",
+        "f_t038",
+        "f_t019",
+        "h_dial",
+        "c_quiet",
+        "f_t004",
+        "c_loose",
+        "c_signal",
+        "f_t046",
+        "f_t009",
+        "f_t044",
+        "f_t109",
+        "f_t067",
+        "f_t050",
+        "c_fever",
+        "c_ferryback",
+        "f_t000"
+      ]
+    },
+    {
+      "id": "pl4",
+      "name": "sunday mornings",
+      "trackIds": [
+        "h_dial",
+        "f_t042",
+        "f_t051",
+        "f_t027",
+        "f_t061",
+        "f_t041",
+        "f_t088",
+        "f_t069",
+        "f_t049",
+        "c_ghostnote",
+        "c_signal"
+      ]
+    },
+    {
+      "id": "pl5",
+      "name": "songs for mara",
+      "trackIds": [
+        "f_t080",
+        "f_t108",
+        "f_t007",
+        "c_nightbus",
+        "f_t079",
+        "c_quiet",
+        "f_t063",
+        "f_t047",
+        "f_t078",
+        "f_t010",
+        "c_hollow",
+        "c_tidal",
+        "c_fever",
+        "f_t015",
+        "f_t002",
+        "f_t000",
+        "f_t012",
+        "f_t009",
+        "f_t065",
+        "f_t020",
+        "f_t031",
+        "f_t085"
+      ]
+    },
+    {
+      "id": "pl6",
+      "name": "study hall",
+      "trackIds": [
+        "f_t006",
+        "c_satellite",
+        "f_t026",
+        "f_t011",
+        "f_t005",
+        "f_t014",
+        "f_t075",
+        "f_t051",
+        "f_t108",
+        "f_t081",
+        "f_t016",
+        "f_t054",
+        "f_t055",
+        "f_t033",
+        "f_t001",
+        "f_t018",
+        "f_t068",
+        "c_porch",
+        "c_undertow"
+      ]
+    },
+    {
+      "id": "pl7",
+      "name": "summer 2023",
+      "trackIds": [
+        "c_undertow",
+        "f_t055",
+        "f_t067",
+        "f_t077",
+        "f_t074",
+        "f_t090",
+        "h_dial",
+        "f_t003",
+        "f_t060",
+        "f_t052"
+      ]
+    }
   ]
 }

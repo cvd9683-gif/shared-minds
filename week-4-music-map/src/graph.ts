@@ -8,6 +8,7 @@ import type {
   Node,
   PartialDate,
   Person,
+  Playlist,
   Relationship,
   Track,
 } from './types';
@@ -24,6 +25,8 @@ export class MusicGraph {
   readonly people = new Map<string, Person>();
   readonly rels = new Map<string, Relationship>();
   readonly collection = new Map<string, CollectionEntry>();
+  readonly playlists = new Map<string, Playlist>();
+  playlistsNote = '';
   private adjacency = new Map<string, Set<string>>();
   datasetName = '';
   fictional = true;
@@ -36,6 +39,8 @@ export class MusicGraph {
     data.tracks?.forEach((t) => this.tracks.set(t.id, t));
     data.people?.forEach((p) => this.people.set(p.id, p));
     data.collection?.forEach((c) => this.collection.set(c.trackId, c));
+    data.playlists?.forEach((p) => this.playlists.set(p.id, p));
+    if (data.playlistsNote !== undefined) this.playlistsNote = data.playlistsNote;
     data.relationships?.forEach((r) => {
       if (this.rels.has(r.id)) return;
       this.rels.set(r.id, r);
@@ -49,6 +54,8 @@ export class MusicGraph {
     this.people.clear();
     this.rels.clear();
     this.collection.clear();
+    this.playlists.clear();
+    this.playlistsNote = '';
     this.adjacency.clear();
   }
 
@@ -64,6 +71,11 @@ export class MusicGraph {
 
   savedAt(trackId: string): string | null {
     return this.collection.get(trackId)?.savedAt ?? null;
+  }
+
+  /** Playlists (created by the listener) that contain this track. */
+  playlistsFor(trackId: string): Playlist[] {
+    return [...this.playlists.values()].filter((p) => p.trackIds.includes(trackId));
   }
 
   inCollection(trackId: string): boolean {

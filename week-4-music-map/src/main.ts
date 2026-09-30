@@ -1,5 +1,5 @@
 // Music Map - Main application
-// Orchestrates the two date systems (My timeline / Music history), the path a
+// Orchestrates the two date systems (Personal Timeline / Historical Timeline), the path a
 // listener follows through relationships, journey recording, storage, Spotify and
 // the detail panel.
 
@@ -73,11 +73,14 @@ class MusicMapApp {
   private importStatus = '';
   private flash = '';
   private playerLoaded = new Set<string>();
-  /** The year experience opened from My timeline. */
+  /** The year experience opened from Personal Timeline. */
   private yearOpen: { year: string; featuredId: string | null } | null = null;
   /** Where "Close" on the history network should return to, if opened from a year. */
   private returnYear: { year: string; featuredId: string | null } | null = null;
   private editingThought: string | null = null;
+  /** Cover picked on Personal Timeline (grown in place with its callout). */
+  private picked: string | null = null;
+  private returnPick: string | null = null;
   private panelPinned = false;
   private canvasKey = '';
 
@@ -99,10 +102,11 @@ class MusicMapApp {
 
   constructor() {
     this.canvas = new TimelineCanvas(document.getElementById('canvas')!, document.getElementById('yearnav')!, {
-      // My timeline opens the year a track was saved in; the Historical timeline opens its connections.
-      onSelect: (id, key, rect) => (this.view === 'timeline' ? this.openYear(key, id, rect) : this.selectOrigin(id, rect)),
+      // Personal Timeline grows the cover in place; the Historical timeline opens what it's connected to.
+      onSelect: (id, _key, rect) => (this.view === 'timeline' ? this.pickTile(id) : this.selectOrigin(id, rect)),
       onHover: (id, el) => this.showTooltip(id, el),
       onCaption: (key) => this.openYear(key, null),
+      onBackground: () => this.unpick(),
     });
     this.network = new NetworkView(
       document.getElementById('nodes')!,
@@ -177,9 +181,16 @@ class MusicMapApp {
     this.canvasKey = key;
     const history = this.view === 'history';
     this.canvas.setSections(history ? this.releaseSections() : this.savedSections(), history ? 'release' : 'saved');
+    // Rebuilding clears the picked cover; put it back if it's still on this timeline.
+    if (this.picked && !history && this.graph.inCollection(this.picked)) {
+      const t = this.graph.tracks.get(this.picked)!;
+      this.canvas.setSelected(this.picked, this.calloutHtml(this.picked), `${t.title} by ${t.artistCredit}`);
+    } else {
+      this.picked = null;
+    }
   }
 
-  /** My timeline: one section per year saved, captioned by the explorer. */
+  /** Personal Timeline: one section per year saved, captioned by the explorer. */
   private savedSections(): CanvasSection[] {
     const byYear = new Map<string, CanvasSection>();
     for (const { entry, track } of this.graph.savedTracks(this.hidden)) {
@@ -265,13 +276,19 @@ class MusicMapApp {
     this.importStatus = 'Importing saved tracks from Spotify…';
     this.renderPanel();
     try {
-      const data = await spotify.importSavedTracks(300, (n, total) => {
+      const data = await spotify.importSavedTracks(1000, (n, total) => {
         this.importStatus = `Importing saved tracks from Spotify… ${n} of ${total}`;
         this.renderPanel();
       });
+      const { playlists, note } = await spotify.importPlaylists((n, total) => {
+        this.importStatus = `Reading your playlists… ${n} of ${total}`;
+        this.renderPanel();
+      });
+      data.playlists = playlists;
+      data.playlistsNote = note;
       localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
       localStorage.setItem(DATASET_KEY, 'spotify');
-      this.importStatus = `Imported ${data.collection?.length ?? 0} saved tracks with the dates you saved them.`;
+      this.importStatus = `Imported ${data.collection?.length ?? 0} saved tracks with the dates you saved them, and ${playlists.length} of your playlists.${note ? ` ${note}` : ''}`;
       this.loadDataset();
       this.renderChrome();
       this.render();
@@ -327,6 +344,7 @@ class MusicMapApp {
       if (e.key === 'Escape') {
         if (this.inspected) this.inspect(null);
         else if (this.yearOpen && !this.path.length) this.closeYear();
+        else if (this.picked && !this.path.length) this.unpick();
         else if (this.path.length > 1) this.back();
         else if (this.path.length) this.closeSelection();
       } else if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft')) {
@@ -347,22 +365,26 @@ class MusicMapApp {
     this.pathbar.addEventListener('click', onAction);
     this.panel.addEventListener('input', (e) => this.handleInput(e.target as HTMLElement));
     this.panel.addEventListener('focusout', (e) => this.handleCommit(e.target as HTMLElement));
-    this.yearEl.addEventListener('click', onAction);
-    this.yearEl.addEventListener('focusout', (e) => this.handleCommit(e.target as HTMLElement));
-    this.yearEl.addEventListener('keydown', (e) => {
-      const t = e.target as HTMLElement;
-      if (e.key === 'Enter' && t.id === 'year-label') t.blur();
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && t.matches('textarea')) {
+    document.getElementById('blurb')!.addEventListener('click', onAction);
+    // The year view and the picked-cover callout share actions and forms.
+    for (const host of [this.yearEl, document.getElementById('canvas')!]) {
+      host.addEventListener('click', onAction);
+      host.addEventListener('focusout', (e) => this.handleCommit(e.target as HTMLElement));
+      host.addEventListener('keydown', (e) => {
+        const t = e.target as HTMLElement;
+        if (e.key === 'Enter' && t.id === 'year-label') t.blur();
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && t.matches('textarea')) {
+          e.preventDefault();
+          t.closest('form')?.requestSubmit();
+        }
+      });
+      host.addEventListener('submit', (e) => {
         e.preventDefault();
-        t.closest('form')?.requestSubmit();
-      }
-    });
-    this.yearEl.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const form = e.target as HTMLFormElement;
-      if (form.dataset.form === 'thought') this.addThought(form);
-      if (form.dataset.form === 'edit-thought') this.saveThoughtEdit(form);
-    });
+        const form = e.target as HTMLFormElement;
+        if (form.dataset.form === 'thought') void this.addThought(form);
+        if (form.dataset.form === 'edit-thought') void this.saveThoughtEdit(form);
+      });
+    }
     document.getElementById('panel-btn')!.addEventListener('click', () => {
       this.panelPinned = !this.panelPinned;
       this.render();
@@ -387,6 +409,31 @@ class MusicMapApp {
       this.render();
     });
 
+    // One quiet menu holds everything that isn't the timeline or search.
+    const menuBtn = document.getElementById('menu-btn')!;
+    const menu = document.getElementById('menu')!;
+    const setMenu = (open: boolean) => {
+      menu.hidden = !open;
+      menuBtn.setAttribute('aria-expanded', `${open}`);
+      if (open) menu.querySelector<HTMLElement>('button')?.focus();
+    };
+    menuBtn.addEventListener('click', () => setMenu(menu.hidden));
+    menu.addEventListener('click', (e) => (e.target as HTMLElement).closest('button') && setMenu(false));
+    document.addEventListener('click', (e) => {
+      if (!menu.hidden && !(e.target as HTMLElement).closest('.mm-menu')) setMenu(false);
+    });
+    menu.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setMenu(false);
+        menuBtn.focus();
+      }
+    });
+    document.getElementById('demo-tag')!.addEventListener('click', () => {
+      this.showData = true;
+      this.renderPanel();
+      this.panel.focus();
+    });
     document.getElementById('explorer-btn')!.addEventListener('click', () => this.changeExplorer());
     document.getElementById('storage-btn')!.addEventListener('click', () => this.openSettings());
     document.getElementById('dataset-badge')!.addEventListener('click', () => {
@@ -489,8 +536,9 @@ class MusicMapApp {
     if (view === this.view) return;
     this.view = view;
     this.yearOpen = null;
+    this.picked = null;
     this.record('view', this.currentId);
-    this.say(view === 'timeline' ? 'My timeline: ordered by the date each track was saved.' : 'Music history: recordings ordered by release date.');
+    this.say(view === 'timeline' ? 'Personal Timeline: ordered by the date each track was saved.' : 'Historical Timeline: recordings ordered by release date.');
     this.render();
   }
 
@@ -582,12 +630,20 @@ class MusicMapApp {
     this.path = [];
     this.inspected = null;
     this.reflecting = false;
-    // Opened from a year? Go back into that year, in My timeline.
+    // Opened from a year? Go back into that year, in Personal Timeline.
     if (this.returnYear) {
       this.view = 'timeline';
       this.yearOpen = this.returnYear;
       this.returnYear = null;
       this.render();
+      return;
+    }
+    if (this.returnPick) {
+      const id = this.returnPick;
+      this.returnPick = null;
+      this.view = 'timeline';
+      this.render();
+      this.pickTile(id);
       return;
     }
     this.render();
@@ -610,7 +666,7 @@ class MusicMapApp {
       .map(({ entry, track }) => ({ track, savedAt: entry.savedAt }));
   }
 
-  /** Opens a year from My timeline. The clicked cover flies into place as the featured track. */
+  /** Opens a year from Personal Timeline. The clicked cover flies into place as the featured track. */
   private openYear(year: string, featuredId: string | null, from?: DOMRect): void {
     const tracks = this.yearTracks(year);
     if (!tracks.length) return;
@@ -684,41 +740,156 @@ class MusicMapApp {
     }
   }
 
+  /** Thoughts live under the year a track was saved in; the callout and the year view share them. */
   private async addThought(form: HTMLFormElement): Promise<void> {
-    if (!this.yearOpen) return;
+    const year = form.dataset.year;
     const text = (form.querySelector('textarea') as HTMLTextAreaElement).value.trim();
-    if (!text) return;
+    if (!year || !text) return;
     const about = form.querySelector<HTMLInputElement>('input[name="about"]');
-    const data = this.yearData(this.yearOpen.year);
+    const trackId = form.dataset.track ?? (about?.checked ? this.yearOpen?.featuredId ?? undefined : undefined);
     const thought: Thought = {
       id: `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
       text,
       at: new Date().toISOString(),
-      ...(about?.checked && this.yearOpen.featuredId ? { trackId: this.yearOpen.featuredId } : {}),
+      ...(trackId ? { trackId } : {}),
     };
-    data.thoughts.push(thought);
-    if (await this.saveYear(this.yearOpen.year)) this.say('Thought saved.');
-    this.renderYear();
-    this.yearEl.querySelector<HTMLTextAreaElement>('#thought-text')?.focus();
+    this.yearData(year).thoughts.push(thought);
+    if (await this.saveYear(year)) this.say('Memory saved.');
+    this.refreshThoughtViews();
+    document.querySelector<HTMLTextAreaElement>('#thought-text')?.focus();
   }
 
   private async saveThoughtEdit(form: HTMLFormElement): Promise<void> {
-    if (!this.yearOpen || !this.editingThought) return;
-    const data = this.yearData(this.yearOpen.year);
-    const t = data.thoughts.find((x) => x.id === this.editingThought);
+    const year = form.dataset.year;
+    if (!year || !this.editingThought) return;
+    const t = this.yearData(year).thoughts.find((x) => x.id === this.editingThought);
     const text = (form.querySelector('textarea') as HTMLTextAreaElement).value.trim();
     if (t && text) t.text = text;
     this.editingThought = null;
-    await this.saveYear(this.yearOpen.year);
-    this.renderYear();
+    await this.saveYear(year);
+    this.refreshThoughtViews();
   }
 
-  private async deleteThought(id: string): Promise<void> {
-    if (!this.yearOpen || !confirm('Delete this thought?')) return;
-    const data = this.yearData(this.yearOpen.year);
+  private async deleteThought(id: string, year?: string): Promise<void> {
+    if (!year || !confirm('Delete this?')) return;
+    const data = this.yearData(year);
     data.thoughts = data.thoughts.filter((t) => t.id !== id);
-    await this.saveYear(this.yearOpen.year);
+    await this.saveYear(year);
+    this.refreshThoughtViews();
+  }
+
+  private refreshThoughtViews(): void {
     this.renderYear();
+    if (this.picked) this.canvas.updateCallout(this.calloutHtml(this.picked));
+  }
+
+  // ---- Picked cover (Personal Timeline) -----------------------------------------------
+
+  /** Picks a cover on Personal Timeline: it grows in place and a callout opens beside it. */
+  private pickTile(id: string): void {
+    const t = this.graph.tracks.get(id);
+    if (!t) return;
+    this.picked = id;
+    this.editingThought = null;
+    if (this.recorder.journey) this.record('year', id, undefined, this.savedYear(id) ?? undefined);
+    this.canvas.setSelected(id, this.calloutHtml(id), `${t.title} by ${t.artistCredit}`);
+    this.say(`${t.title}. Saved ${formatSaved(this.graph.savedAt(id))}.`);
+    requestAnimationFrame(() => this.canvas.calloutEl.querySelector<HTMLElement>('h3')?.focus({ preventScroll: true }));
+  }
+
+  private unpick(): void {
+    const id = this.picked;
+    this.picked = null;
+    this.editingThought = null;
+    this.canvas.setSelected(null);
+    if (id) this.canvas.focusItem(id);
+  }
+
+  private savedYear(id: string): string | null {
+    const saved = this.graph.savedAt(id);
+    return saved ? `${new Date(saved).getFullYear()}` : null;
+  }
+
+  private thoughtList(year: string, items: Thought[], showTag: boolean): string {
+    return items
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .map((th) => {
+        if (this.editingThought === th.id) {
+          return `<li class="mm-thought is-editing"><form data-form="edit-thought" data-year="${h(year)}">
+            <label class="sr-only" for="edit-thought-text">Edit</label>
+            <textarea id="edit-thought-text" rows="3">${h(th.text)}</textarea>
+            <div class="mm-actions"><button type="submit" class="mm-btn mm-btn--primary mm-btn--small">Save</button><button type="button" class="mm-btn mm-btn--small" data-action="cancel-edit">Cancel</button></div>
+          </form></li>`;
+        }
+        const about = showTag && th.trackId ? this.graph.tracks.get(th.trackId) : undefined;
+        const tag = !showTag
+          ? ''
+          : about
+            ? `<button type="button" class="mm-thought__about" data-action="feature" data-id="${h(about.id)}"><img src="${coverUrl(about.cover, about.title)}" alt="" />${h(about.title)}</button>`
+            : `<span class="mm-thought__about is-year">About ${h(year)}</span>`;
+        return `<li class="mm-thought ${showTag && th.trackId === this.yearOpen?.featuredId ? 'is-about-featured' : ''}">
+          <p class="mm-thought__text">${h(th.text)}</p>
+          <p class="mm-thought__meta">${tag}<span>${formatSaved(th.at, true)}</span>
+            <button type="button" class="mm-link mm-small" data-action="edit-thought" data-id="${h(th.id)}">Edit</button>
+            <button type="button" class="mm-link mm-small" data-action="delete-thought" data-id="${h(th.id)}" data-year="${h(year)}">Delete</button></p>
+        </li>`;
+      })
+      .join('');
+  }
+
+  /** The callout from the sketch: 1 your memories, 2 date added, 3 playlists it's in. */
+  private calloutHtml(id: string): string {
+    const t = this.graph.tracks.get(id)!;
+    const saved = this.graph.savedAt(id);
+    const year = this.savedYear(id) ?? '';
+    const memories = (this.years[year]?.thoughts ?? []).filter((th) => th.trackId === id);
+    const playlists = this.graph.playlistsFor(id);
+    const demo = t.origin === 'demo';
+    let playlistHtml: string;
+    if (playlists.length) {
+      playlistHtml = `<ul class="mm-chips">${playlists
+        .map((p) => (p.url ? `<li><a href="${h(p.url)}" target="_blank" rel="noopener">${h(p.name)}</a></li>` : `<li><span>${h(p.name)}</span></li>`))
+        .join('')}</ul>${demo ? '<p class="mm-muted mm-small">Fictional demo playlists.</p>' : ''}`;
+    } else if (this.datasetKind === 'spotify' && this.graph.playlistsNote) {
+      playlistHtml = `<p class="mm-muted mm-small">${h(this.graph.playlistsNote)}</p>`;
+    } else if (this.datasetKind === 'spotify' || demo) {
+      playlistHtml = '<p class="mm-muted mm-small">Not in any playlist you made.</p>';
+    } else {
+      playlistHtml = '<p class="mm-muted mm-small">Connect Spotify to see your playlists.</p>';
+    }
+    return `
+      <div class="mm-callout__head">
+        <div>
+          <h3 tabindex="-1">${h(t.title)}</h3>
+          <p class="mm-muted">${h(t.artistCredit)}</p>
+        </div>
+        <button type="button" class="mm-callout__close" data-action="unpick" aria-label="Close">×</button>
+      </div>
+      <ol class="mm-callout__list">
+        <li>
+          <h4><span>1</span>Your memories</h4>
+          ${memories.length ? `<ul class="mm-thoughts mm-thoughts--compact">${this.thoughtList(year, memories, false)}</ul>` : ''}
+          <form class="mm-thought-form" data-form="thought" data-year="${h(year)}" data-track="${h(id)}">
+            <label class="sr-only" for="thought-text">Add a memory</label>
+            <textarea id="thought-text" rows="2" placeholder="What does this song bring back?"></textarea>
+            <div class="mm-actions"><button type="submit" class="mm-btn mm-btn--primary mm-btn--small">Add memory</button></div>
+          </form>
+        </li>
+        <li>
+          <h4><span>2</span>Date added</h4>
+          <p class="mm-callout__saved">${saved ? formatSaved(saved, true) : 'Outside your collection'}</p>
+          <p class="mm-muted mm-small">Released ${formatPartialDate(t.release)}${demo ? ' · fictional demo track' : ''}</p>
+        </li>
+        <li>
+          <h4><span>3</span>Playlists it's in</h4>
+          ${playlistHtml}
+        </li>
+      </ol>
+      <div class="mm-callout__actions">
+        ${year ? `<button type="button" class="mm-btn mm-btn--small" data-action="year-nav" data-year="${h(year)}">Step into ${h(year)} →</button>` : ''}
+        <button type="button" class="mm-btn mm-btn--small mm-btn--history" data-action="pick-history" data-id="${h(id)}">See where it comes from →</button>
+        ${t.spotify ? `<a class="mm-link mm-small" href="${h(t.spotify.url)}" target="_blank" rel="noopener">Play on Spotify ↗</a>` : ''}
+      </div>`;
   }
 
   private renderYear(): void {
@@ -748,28 +919,7 @@ class MusicMapApp {
       })
       .join('');
 
-    const thoughts = [...data.thoughts].sort((a, b) => b.at.localeCompare(a.at));
-    const thoughtItems = thoughts
-      .map((th) => {
-        const about = th.trackId ? this.graph.tracks.get(th.trackId) : undefined;
-        const tag = about
-          ? `<button type="button" class="mm-thought__about" data-action="feature" data-id="${h(about.id)}"><img src="${coverUrl(about.cover, about.title)}" alt="" />${h(about.title)}</button>`
-          : `<span class="mm-thought__about is-year">About ${h(year)}</span>`;
-        if (this.editingThought === th.id) {
-          return `<li class="mm-thought is-editing"><form data-form="edit-thought">
-            <label class="sr-only" for="edit-thought-text">Edit thought</label>
-            <textarea id="edit-thought-text" rows="3">${h(th.text)}</textarea>
-            <div class="mm-actions"><button type="submit" class="mm-btn mm-btn--primary mm-btn--small">Save</button><button type="button" class="mm-btn mm-btn--small" data-action="cancel-edit">Cancel</button></div>
-          </form></li>`;
-        }
-        return `<li class="mm-thought ${th.trackId === t.id ? 'is-about-featured' : ''}">
-          <p class="mm-thought__text">${h(th.text)}</p>
-          <p class="mm-thought__meta">${tag}<span>${formatSaved(th.at, true)}</span>
-            <button type="button" class="mm-link mm-small" data-action="edit-thought" data-id="${h(th.id)}">Edit</button>
-            <button type="button" class="mm-link mm-small" data-action="delete-thought" data-id="${h(th.id)}">Delete</button></p>
-        </li>`;
-      })
-      .join('');
+    const thoughtItems = this.thoughtList(year, [...data.thoughts], true);
 
     const listen = t.spotify
       ? `<a class="mm-link" href="${h(t.spotify.url)}" target="_blank" rel="noopener">Listen on Spotify ↗</a>`
@@ -803,7 +953,7 @@ class MusicMapApp {
             <p class="mm-muted mm-small">${tracks.length} track${tracks.length === 1 ? '' : 's'} saved this year. Only you write the words here; nothing is guessed from your listening.</p>
             <div class="mm-collage">${collage}</div>
             <h3 class="mm-subhead">Thoughts</h3>
-            <form class="mm-thought-form" data-form="thought">
+            <form class="mm-thought-form" data-form="thought" data-year="${h(year)}">
               <label class="sr-only" for="thought-text">Add a thought</label>
               <textarea id="thought-text" rows="3" placeholder="What do you remember, or notice now?"></textarea>
               <div class="mm-actions">
@@ -872,6 +1022,19 @@ class MusicMapApp {
       }
     }
 
+    // Historical view (sketch): people branch on to a few of their other works.
+    if (this.view === 'history') {
+      let count = 0;
+      for (const n of shown) {
+        if (!this.graph.people.has(n.otherId)) continue;
+        const works = this.neighborsOf(n.otherId).filter((m) => this.graph.tracks.has(m.otherId) && !nodes.has(m.otherId)).slice(0, 3);
+        for (const m of works) {
+          if (count++ >= 15) break;
+          nodes.set(m.otherId, { id: m.otherId, role: 'wider' });
+        }
+      }
+    }
+
     // One edge per connected pair; several relationships share a combined label.
     const pathRels = new Set(this.path.map((p) => p.relId).filter(Boolean));
     const pairs = new Map<string, Relationship[]>();
@@ -932,6 +1095,7 @@ class MusicMapApp {
       this.refreshCanvas();
     }
     this.renderYear();
+    this.renderBlurb();
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
     this.renderStageNote();
     this.renderPathbar();
@@ -956,6 +1120,75 @@ class MusicMapApp {
       if (this.view === 'history') text += ' Recordings are placed by release date; people are not given dates.';
     }
     this.note.textContent = text;
+  }
+
+  /**
+   * The blurb box from the sketch: a plain account of the selected song built only
+   * from its stored relationships and their sources. When a connection is being
+   * read, it shows that connection instead, with a way to follow it.
+   */
+  private renderBlurb(): void {
+    const el = document.getElementById('blurb')!;
+    const cur = this.currentId;
+    if (!cur) {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+    el.hidden = false;
+    if (this.inspected) {
+      el.innerHTML = this.connectionCard();
+      return;
+    }
+    const node = this.graph.node(cur)!;
+    const nbrs = this.graph.neighbors(cur).filter((n) => this.visible(n.otherId));
+    const name = (id: string) => h(nameOf(this.graph, id));
+    const flag = (n: Neighbor) => (n.rel.evidence.status === 'disputed' ? ' <em class="mm-flag">disputed</em>' : n.rel.evidence.status === 'undocumented' ? ' <em class="mm-flag">unconfirmed</em>' : '');
+    const lines: string[] = [];
+    let title: string;
+    let meta: string;
+    if (node.kind === 'track') {
+      title = h(node.title);
+      const saved = this.graph.savedAt(cur);
+      meta = `${h(node.artistCredit)} · <span class="mm-blurb__rel">Released ${formatPartialDate(node.release)}</span>${saved ? ` · <span class="mm-blurb__saved">Saved ${formatSaved(saved)}</span>` : ' · outside your collection'}`;
+      for (const n of nbrs.filter((x) => x.rel.type === 'samples' || x.rel.type === 'interpolates')) {
+        const other = this.graph.tracks.get(n.otherId);
+        const when = other?.release ? ` (${formatPartialDate(other.release)})` : '';
+        const verb = n.rel.type === 'samples' ? (n.outgoing ? 'Samples' : 'Sampled on') : n.outgoing ? 'Interpolates' : 'Interpolated on';
+        lines.push(`<p><strong>${verb}</strong> “${name(n.otherId)}”${when}${flag(n)}. ${h(n.rel.evidence.explanation)}</p>`);
+      }
+      const roles = new Map<string, string[]>();
+      for (const n of nbrs.filter((x) => x.rel.type === 'credit' && !x.outgoing)) {
+        const role = n.rel.role ?? 'credited';
+        roles.set(role, [...(roles.get(role) ?? []), nameOf(this.graph, n.otherId)]);
+      }
+      if (roles.size) lines.push(`<p><strong>Credits</strong> ${[...roles].map(([r, ps]) => `${h(r)}: ${ps.map(h).join(', ')}`).join(' · ')}.</p>`);
+      if (node.undocumented?.length) lines.push(`<p class="mm-muted">Not documented: ${node.undocumented.map(h).join(', ')}.</p>`);
+      if (!lines.length) lines.push('<p class="mm-muted">No samples, interpolations or detailed credits are recorded for this track yet.</p>');
+    } else {
+      title = h(node.name);
+      meta = node.kind === 'group' ? 'Group' : 'Person';
+      const works = nbrs.filter((n) => n.rel.type === 'credit' && n.outgoing);
+      if (works.length) lines.push(`<p><strong>Credited on</strong> ${works.slice(0, 8).map((n) => `“${name(n.otherId)}” (${h(n.rel.role ?? 'credit')})`).join(', ')}${works.length > 8 ? `, and ${works.length - 8} more` : ''}.</p>`);
+      const groups = nbrs.filter((n) => n.rel.type === 'member_of');
+      if (groups.length) lines.push(`<p><strong>${node.kind === 'group' ? 'Members' : 'Member of'}</strong> ${groups.map((n) => name(n.otherId)).join(', ')}.</p>`);
+      lines.push('<p class="mm-muted">People are linked to the works they are credited on. Shared credits don\'t imply friendship or influence.</p>');
+    }
+    const sources = [...new Set(nbrs.map((n) => n.rel.evidence.sourceLabel + (n.rel.evidence.fictional ? ' (fictional)' : '')))];
+    const t = node.kind === 'track' ? node : null;
+    el.innerHTML = `
+      <p class="mm-blurb__eyebrow">${this.path.length > 1 ? 'You are here' : 'Blurb'}</p>
+      <h2 class="mm-blurb__title">${title}</h2>
+      <p class="mm-blurb__meta">${meta}</p>
+      <div class="mm-blurb__body">${lines.join('')}</div>
+      ${sources.length ? `<p class="mm-blurb__src">Sources: ${sources.map(h).join(' · ')}</p>` : ''}
+      <div class="mm-blurb__actions">
+        ${t?.spotify ? `<a class="mm-link" href="${h(t.spotify.url)}" target="_blank" rel="noopener">Play on Spotify ↗</a>` : ''}
+        ${t?.spotify ? `<button type="button" class="mm-link" data-action="mb-lookup" data-id="${h(t.id)}">${this.mbStatus.get(t.id) === 'loading' ? 'Looking up…' : 'Find samples &amp; credits (MusicBrainz)'}</button>` : ''}
+        <button type="button" class="mm-link" data-action="toggle-panel">${this.panelPinned ? 'Hide' : 'All'} connections &amp; journey</button>
+      </div>
+      ${t && this.mbStatus.get(t.id) && this.mbStatus.get(t.id) !== 'loading' ? `<p class="mm-muted mm-small">${h(this.mbStatus.get(t.id)!)}</p>` : ''}
+      <p class="mm-blurb__hint">Select a connected cover or person to read how it's linked.</p>`;
   }
 
   private renderPathbar(): void {
@@ -985,8 +1218,9 @@ class MusicMapApp {
   private renderChrome(): void {
     const badge = document.getElementById('dataset-badge')!;
     const demo = this.datasetKind === 'demo';
-    badge.textContent = demo ? 'Fictional demo data' : 'Your Spotify library';
-    badge.classList.toggle('is-demo', demo);
+    badge.textContent = demo ? 'Data: fictional demo collection' : 'Data: your Spotify library';
+    badge.classList.toggle('is-warning', demo);
+    document.getElementById('demo-tag')!.hidden = !demo;
     badge.title = demo ? 'Invented tracks, people and saved dates. Not your listening history.' : 'Saved tracks and dates imported from Spotify.';
 
     document.getElementById('explorer-btn')!.innerHTML = this.explorer
@@ -1022,7 +1256,7 @@ class MusicMapApp {
 
   private renderPanel(): void {
     // On the canvas the panel steps aside; it opens for the map, search, data, replays, or on request.
-    const panelOpen = this.path.length > 0 || this.panelPinned || !!this.search || this.showData || !!this.replay;
+    const panelOpen = this.panelPinned || !!this.search || this.showData || !!this.replay;
     document.body.classList.toggle('panel-open', panelOpen);
     document.getElementById('panel-btn')!.setAttribute('aria-expanded', `${panelOpen}`);
     const active = document.activeElement as HTMLElement | null;
@@ -1489,6 +1723,11 @@ class MusicMapApp {
       case 'close-year':
         return this.closeYear();
       case 'year-nav':
+        if (this.picked) {
+          const featured = this.picked;
+          this.unpick();
+          return this.openYear(el.dataset.year!, featured, this.canvas.rectOf(featured) ?? undefined);
+        }
         return this.openYear(el.dataset.year!, null);
       case 'feature':
         if (this.yearOpen) this.yearOpen.featuredId = id;
@@ -1502,14 +1741,24 @@ class MusicMapApp {
         return this.selectOrigin(id, this.yearEl.querySelector('#year-feature-img')?.getBoundingClientRect());
       case 'edit-thought':
         this.editingThought = id;
-        this.renderYear();
-        this.yearEl.querySelector<HTMLTextAreaElement>('#edit-thought-text')?.focus();
+        this.refreshThoughtViews();
+        document.querySelector<HTMLTextAreaElement>('#edit-thought-text')?.focus();
         return;
       case 'cancel-edit':
         this.editingThought = null;
-        return this.renderYear();
+        return this.refreshThoughtViews();
       case 'delete-thought':
-        return void this.deleteThought(id);
+        return void this.deleteThought(id, el.dataset.year);
+      case 'unpick':
+        return this.unpick();
+      case 'pick-history':
+        this.returnPick = id;
+        this.picked = null;
+        this.canvas.setSelected(null);
+        this.view = 'history';
+        return this.selectOrigin(id, this.canvas.rectOf(id) ?? undefined);
+      case 'mb-lookup':
+        return void this.lookupMusicBrainz(id);
       case 'toggle-panel':
         this.panelPinned = !this.panelPinned;
         return this.render();
@@ -1571,6 +1820,7 @@ class MusicMapApp {
     if (!t) return;
     this.mbStatus.set(id, 'loading');
     this.renderPanel();
+      this.renderBlurb();
     try {
       const known = this.graph.neighbors(id).map((n) => this.graph.people.get(n.otherId)).filter((p) => !!p);
       const res = await enrichFromMusicBrainz(t, known);
@@ -1580,6 +1830,7 @@ class MusicMapApp {
     } catch (err) {
       this.mbStatus.set(id, `${(err as Error).message} MusicBrainz may be unreachable from this network.`);
       this.renderPanel();
+      this.renderBlurb();
     }
   }
 

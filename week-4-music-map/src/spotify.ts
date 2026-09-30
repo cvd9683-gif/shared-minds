@@ -3,12 +3,13 @@
 // search. Spotify supplies track artists, album release dates and cover art; it
 // does not supply samples, interpolations or detailed credits.
 
-import type { Dataset, PartialDate, Person, Relationship, Track } from './types';
+import type { Dataset, PartialDate, Person, Playlist, Relationship, Track } from './types';
 
 const CLIENT_ID_KEY = 'musicMap:spotifyClientId';
 const TOKEN_KEY = 'musicMap:spotifyToken';
 const VERIFIER_KEY = 'musicMap:spotifyVerifier';
-const SCOPES = ['user-library-read'];
+// Read-only: saved tracks with their saved dates, and the playlists you made.
+const SCOPES = ['user-library-read', 'playlist-read-private', 'playlist-read-collaborative'];
 const API = 'https://api.spotify.com/v1';
 
 interface Token {
@@ -279,6 +280,47 @@ export async function importSavedTracks(
     },
     ...mergeParts(parts),
   };
+}
+
+/**
+ * Playlists the listener created (not ones they follow), with their track ids.
+ * Capped so a big library doesn't take minutes; missing access is reported, not hidden.
+ */
+export async function importPlaylists(
+  onProgress?: (done: number, total: number) => void,
+  maxPlaylists = 40,
+): Promise<{ playlists: Playlist[]; note: string }> {
+  try {
+    const me = await api<{ id: string }>('/me');
+    const mine: { id: string; name: string; external_urls: { spotify: string } }[] = [];
+    let url: string | null = '/me/playlists?limit=50';
+    while (url && mine.length < maxPlaylists) {
+      const page: { items: ({ id: string; name: string; owner: { id: string }; external_urls: { spotify: string } } | null)[]; next: string | null } = await api(url);
+      page.items.forEach((p) => p && p.owner.id === me.id && mine.length < maxPlaylists && mine.push(p));
+      url = page.next;
+    }
+    const playlists: Playlist[] = [];
+    let skipped = 0;
+    for (const p of mine) {
+      const ids: string[] = [];
+      let next: string | null = `/playlists/${p.id}/tracks?${new URLSearchParams({ fields: 'items(track(id)),next', limit: '100' })}`;
+      try {
+        while (next && ids.length < 500) {
+          const page: { items: { track: { id: string | null } | null }[]; next: string | null } = await api(next);
+          page.items.forEach((it) => it.track?.id && ids.push(trackId(it.track.id)));
+          next = page.next;
+        }
+        playlists.push({ id: `spp:${p.id}`, name: p.name, url: p.external_urls.spotify, trackIds: ids });
+      } catch {
+        skipped++;
+      }
+      onProgress?.(playlists.length + skipped, mine.length);
+    }
+    const note = skipped ? `${skipped} playlist${skipped === 1 ? '' : 's'} couldn't be read.` : '';
+    return { playlists, note };
+  } catch (err) {
+    return { playlists: [], note: `Playlists couldn't be read: ${(err as Error).message}` };
+  }
 }
 
 // ---- Search ---------------------------------------------------------------

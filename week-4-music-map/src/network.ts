@@ -235,7 +235,9 @@ export class NetworkView {
 
     if (sn.role === 'wider') {
       el.setAttribute('aria-hidden', 'true');
-      el.innerHTML = `<span class="mm-node__art"></span>`;
+      el.innerHTML = isTrack
+        ? `<span class="mm-node__art"><img alt="" src="${coverUrl(node.cover, node.title)}" draggable="false" /></span>`
+        : `<span class="mm-node__art"></span>`;
       return;
     }
     el.removeAttribute('aria-hidden');
@@ -396,7 +398,7 @@ export class NetworkView {
       const node = this.graph.node(sn.id)!;
       const prev = this.shown.get(sn.id);
       const rand = seeded(sn.id);
-      const r = sn.role === 'wider' ? 10 : nodeRadius(node, sn.role, true);
+      const r = sn.role === 'wider' ? (node.kind === 'track' ? 20 : 10) : nodeRadius(node, sn.role, true);
       if (node.kind === 'track') {
         let x: number;
         if (node.release) {
@@ -549,7 +551,7 @@ function initials(name: string): string {
 }
 
 function nodeSize(node: Node, role: NodeRole): number {
-  if (role === 'wider') return 8;
+  if (role === 'wider') return node.kind === 'track' ? 30 : 8;
   if (node.kind === 'track') {
     if (role === 'origin') return 104;
     if (role === 'current') return 92;

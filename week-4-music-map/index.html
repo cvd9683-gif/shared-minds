@@ -8,46 +8,37 @@
     <title>Music Map</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   </head>
   <body class="mm">
     <a class="mm-skip" href="#panel">Skip to details</a>
 
     <header class="mm-top">
-      <div class="mm-brand">
-        <h1>Music Map</h1>
-        <button type="button" class="mm-badge" id="dataset-badge"></button>
+      <h1 class="sr-only">Music Map</h1>
+      <div class="mm-views" role="radiogroup" aria-label="Timeline">
+        <button type="button" role="radio" class="mm-view" id="view-timeline" data-view="timeline" aria-checked="true">Personal Timeline</button>
+        <span class="mm-views__dot" aria-hidden="true"></span>
+        <button type="button" role="radio" class="mm-view" id="view-history" data-view="history" aria-checked="false">Historical Timeline</button>
       </div>
 
-      <div class="mm-views" role="radiogroup" aria-label="Date system">
-        <button type="button" role="radio" class="mm-view" id="view-timeline" data-view="timeline" aria-checked="true">
-          <span class="mm-swatch mm-swatch--saved" aria-hidden="true"></span>
-          <span><strong>My timeline</strong><small>ordered by date saved</small></span>
-        </button>
-        <button type="button" role="radio" class="mm-view" id="view-history" data-view="history" aria-checked="false">
-          <span class="mm-swatch mm-swatch--release" aria-hidden="true"></span>
-          <span><strong>Historical timeline</strong><small>ordered by release date</small></span>
-        </button>
-      </div>
-
-      <form class="mm-search" id="search-form" role="search">
-        <label class="sr-only" for="search-kind">Search in</label>
-        <select id="search-kind">
-          <option value="all">All</option>
-          <option value="track">Tracks</option>
-          <option value="artist">Artists</option>
-          <option value="album">Albums</option>
-          <option value="genre">Genres</option>
-        </select>
-        <label class="sr-only" for="search-input">Search</label>
-        <input id="search-input" type="search" placeholder="Search artists, albums, tracks, genres" autocomplete="off" />
-      </form>
-
-      <div class="mm-account">
-        <button type="button" class="mm-chip" id="explorer-btn"></button>
-        <button type="button" class="mm-chip" id="storage-btn"></button>
-        <button type="button" class="mm-chip mm-chip--spotify" id="spotify-btn"></button>
-        <button type="button" class="mm-chip" id="panel-btn" aria-controls="panel" aria-expanded="false">Journeys</button>
+      <div class="mm-top__right">
+        <form class="mm-search" id="search-form" role="search">
+          <label class="sr-only" for="search-input">Search</label>
+          <input id="search-input" type="search" placeholder="Search" autocomplete="off" />
+          <input type="hidden" id="search-kind" value="all" />
+        </form>
+        <div class="mm-menu">
+          <button type="button" class="mm-menu__btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu">
+            <span aria-hidden="true">⋯</span>
+          </button>
+          <div class="mm-menu__pop" id="menu" hidden>
+            <button type="button" class="mm-menu__item mm-menu__item--spotify" id="spotify-btn"></button>
+            <button type="button" class="mm-menu__item" id="explorer-btn"></button>
+            <button type="button" class="mm-menu__item" id="storage-btn"></button>
+            <button type="button" class="mm-menu__item" id="panel-btn" aria-controls="panel" aria-expanded="false">Journeys</button>
+            <button type="button" class="mm-menu__item" id="dataset-badge"></button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -66,6 +57,8 @@
           <label class="mm-toggle"><input type="checkbox" id="wider-toggle" /> Show wider web</label>
         </div>
         <nav class="mm-yearnav" id="yearnav" aria-label="Jump to year"></nav>
+        <button type="button" class="mm-demo-tag" id="demo-tag">Fictional demo data · connect Spotify in ⋯</button>
+        <aside class="mm-blurb" id="blurb" hidden></aside>
         <div class="mm-tooltip" id="tooltip" role="tooltip" hidden></div>
       </section>
 

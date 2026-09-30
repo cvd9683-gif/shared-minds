@@ -88,12 +88,23 @@ export interface Relationship {
   evidence: Evidence;
 }
 
+/** A playlist the listener created, and the tracks in it. */
+export interface Playlist {
+  id: string;
+  name: string;
+  url?: string;
+  trackIds: string[];
+}
+
 export interface Dataset {
   meta: { name: string; fictional: boolean; description: string };
   tracks: Track[];
   people: Person[];
   collection: CollectionEntry[];
   relationships: Relationship[];
+  playlists?: Playlist[];
+  /** Why playlists are missing, when they could not be read. */
+  playlistsNote?: string;
 }
 
 // ---- Views, journeys and user data -------------------------------------
