@@ -188,7 +188,7 @@ export class NetworkView {
         if (spawn?.id === sn.id) d.el.style.setProperty('--spawn', `${spawn.rect.width}px`);
       }
       d.role = sn.role;
-      d.size = nodeSize(node, sn.role);
+      d.size = nodeSize(node, sn.role, scene.mode === 'history');
       this.renderNode(d, node, sn, scene);
     }
 
@@ -320,9 +320,10 @@ export class NetworkView {
       y0 = Math.min(y0, p.y - r - 10);
       y1 = Math.max(y1, p.y + r + 46);
     });
-    const left = this.width < 700 ? 12 : 40;
+    // Leave room for the blurb on the left on wide screens.
+    const left = this.width < 700 ? 12 : this.width > 1000 ? 420 : 40;
     const top = 64;
-    const aw = this.width - left - 24;
+    const aw = this.width - left - 70;
     const ah = this.height - top - 24;
     const k = Math.max(0.25, Math.min(1.25, aw / (x1 - x0), ah / (y1 - y0)));
     const tx = left + (aw - (x1 - x0) * k) / 2 - x0 * k;
@@ -334,6 +335,17 @@ export class NetworkView {
   private setHover(id: string | null, el: HTMLElement | null): void {
     this.hoverId = id;
     this.cb.onHover(id, el);
+    // Light up what the hovered node is connected to; fade the rest.
+    const related = new Set<string>();
+    if (id && this.scene) {
+      related.add(id);
+      for (const e of this.scene.edges) {
+        if (e.rel.from === id) related.add(e.rel.to);
+        if (e.rel.to === id) related.add(e.rel.from);
+      }
+    }
+    this.nodesEl.parentElement?.classList.toggle('has-hover', !!id);
+    this.drawn.forEach((d, nid) => d.el.classList.toggle('is-related', related.has(nid)));
     this.paintEdges();
   }
 
@@ -357,7 +369,7 @@ export class NetworkView {
     if (sn.role === 'wider') {
       el.setAttribute('aria-hidden', 'true');
       el.innerHTML = isTrack
-        ? `<span class="mm-node__art"><img alt="" src="${coverUrl(node.cover, node.title)}" draggable="false" /></span>`
+        ? `<span class="mm-node__art"><img alt="" src="${coverUrl(node.cover, node.title)}" draggable="false" /></span><span class="mm-node__label mm-node__label--small"><span class="mm-node__name">${escapeHtml(node.title)}</span></span>`
         : `<span class="mm-node__art"></span>`;
       return;
     }
@@ -370,12 +382,28 @@ export class NetworkView {
       const saved = this.graph.savedAt(node.id);
       const savedTxt = saved ? `<span class="mm-meta--saved">Saved ${formatSaved(saved)}</span>` : `<span class="mm-meta--outside">Outside your collection</span>`;
       const relTxt = `<span class="mm-meta--release">${node.release ? `Released ${formatPartialDate(node.release)}` : 'Release date unknown'}</span>`;
-      meta = history ? `${relTxt}${sn.role === 'overview' ? '' : savedTxt}` : `<span>${escapeHtml(node.artistCredit)}</span>${sn.role === 'overview' ? '' : savedTxt}`;
+      meta = history
+        ? // One short line: when it came out, and whether you saved it.
+          `<span class="mm-meta--release">${node.release ? node.release.value.slice(0, 4) : 'Date unknown'}${saved ? '' : ' · not saved'}</span>`
+        : `<span>${escapeHtml(node.artistCredit)}</span>${sn.role === 'overview' ? '' : savedTxt}`;
+      void relTxt;
       if (history && this.axis && node.release && node.release.precision !== 'day') {
         const [a, b] = partialDateSpan(node.release);
         const w = Math.max(4, this.scaleX(b) - this.scaleX(a));
         span = `<span class="mm-node__span" style="width:${w}px" title="${node.release.precision === 'year' ? 'Only the year is known' : 'Only the month is known'}"></span>`;
       }
+    } else if (history) {
+      // What this person did on the song you're looking at, written on the person.
+      const cur = scene.path[scene.path.length - 1];
+      const roles = [
+        ...new Set(
+          this.graph
+            .neighbors(node.id)
+            .filter((n) => n.otherId === cur && n.rel.type === 'credit')
+            .map((n) => shortRole(n.rel.role)),
+        ),
+      ];
+      meta = `<span class="mm-meta--role">${escapeHtml(roles.length ? roles.slice(0, 3).join(' · ') : node.kind === 'group' ? 'Group' : 'Person')}</span>`;
     } else {
       meta = `<span>${node.kind === 'group' ? 'Group' : 'Person'}</span>`;
     }
@@ -433,10 +461,11 @@ export class NetworkView {
         ? `marker-end="url(#mm-arrow-${e.emphasis === 'path' || inspected ? 'path' : e.emphasis === 'focus' || hovered ? 'ink' : 'faint'})"`
         : '';
       svg += `<path class="${cls}" d="${geo.d}" ${marker}/>`;
-      const showLabel = e.emphasis === 'path' || e.emphasis === 'focus' || hovered || inspected;
+      // Roles are written on the people, so credit lines stay unlabelled unless hovered.
+      const showLabel = hovered || inspected || e.emphasis === 'path' || (e.emphasis === 'focus' && e.rel.type !== 'credit');
       if (showLabel && e.emphasis !== 'wider') {
         const flag = st === 'disputed' ? ' · disputed' : st === 'undocumented' ? ' · unconfirmed' : '';
-        labels += `<span class="mm-edge-label ${cls}" style="transform:translate(${geo.mid.x}px, ${geo.mid.y}px) translate(-50%, -50%)">${escapeHtml(e.label ?? edgeLabel(e.rel))}${flag ? `<em>${flag}</em>` : ''}</span>`;
+        labels += `<span class="mm-edge-label ${cls}" style="transform:translate(${geo.mid.x}px, ${geo.mid.y}px) translate(-50%, -50%)">${escapeHtml(shortRole(e.label ?? edgeLabel(e.rel)))}${flag ? `<em>${flag}</em>` : ''}</span>`;
       }
     }
     g.innerHTML = svg;
@@ -466,26 +495,35 @@ export class NetworkView {
     const ringPos = new Map<string, Pt>();
     ring.forEach((n, i) => {
       const ang = -Math.PI / 2 + ((i + 0.5) / Math.max(1, ring.length)) * Math.PI * 2;
-      ringPos.set(n.id, { x: center.x + Math.cos(ang) * 240, y: center.y + Math.sin(ang) * 200 });
+      ringPos.set(n.id, { x: center.x + Math.cos(ang) * 330, y: center.y + Math.sin(ang) * 270 });
     });
     const sims: SimNode[] = scene.nodes.map((sn) => {
       const node = this.graph.node(sn.id)!;
-      const r = sn.role === 'wider' ? (node.kind === 'track' ? 22 : 10) : nodeRadius(node, sn.role);
+      const r = nodeRadius(node, sn.role, true);
       if (sn.id === currentId) return { id: sn.id, ...center, vx: 0, vy: 0, r, fixed: true };
       const prev = this.shown.get(sn.id);
       const rand = seeded(sn.id);
       let start = prev ?? ringPos.get(sn.id);
+      const b = bridge.get(sn.id);
+      if (sn.role === 'wider' && b) {
+        // Second-degree covers sit beyond the node they hang from, fanned outward,
+        // so it's clear they belong to that person or song, not to the centre.
+        const base = ringPos.get(b) ?? this.shown.get(b) ?? center;
+        const out = Math.atan2(base.y - center.y, base.x - center.x) + (rand() - 0.5) * 1.3;
+        const target = { x: base.x + Math.cos(out) * 210, y: base.y + Math.sin(out) * 210 };
+        start ??= { x: base.x + Math.cos(out) * 160, y: base.y + Math.sin(out) * 160 };
+        return { id: sn.id, ...start, vx: 0, vy: 0, r, tx: target.x, ty: target.y, kx: 0.05, ky: 0.05 };
+      }
       if (!start) {
-        const b = bridge.get(sn.id);
         const base = (b && (this.shown.get(b) ?? ringPos.get(b))) || center;
         const out = Math.atan2(base.y - center.y, base.x - center.x) + (rand() - 0.5) * 1.6;
-        start = { x: base.x + Math.cos(out) * 120, y: base.y + Math.sin(out) * 120 };
+        start = { x: base.x + Math.cos(out) * 150, y: base.y + Math.sin(out) * 150 };
       }
       // A gentle pull to the centre keeps the web together without a box around it.
       return { id: sn.id, ...start, vx: 0, vy: 0, r, tx: center.x, ty: center.y, kx: 0.006, ky: 0.008 };
     });
     const big = 1e5;
-    this.simulate(sims, scene, { top: -big, bottom: big, left: -big, right: big }, (n) => (n.r < 26 ? 110 : 230));
+    this.simulate(sims, scene, { top: -big, bottom: big, left: -big, right: big }, (n) => (n.r < 45 ? 150 : 320));
     return new Map(sims.map((s) => [s.id, { x: s.x, y: s.y }]));
   }
 
@@ -653,7 +691,13 @@ function initials(name: string): string {
   return (words[0]?.[0] ?? '') + (words[1]?.[0] ?? '');
 }
 
-function nodeSize(node: Node, role: NodeRole): number {
+function nodeSize(node: Node, role: NodeRole, web = false): number {
+  if (web) {
+    // The historical web shows covers big enough to recognise.
+    if (role === 'wider') return node.kind === 'track' ? 54 : 10;
+    if (node.kind === 'track') return role === 'origin' ? 150 : role === 'current' ? 136 : role === 'path' ? 104 : 96;
+    return role === 'current' ? 84 : 62;
+  }
   if (role === 'wider') return node.kind === 'track' ? 30 : 8;
   if (node.kind === 'track') {
     if (role === 'origin') return 104;
@@ -665,7 +709,8 @@ function nodeSize(node: Node, role: NodeRole): number {
 }
 
 function nodeRadius(node: Node, role: NodeRole, history = false): number {
-  const s = nodeSize(node, role);
+  const s = nodeSize(node, role, history);
+  if (history) return s / 2 + (role === 'wider' ? 12 : 40);
   // Labels sit under nodes, so reserve a little extra room.
   return node.kind === 'track' ? s / 2 + (history ? 22 : 36) : s / 2 + (history ? 50 : 30);
 }
@@ -690,4 +735,9 @@ function curve(a: Pt, b: Pt, trimA: number, trimB: number, seed: string) {
   const e = trim(b, c, trimB);
   const mid = { x: 0.25 * s.x + 0.5 * c.x + 0.25 * e.x, y: 0.25 * s.y + 0.5 * c.y + 0.25 * e.y };
   return { d: `M${s.x.toFixed(1)},${s.y.toFixed(1)} Q${c.x.toFixed(1)},${c.y.toFixed(1)} ${e.x.toFixed(1)},${e.y.toFixed(1)}`, mid };
+}
+
+/** "writer (of the work “X”)" → "writer"; "credited artist (listed first)" → "credited artist". */
+function shortRole(role?: string): string {
+  return (role ?? 'credited').replace(/\s*\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
 }

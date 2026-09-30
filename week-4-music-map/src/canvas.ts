@@ -1,11 +1,11 @@
 // Music Map - Personal Timeline canvas
-// Albums sit on the axis itself as an overlapping strip of covers, one stretch per
-// year. A lens follows the pointer: covers near it swell and scatter above and
-// below the line into a collage, then settle back as it moves on (the motion from
-// the reference video). A magnifier docked in the top-right shows the year under
-// the lens, joined to its stretch of the axis by two lines. Picking an album pins
-// the magnifier: the cover grows, with its details beside it.
-// The same canvas is used for any sectioned timeline (by year saved, or by release).
+// Albums sit on the axis as a lightly overlapping strip, one stretch per year.
+// The canvas pans in every direction (drag, trackpad) and zooms (pinch / ctrl+wheel).
+// A lens follows the pointer like a fisheye: covers near it grow and the strip
+// stretches around them (so nothing leaves a gap), they drift toward the pointer
+// and scatter into a collage, and every cover moves on a spring so the whole line
+// feels fluid. When you stop moving, the nearest year eases into the centre; the
+// magnifier docked on the right shows that year, joined to it by two lines.
 
 import { coverUrl, seeded } from './covers';
 import type { Track } from './types';
@@ -47,14 +47,23 @@ interface Tile {
   item: CanvasItem;
   section: Section;
   el: HTMLButtonElement;
-  x: number;
-  rest: number;
-  restY: number;
+  /** Rest position and size (world units). */
+  rx: number;
+  ry: number;
+  rs: number;
+  /** Collage scatter direction and size bias. */
   sx: number;
   sy: number;
   scale: number;
   z: number;
-  active: boolean;
+  /** Current position/size and their velocities (springs). */
+  x: number;
+  y: number;
+  s: number;
+  vx: number;
+  vy: number;
+  vs: number;
+  lastZ: number;
 }
 
 interface Section {
@@ -65,8 +74,8 @@ interface Section {
 }
 
 const LEFT = 60;
-const PAD = 46;
-const GAP_W = 70;
+const PAD = 50;
+const GAP_W = 80;
 
 export class TimelineCanvas {
   private root: HTMLElement;
@@ -80,6 +89,7 @@ export class TimelineCanvas {
   private tiles: Tile[] = [];
   private width = 800;
   private height = 600;
+  private worldW = 0;
   private zoomKey: string | null = null;
   private pinned: { id: string; key: string } | null = null;
   private reducedMotion = false;
@@ -87,10 +97,13 @@ export class TimelineCanvas {
   private dragging = false;
   private accent: 'saved' | 'release' = 'saved';
   private lastData: CanvasSection[] = [];
-  private lens = { x: 0, s: 0, tx: 0, ts: 0 };
-  private lensRaf: number | null = null;
-  private scrollTarget = 0;
-  private scrollRaf: number | null = null;
+  private cam = { k: 1, tx: 0, ty: 0 };
+  private goal = { k: 1, tx: 0, ty: 0 };
+  private ptr = { x: 0, y: 0, inside: false };
+  private lens = { x: 0, y: 0, s: 0, ts: 0 };
+  private raf: number | null = null;
+  private idle = 0;
+  private visible = true;
 
   constructor(root: HTMLElement, nav: HTMLElement, cb: CanvasCallbacks) {
     this.root = root;
@@ -100,7 +113,7 @@ export class TimelineCanvas {
     this.world = document.createElement('div');
     this.world.className = 'mm-canvas__world';
     this.root.appendChild(this.world);
-    // The magnifier and its lines live on the stage, docked top-right, not in the scrolling world.
+    // The magnifier and its lines live on the stage, docked on the right.
     this.zoom = document.createElement('div');
     this.zoom.className = 'mm-zoom';
     this.zoom.hidden = true;
@@ -115,13 +128,14 @@ export class TimelineCanvas {
 
   /** Shows or hides the docked magnifier with the canvas (it lives outside it). */
   setVisible(v: boolean): void {
+    this.visible = v;
     this.zoom.classList.toggle('is-away', !v);
     this.lines.classList.toggle('is-away', !v);
+    if (v) this.kick();
   }
 
   setReducedMotion(v: boolean): void {
     this.reducedMotion = v;
-    this.root.classList.toggle('is-reduced', v);
   }
 
   resize(w: number, h: number): void {
@@ -132,7 +146,7 @@ export class TimelineCanvas {
   }
 
   private get axisY(): number {
-    return Math.round(this.height * (this.width < 600 ? 0.6 : 0.62));
+    return Math.round(this.height * 0.62);
   }
 
   // ---- Build ------------------------------------------------------------------
@@ -167,27 +181,34 @@ export class TimelineCanvas {
         x += GAP_W;
       }
       const section: Section = { data: sec, x, w: 0, tiles: [] };
-      // Albums line up along the axis, overlapping; more saved songs = a bigger cover.
+      // Covers overlap only a little so each one stays readable; more songs = bigger cover.
       let cursor = x + PAD;
-      let prevRest = 0;
+      let prev = 0;
       sec.items.forEach((item, i) => {
         const n = item.trackIds.length;
-        const rest = Math.min(small ? 44 : 58, (small ? 24 : 30) + (n - 1) * 8);
-        cursor += prevRest ? (prevRest + rest) * 0.3 : rest / 2;
-        prevRest = rest;
+        const rs = Math.min(small ? 50 : 68, (small ? 34 : 42) + (n - 1) * 9);
+        cursor += prev ? (prev + rs) * 0.42 : rs / 2;
+        prev = rs;
         const rand = seeded(item.id);
+        const ry = y0 + (i % 2 ? 1 : -1) * rs * (0.1 + rand() * 0.14);
         const tile: Tile = {
           item,
           section,
           el: document.createElement('button'),
-          x: cursor,
-          rest,
-          restY: (i % 2 ? 1 : -1) * rest * (0.12 + rand() * 0.14),
-          sy: (i % 2 ? 1 : -1) * (0.3 + rand() * 0.7),
+          rx: cursor,
+          ry,
+          rs,
+          sy: (i % 2 ? 1 : -1) * (0.35 + rand() * 0.65),
           sx: rand() - 0.5,
-          scale: (0.8 + rand() * 0.35) * (1 + Math.min(n - 1, 4) * 0.08),
+          scale: 0.85 + rand() * 0.3,
           z: 1 + Math.floor(rand() * 30),
-          active: true,
+          x: cursor,
+          y: ry,
+          s: rs,
+          vx: 0,
+          vy: 0,
+          vs: 0,
+          lastZ: -1,
         };
         const b = tile.el;
         b.type = 'button';
@@ -197,15 +218,15 @@ export class TimelineCanvas {
         b.innerHTML = `<img alt="" src="${coverUrl(item.track.cover, item.title)}" loading="lazy" draggable="false" />${n > 1 ? `<span class="mm-cov__count">${n}</span>` : ''}`;
         this.bindTile(tile);
         this.world.appendChild(b);
+        this.writeTile(tile);
         section.tiles.push(tile);
         this.tiles.push(tile);
       });
-      const width = Math.max(small ? 130 : 170, cursor + prevRest / 2 + PAD - x);
-      section.w = width;
+      section.w = Math.max(small ? 140 : 180, cursor + prev / 2 + PAD - x);
 
       const el = document.createElement('section');
       el.className = 'mm-sec';
-      Object.assign(el.style, { left: `${x}px`, width: `${width}px` });
+      Object.assign(el.style, { left: `${x}px`, width: `${section.w}px`, height: `${this.height}px` });
       const songs = sec.items.reduce((a, it) => a + it.trackIds.length, 0);
       el.setAttribute('aria-label', `${sec.title}, ${songs} song${songs === 1 ? '' : 's'}`);
       const caption = sec.editable
@@ -224,23 +245,29 @@ export class TimelineCanvas {
       el.querySelector<HTMLButtonElement>('button.mm-sec__caption')?.addEventListener('click', () => this.cb.onCaption?.(sec.key));
       this.world.insertBefore(el, this.world.firstChild);
       this.sections.push(section);
-      x += width;
+      x += section.w;
     }
-    const worldW = x + LEFT;
-    this.world.style.width = `${worldW}px`;
-    this.world.style.height = `${this.height}px`;
-    Object.assign(axis.style, { top: `${y0}px`, left: '16px', width: `${worldW - 32}px` });
-    this.scrollTarget = this.root.scrollLeft;
+    this.worldW = x + LEFT;
+    Object.assign(this.world.style, { width: `${this.worldW}px`, height: `${this.height}px` });
+    Object.assign(axis.style, { top: `${y0}px`, left: '16px', width: `${this.worldW - 32}px` });
 
-    // Start with a gentle bloom mid-view, so the motion is visible before any hover.
-    this.lens.x = this.lens.tx = this.root.scrollLeft + this.width / 2;
-    this.lens.s = this.lens.ts = this.touch ? 1 : 0.45;
-    this.paint(true);
+    if (!keepState) {
+      // Open on the most recent year, centred.
+      const last = this.sections[this.sections.length - 1];
+      const cx = last ? last.x + Math.min(last.w, this.width * 0.8) / 2 : 0;
+      this.goal = { k: 1, tx: this.width / 2 - cx, ty: 0 };
+      this.clampGoal();
+      this.cam = { ...this.goal };
+    }
+    this.lens.s = this.lens.ts = this.touch ? 1 : 0;
+    this.lens.x = (this.width / 2 - this.cam.tx) / this.cam.k;
+    this.lens.y = this.axisY;
 
     const pin = keepPin && this.tileOf(keepPin.id) ? keepPin : null;
     this.zoomKey = null;
     if (pin) this.pin(pin.id, keepInfo);
     else this.showZoom(keepZoom && this.find(keepZoom) ? keepZoom : this.centerKey());
+    this.kick();
   }
 
   private bindTile(tile: Tile): void {
@@ -259,11 +286,13 @@ export class TimelineCanvas {
       this.cb.onHover(null, null);
     });
     b.addEventListener('focus', () => {
-      this.scrollToX(tile.x, false);
+      this.centerOn(tile.rx);
       if (!this.pinned) this.showZoom(section.data.key);
-      this.setLens(tile.x, 1);
+      this.lens.ts = 1;
+      this.ptr = { x: this.width / 2, y: this.axisY * this.cam.k + this.cam.ty, inside: true };
       this.hot(item.id, true);
       this.cb.onHover(item.id, b);
+      this.kick();
     });
     b.addEventListener('blur', () => {
       this.hot(item.id, false);
@@ -285,13 +314,19 @@ export class TimelineCanvas {
     return this.tiles.find((t) => t.item.id === id);
   }
 
-  private sectionAt(x: number): Section | undefined {
-    return this.sections.find((s) => x >= s.x && x < s.x + s.w);
+  private sectionAt(wx: number): Section | undefined {
+    return this.sections.find((s) => wx >= s.x && wx < s.x + s.w);
   }
 
   private centerKey(): string | null {
-    const mid = this.root.scrollLeft + this.width / 2;
-    return (this.sectionAt(mid) ?? this.sections[0])?.data.key ?? null;
+    const mid = (this.width / 2 - this.goal.tx) / this.goal.k;
+    let best: Section | undefined;
+    let bestD = Infinity;
+    for (const s of this.sections) {
+      const d = mid < s.x ? s.x - mid : mid > s.x + s.w ? mid - s.x - s.w : 0;
+      if (d < bestD) [best, bestD] = [s, d];
+    }
+    return best?.data.key ?? null;
   }
 
   /** Links a cover on the line and its copy in the magnifier. */
@@ -300,65 +335,150 @@ export class TimelineCanvas {
     this.zoom.querySelector(`[data-id="${CSS.escape(id)}"]`)?.classList.toggle('is-hot', on);
   }
 
-  // ---- Lens / bloom -----------------------------------------------------------------
+  // ---- Camera -----------------------------------------------------------------------
 
-  private setLens(x: number, s: number): void {
-    this.lens.tx = x;
-    this.lens.ts = s;
-    if (this.reducedMotion) {
-      this.lens.x = x;
-      this.lens.s = s;
-      this.paint();
-      return;
-    }
-    if (this.lensRaf === null) this.lensRaf = requestAnimationFrame(() => this.lensTick());
+  private clampGoal(): void {
+    const g = this.goal;
+    const half = this.width / 2;
+    g.tx = Math.min(half, Math.max(half - this.worldW * g.k, g.tx));
+    g.ty = Math.max(-this.height * 0.5, Math.min(this.height * 0.5, g.ty));
   }
 
-  private lensTick(): void {
+  private panBy(dx: number, dy: number, direct = false): void {
+    this.goal.tx += dx;
+    this.goal.ty += dy;
+    this.clampGoal();
+    if (direct) {
+      this.cam.tx = this.goal.tx;
+      this.cam.ty = this.goal.ty;
+    }
+    this.kick();
+  }
+
+  private zoomBy(f: number, cx = this.width / 2, cy = this.height / 2): void {
+    const k = Math.max(0.35, Math.min(2.5, this.goal.k * f));
+    const r = k / this.goal.k;
+    this.goal = { k, tx: cx - (cx - this.goal.tx) * r, ty: cy - (cy - this.goal.ty) * r };
+    this.clampGoal();
+    this.kick();
+  }
+
+  /** Eases a world x to the middle of the screen (and the axis back to its home height). */
+  private centerOn(wx: number): void {
+    this.goal.tx = this.width / 2 - wx * this.goal.k;
+    this.goal.ty += (0 - this.goal.ty) * 0.6;
+    this.clampGoal();
+    this.kick();
+  }
+
+  /** After you stop moving, the nearest year settles into the centre. */
+  private settleSoon(): void {
+    clearTimeout(this.idle);
+    this.idle = window.setTimeout(() => {
+      if (this.pinned || this.dragging) return;
+      const key = this.centerKey();
+      const sec = key ? this.find(key) : undefined;
+      if (!sec) return;
+      // Long years don't jump to their middle; they just come fully into view.
+      if (sec.w * this.goal.k < this.width * 0.9) this.centerOn(sec.x + sec.w / 2);
+      if (!this.ptr.inside || this.touch) this.showZoom(key);
+    }, 260);
+  }
+
+  // ---- Frame: camera, lens, springs --------------------------------------------------
+
+  private kick(): void {
+    if (this.raf === null && this.visible) this.raf = requestAnimationFrame(() => this.frame());
+  }
+
+  private frame(): void {
+    this.raf = null;
+    const c = this.cam;
+    const g = this.goal;
+    const snap = this.reducedMotion;
+    const e = snap ? 1 : 0.12;
+    c.k += (g.k - c.k) * e;
+    c.tx += (g.tx - c.tx) * e;
+    c.ty += (g.ty - c.ty) * e;
+    let moving = Math.abs(g.k - c.k) > 0.0004 || Math.abs(g.tx - c.tx) > 0.2 || Math.abs(g.ty - c.ty) > 0.2;
+    this.world.style.transform = `translate(${c.tx}px, ${c.ty}px) scale(${c.k})`;
+
+    // Lens follows the pointer (or the middle of the screen on touch).
     const l = this.lens;
-    l.x += (l.tx - l.x) * 0.14;
-    l.s += (l.ts - l.s) * 0.1;
-    const settled = Math.abs(l.tx - l.x) < 0.4 && Math.abs(l.ts - l.s) < 0.004;
-    if (settled) {
-      l.x = l.tx;
-      l.s = l.ts;
-    }
-    this.paint();
-    this.lensRaf = settled ? null : requestAnimationFrame(() => this.lensTick());
-  }
+    const px = this.touch ? this.width / 2 : this.ptr.x;
+    const py = this.touch ? this.axisY * c.k + c.ty : this.ptr.y;
+    const lx = (px - c.tx) / c.k;
+    const ly = (py - c.ty) / c.k;
+    const le = snap ? 1 : 0.2;
+    l.x += (lx - l.x) * le;
+    l.y += (ly - l.y) * le;
+    l.s += (l.ts - l.s) * (snap ? 1 : 0.1);
+    moving ||= Math.abs(lx - l.x) > 0.3 || Math.abs(l.ts - l.s) > 0.003;
 
-  private paint(all = false): void {
     const y0 = this.axisY;
-    const radius = Math.max(140, Math.min(260, this.width * 0.16));
-    const big = Math.max(64, Math.min(160, this.height * 0.22, this.width * 0.28));
-    const spread = this.height * (this.width < 600 ? 0.2 : 0.25);
-    const left = this.root.scrollLeft - radius * 2;
-    const right = this.root.scrollLeft + this.width + radius * 2;
+    const R = Math.max(120, Math.min(230, this.width * 0.15)) / c.k;
+    const spread = (this.height * (this.width < 600 ? 0.17 : 0.22)) / c.k;
+    const big = Math.max(70, Math.min(170, this.height * 0.22, this.width * 0.28));
+    const pull = Math.max(-this.height * 0.3, Math.min(this.height * 0.3, l.y - y0));
     const pinnedId = this.pinned?.id;
+    const left = -c.tx / c.k - R * 3;
+    const right = (this.width - c.tx) / c.k + R * 3;
 
     for (const t of this.tiles) {
-      const inView = t.x > left && t.x < right;
-      if (!inView && !t.active && !all) continue;
-      const d = t.x - this.lens.x;
-      const f = inView ? Math.exp(-(d * d) / (2 * radius * radius)) * this.lens.s : 0;
-      t.active = f > 0.01;
-      let size = t.rest + f * (big * t.scale - t.rest);
-      let cx = t.x + d * f * 0.9 + t.sx * f * 56;
-      let cy = y0 + t.restY * (1 - f) + t.sy * f * spread;
-      let z = t.z + Math.round(f * 120);
+      const onScreen = t.rx > left && t.rx < right;
+      let tx = t.rx;
+      let ty = t.ry;
+      let ts = t.rs;
+      let z = t.z;
       if (t.item.id === pinnedId) {
-        size = Math.max(size, big * 1.25);
-        cx = t.x;
-        cy = y0;
+        tx = t.rx;
+        ty = y0;
+        ts = big * 1.3;
         z = 400;
+      } else if (onScreen && !pinnedId) {
+        const d = t.rx - l.x;
+        const f = Math.exp(-(d * d) / (2 * R * R)) * l.s;
+        // Fisheye: the strip stretches around the pointer (continuous, so no gap)…
+        tx = l.x + d * (1 + 1.15 * f) + t.sx * f * 26;
+        // …covers near it grow, lean toward the pointer and scatter into a collage.
+        ts = t.rs * (1 + 2.1 * f * t.scale);
+        ty = t.ry * (1 - f) + y0 * f + t.sy * f * spread + pull * f * 0.45;
+        z = t.z + Math.round(f * 150);
       }
-      t.el.style.width = `${size}px`;
-      t.el.style.height = `${size}px`;
-      t.el.style.transform = `translate(${cx - size / 2}px, ${cy - size / 2}px)`;
-      t.el.style.zIndex = `${z}`;
-      t.el.classList.toggle('is-bloomed', f > 0.5);
+      if (!onScreen && Math.abs(t.x - tx) < 0.5 && Math.abs(t.s - ts) < 0.5) continue;
+      if (snap || !onScreen) {
+        t.x = tx;
+        t.y = ty;
+        t.s = ts;
+        t.vx = t.vy = t.vs = 0;
+      } else {
+        // Springs with a touch of overshoot: the line breathes rather than snaps.
+        t.vx = (t.vx + (tx - t.x) * 0.16) * 0.74;
+        t.vy = (t.vy + (ty - t.y) * 0.16) * 0.74;
+        t.vs = (t.vs + (ts - t.s) * 0.16) * 0.74;
+        t.x += t.vx;
+        t.y += t.vy;
+        t.s += t.vs;
+        if (Math.abs(t.vx) + Math.abs(t.vy) + Math.abs(t.vs) > 0.08 || Math.abs(tx - t.x) + Math.abs(ty - t.y) > 0.3) moving = true;
+      }
+      if (onScreen || snap) {
+        this.writeTile(t, z);
+        t.el.classList.toggle('is-bloomed', t.s > t.rs * 1.8);
+      }
     }
     this.placeLines();
+    if (moving) this.kick();
+  }
+
+  private writeTile(t: Tile, z = t.z): void {
+    const s = t.s;
+    t.el.style.width = `${s}px`;
+    t.el.style.height = `${s}px`;
+    t.el.style.transform = `translate(${t.x - s / 2}px, ${t.y - s / 2}px)`;
+    if (z !== t.lastZ) {
+      t.el.style.zIndex = `${z}`;
+      t.lastZ = z;
+    }
   }
 
   // ---- Docked magnifier ----------------------------------------------------------
@@ -366,10 +486,8 @@ export class TimelineCanvas {
   private zoomBox() {
     const pinned = !!this.pinned;
     const narrow = this.width < 600;
-    const width = narrow ? this.width - 24 : pinned ? Math.min(this.width - 32, 960) : Math.min(460, Math.max(320, this.width * 0.33));
-    const height = narrow
-      ? Math.min(pinned ? 300 : 200, this.axisY - this.height * 0.2 - 30)
-      : Math.max(200, Math.min(pinned ? 380 : 330, this.axisY - this.height * 0.25 - 40));
+    const width = narrow ? this.width - 24 : pinned ? Math.min(this.width - 32, 960) : Math.min(440, Math.max(300, this.width * 0.3));
+    const height = narrow ? (pinned ? 280 : 170) : Math.max(190, Math.min(pinned ? 360 : 300, this.height * (pinned ? 0.44 : 0.38)));
     return { top: 12, height, width, left: this.width - width - (narrow ? 12 : 16) };
   }
 
@@ -385,15 +503,13 @@ export class TimelineCanvas {
       this.lines.innerHTML = '';
       return;
     }
-    if (!force && key === this.zoomKey && !this.zoom.hidden) return this.placeLines();
+    if (!force && key === this.zoomKey && !this.zoom.hidden) return;
     this.zoomKey = key;
     this.zoom.hidden = false;
     this.zoom.classList.remove('is-pinned');
     const box = this.zoomBox();
     const units = sec.data.items.reduce((a, it) => a + (it.trackIds.length > 1 ? 4 : 1), 0);
-    const pw = box.width - 26;
-    const ph = box.height - 48;
-    const c = Math.max(26, Math.min(130, Math.floor(Math.sqrt((pw * ph) / (units * 1.25)))));
+    const c = Math.max(26, Math.min(130, Math.floor(Math.sqrt(((box.width - 26) * (box.height - 48)) / (units * 1.25)))));
     const songs = sec.data.items.reduce((a, it) => a + it.trackIds.length, 0);
     const items = sec.data.items
       .map((it, i) => this.zoomItem(it, it.trackIds.length > 1 ? ' is-big' : '', this.reducedMotion ? 0 : Math.min(i * 10, 300)))
@@ -422,12 +538,7 @@ export class TimelineCanvas {
 
   private placeZoom(): void {
     const box = this.zoomBox();
-    Object.assign(this.zoom.style, {
-      left: `${box.left}px`,
-      top: `${box.top}px`,
-      width: `${box.width}px`,
-      height: `${box.height}px`,
-    });
+    Object.assign(this.zoom.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
     this.placeLines();
   }
 
@@ -438,26 +549,31 @@ export class TimelineCanvas {
       this.lines.innerHTML = '';
       return;
     }
+    const { k, tx, ty } = this.cam;
     const box = this.zoomBox();
     const b = box.top + box.height;
-    const sx = this.root.scrollLeft;
-    const x1 = Math.max(-40, Math.min(this.width + 40, sec.x - sx + 4));
-    const x2 = Math.max(-40, Math.min(this.width + 40, sec.x + sec.w - sx - 4));
+    const ay = this.axisY * k + ty;
+    const clampX = (v: number) => Math.max(-60, Math.min(this.width + 60, v));
     this.lines.setAttribute('width', `${this.width}`);
     this.lines.setAttribute('height', `${this.height}`);
     this.lines.innerHTML = `
-      <line x1="${box.left}" y1="${b}" x2="${x1}" y2="${this.axisY}" />
-      <line x1="${box.left + box.width}" y1="${b}" x2="${x2}" y2="${this.axisY}" />`;
-    this.sections.forEach((s) => s.tiles.forEach((t) => t.el.classList.toggle('is-zoomed', s === sec)));
+      <line x1="${box.left}" y1="${b}" x2="${clampX(sec.x * k + tx + 4)}" y2="${ay}" />
+      <line x1="${box.left + box.width}" y1="${b}" x2="${clampX((sec.x + sec.w) * k + tx - 4)}" y2="${ay}" />`;
+    if (this.lastLinked !== sec) {
+      this.lastLinked = sec;
+      this.sections.forEach((s) => s.tiles.forEach((t) => t.el.classList.toggle('is-zoomed', s === sec)));
+    }
   }
+  private lastLinked: Section | null = null;
 
-  /** Pins the magnifier on one album: it grows, with its details beside it. */
+  /** Pins the magnifier on one album: it grows on the line, with its details beside it. */
   private pin(id: string, html: string): void {
     const tile = this.tileOf(id);
     if (!tile) return;
     const sec = tile.section;
     this.pinned = { id, key: sec.data.key };
     this.zoomKey = sec.data.key;
+    this.lastLinked = null;
     this.zoom.hidden = false;
     this.zoom.classList.add('is-pinned');
     this.info.innerHTML = html;
@@ -472,7 +588,7 @@ export class TimelineCanvas {
     this.bindZoomItems(sec.data.key);
     this.tiles.forEach((t) => t.el.classList.toggle('is-selected', t.item.id === id));
     this.placeZoom();
-    this.setLens(tile.x, 1);
+    this.centerOn(tile.rx);
   }
 
   // ---- Public selection API (used by the app) ------------------------------------
@@ -483,13 +599,11 @@ export class TimelineCanvas {
       this.pinned = null;
       this.tiles.forEach((t) => t.el.classList.remove('is-selected'));
       this.showZoom(this.zoomKey, true);
-      this.setLens(this.lens.tx, this.touch ? 1 : 0.45);
+      this.kick();
       return;
     }
-    const tile = this.tileOf(id);
-    if (!tile) return;
+    if (!this.tileOf(id)) return;
     this.zoom.setAttribute('aria-label', label);
-    this.scrollToX(tile.x, true);
     this.pin(id, html);
   }
 
@@ -503,14 +617,13 @@ export class TimelineCanvas {
 
   scrollToSection(key: string): void {
     const s = this.find(key);
-    if (s) this.smoothTo(s.x - 40);
+    if (s) this.centerOn(s.x + Math.min(s.w, this.width * 0.8) / 2);
   }
 
   scrollToItem(id: string, highlight = false): void {
     const tile = this.tileOf(id);
     if (!tile) return;
-    this.scrollToX(tile.x, true);
-    this.setLens(tile.x, 1);
+    this.centerOn(tile.rx);
     if (!this.pinned) this.showZoom(tile.section.data.key);
     if (highlight) {
       tile.el.classList.add('is-highlight');
@@ -526,75 +639,49 @@ export class TimelineCanvas {
     return this.tileOf(id)?.el.getBoundingClientRect() ?? null;
   }
 
-  private scrollToX(x: number, center: boolean): void {
-    const left = this.root.scrollLeft;
-    if (!center && x > left + 120 && x < left + this.width - 120) return;
-    this.smoothTo(x - this.width * (this.width < 600 ? 0.5 : 0.4));
-  }
-
-  // ---- Smooth scrolling -------------------------------------------------------------
-
-  private smoothTo(left: number): void {
-    const max = this.root.scrollWidth - this.width;
-    this.scrollTarget = Math.max(0, Math.min(max, left));
-    if (this.reducedMotion) {
-      this.root.scrollLeft = this.scrollTarget;
-      return;
-    }
-    if (this.scrollRaf === null) this.scrollRaf = requestAnimationFrame(() => this.scrollTick());
-  }
-
-  private scrollTick(): void {
-    const cur = this.root.scrollLeft;
-    const diff = this.scrollTarget - cur;
-    if (Math.abs(diff) < 0.5) {
-      this.root.scrollLeft = this.scrollTarget;
-      this.scrollRaf = null;
-      return;
-    }
-    this.root.scrollLeft = cur + diff * 0.12;
-    this.scrollRaf = requestAnimationFrame(() => this.scrollTick());
-  }
-
   // ---- Input --------------------------------------------------------------------
+
+  private local(e: { clientX: number; clientY: number }) {
+    const r = this.root.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
 
   private bind(): void {
     this.root.addEventListener(
       'wheel',
       (e) => {
-        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-          this.scrollTarget = this.root.scrollLeft + e.deltaX;
-          return;
-        }
         e.preventDefault();
-        const base = this.scrollRaf === null ? this.root.scrollLeft : this.scrollTarget;
-        this.smoothTo(base + e.deltaY * 1.1);
+        const p = this.local(e);
+        if (e.ctrlKey) {
+          this.zoomBy(Math.exp(-e.deltaY * 0.01), p.x, p.y);
+        } else if (e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40) {
+          // A mouse wheel moves along the timeline…
+          this.panBy(-e.deltaY * 1.2, 0);
+        } else {
+          // …a trackpad moves the canvas freely in both directions.
+          this.panBy(-e.deltaX, -e.deltaY);
+        }
+        this.settleSoon();
       },
       { passive: false },
     );
-    // The lens follows the pointer along the line; its year fills the magnifier.
     this.root.addEventListener('pointermove', (e) => {
-      if (e.pointerType === 'touch' || this.dragging) return;
-      const r = this.root.getBoundingClientRect();
-      const x = this.root.scrollLeft + e.clientX - r.left;
-      if (!this.pinned) {
-        this.setLens(x, 1);
-        const sec = this.sectionAt(x);
+      if (e.pointerType === 'touch') return;
+      const p = this.local(e);
+      this.ptr = { ...p, inside: true };
+      if (!this.pinned && !this.dragging) {
+        this.lens.ts = 1;
+        const sec = this.sectionAt((p.x - this.cam.tx) / this.cam.k);
         if (sec) this.showZoom(sec.data.key);
       }
+      this.kick();
     });
     this.root.addEventListener('pointerleave', (e) => {
-      if (e.pointerType !== 'touch' && !this.pinned) this.setLens(this.lens.tx, 0.45);
-    });
-    let scrollTimer = 0;
-    this.root.addEventListener('scroll', () => {
-      if (this.scrollRaf === null) this.scrollTarget = this.root.scrollLeft;
-      if (this.touch && !this.pinned) this.setLens(this.root.scrollLeft + this.width / 2, 1);
-      else this.paint();
-      clearTimeout(scrollTimer);
-      scrollTimer = window.setTimeout(() => {
-        if (!this.pinned && (this.touch || !this.root.matches(':hover'))) this.showZoom(this.centerKey());
-      }, 160);
+      if (e.pointerType === 'touch') return;
+      this.ptr.inside = false;
+      if (!this.pinned) this.lens.ts = 0;
+      this.settleSoon();
+      this.kick();
     });
     this.root.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
@@ -602,41 +689,64 @@ export class TimelineCanvas {
       this.cb.onBackground?.();
     });
 
-    // Drag the background with a mouse to pan, with a little glide on release.
-    let startX = 0;
-    let startLeft = 0;
-    let lastX = 0;
-    let velocity = 0;
-    let down = false;
+    // Drag anywhere to move the canvas (with a glide); two fingers pinch to zoom.
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinch = 0;
+    let moved = 0;
+    let vel = { x: 0, y: 0 };
     this.root.addEventListener('pointerdown', (e) => {
-      if (e.pointerType !== 'mouse' || e.button !== 0 || (e.target as HTMLElement).closest('.mm-sec__head')) return;
-      down = true;
-      this.dragging = false;
-      startX = lastX = e.clientX;
-      startLeft = this.root.scrollLeft;
-      velocity = 0;
-      if (this.scrollRaf !== null) cancelAnimationFrame(this.scrollRaf);
-      this.scrollRaf = null;
+      if (e.button !== 0 || (e.target as HTMLElement).closest('.mm-sec__head')) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      moved = 0;
+      vel = { x: 0, y: 0 };
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        pinch = Math.hypot(a.x - b.x, a.y - b.y);
+      }
     });
     window.addEventListener('pointermove', (e) => {
-      if (!down) return;
-      const dx = e.clientX - startX;
-      if (Math.abs(dx) > 5 && !this.dragging) {
+      const prev = pointers.get(e.pointerId);
+      if (!prev) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        const r = this.root.getBoundingClientRect();
+        if (pinch) this.zoomBy(d / pinch, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+        pinch = d;
+        moved += 10;
+        return;
+      }
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      moved += Math.abs(dx) + Math.abs(dy);
+      if (moved > 6 && !this.dragging) {
         this.dragging = true;
         this.root.classList.add('is-dragging');
+        try {
+          this.root.setPointerCapture(e.pointerId);
+        } catch {
+          /* pointer may already be released */
+        }
       }
       if (this.dragging) {
-        velocity = e.clientX - lastX;
-        lastX = e.clientX;
-        this.root.scrollLeft = startLeft - dx;
+        vel = { x: dx, y: dy };
+        this.panBy(dx, dy, true);
       }
     });
-    window.addEventListener('pointerup', () => {
-      if (down && this.dragging) this.smoothTo(this.root.scrollLeft - velocity * 12);
-      down = false;
-      this.root.classList.remove('is-dragging');
-      setTimeout(() => (this.dragging = false), 0);
-    });
+    const end = (e: PointerEvent) => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinch = 0;
+      if (this.dragging && !pointers.size) {
+        if (!this.reducedMotion) this.panBy(vel.x * 10, vel.y * 10);
+        this.root.classList.remove('is-dragging');
+        setTimeout(() => (this.dragging = false), 0);
+        this.settleSoon();
+      }
+    };
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
   }
 }
 

@@ -37,6 +37,8 @@ export interface WebCallbacks {
 
 interface ANode {
   album: WebAlbum;
+  /** Current magnification from the cursor (eased). */
+  m: number;
   x: number;
   y: number;
   s: number;
@@ -75,6 +77,7 @@ export class LibraryWeb {
   private raf: number | null = null;
   private reducedMotion = false;
   private visible = false;
+  private mouse = { x: 0, y: 0, in: false };
   private fitted = false;
 
   constructor(canvas: HTMLCanvasElement, cb: WebCallbacks) {
@@ -122,7 +125,7 @@ export class LibraryWeb {
       const person = (primary && personById.get(primary)) || unknown;
       let hub = hubMap.get(person.id);
       if (!hub) hubMap.set(person.id, (hub = { person, x: 0, y: 0, r: 0, albums: [] }));
-      const node: ANode = { album, x: 0, y: 0, s: 26 + Math.min(3, album.trackIds.length - 1) * 7, hub };
+      const node: ANode = { album, m: 1, x: 0, y: 0, s: 44 + Math.min(3, album.trackIds.length - 1) * 10, hub };
       hub.albums.push(node);
       this.albums.push(node);
     }
@@ -136,12 +139,12 @@ export class LibraryWeb {
     // Each artist's albums form a sunflower around their hub, covers overlapping a little.
     for (const hub of this.hubs) {
       hub.albums.forEach((n, i) => {
-        const r = hub.albums.length === 1 ? 30 : 26 + 15 * Math.sqrt(i + 0.5);
+        const r = hub.albums.length === 1 ? 46 : 42 + 25 * Math.sqrt(i + 0.5);
         const a = i * 2.39996;
         n.x = Math.cos(a) * r;
         n.y = Math.sin(a) * r;
       });
-      hub.r = hub.albums.length ? 30 + 15 * Math.sqrt(hub.albums.length) + 14 : 10;
+      hub.r = hub.albums.length ? 46 + 25 * Math.sqrt(hub.albums.length) + 22 : 12;
     }
     this.packHubs(albums, links);
     for (const hub of this.hubs) for (const n of hub.albums) [n.x, n.y] = [n.x + hub.x, n.y + hub.y];
@@ -309,8 +312,24 @@ export class LibraryWeb {
     c.tx += (g.tx - c.tx) * e;
     c.ty += (g.ty - c.ty) * e;
     if (this.intro < 1) this.intro = Math.min(1, (performance.now() - this.introStart) / 1300);
+    // Covers near the cursor swell a little, so the web responds as you move.
+    let swelling = false;
+    for (const n of this.albums) {
+      let target = 1;
+      if (this.mouse.in) {
+        const dx = n.x * c.k + c.tx - this.mouse.x;
+        const dy = n.y * c.k + c.ty - this.mouse.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 260 * 260) target = 1 + 0.65 * Math.exp(-d2 / (2 * 95 * 95));
+      }
+      if (n === this.hoverAlbum) target = 2;
+      if (Math.abs(target - n.m) > 0.004) {
+        n.m += (target - n.m) * (this.reducedMotion ? 1 : 0.2);
+        swelling = true;
+      } else n.m = target;
+    }
     this.draw();
-    const moving = Math.abs(g.k - c.k) > 0.0005 || Math.abs(g.tx - c.tx) > 0.3 || Math.abs(g.ty - c.ty) > 0.3 || this.intro < 1;
+    const moving = swelling || Math.abs(g.k - c.k) > 0.0005 || Math.abs(g.tx - c.tx) > 0.3 || Math.abs(g.ty - c.ty) > 0.3 || this.intro < 1;
     if (moving) this.kick();
   }
 
@@ -340,6 +359,24 @@ export class LibraryWeb {
     const margin = 80;
     const onScreen = (x: number, y: number) => x > -margin && x < this.w + margin && y > -margin && y < this.h + margin;
 
+    // A soft circle around each artist's albums makes ownership readable at any zoom.
+    for (const h of this.hubs) {
+      if (!h.albums.length) continue;
+      const hp = hubPos(h);
+      const r = (h.r - 10) * cam.k * p;
+      if (hp.x + r < 0 || hp.x - r > this.w || hp.y + r < 0 || hp.y - r > this.h) continue;
+      const hot = focusHub === h;
+      ctx.globalAlpha = hot ? 0.12 : dim ? 0.02 : 0.045;
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(hp.x, hp.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = hot ? 0.6 : dim ? 0.08 : 0.18;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = hot ? 1.4 : 0.8;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
     // Fans: hub → album
     ctx.lineWidth = 0.7;
     for (const h of this.hubs) {
@@ -381,21 +418,38 @@ export class LibraryWeb {
       ctx.setLineDash(l.kind === 'interpolates' || l.uncertain ? [5, 4] : []);
       const mx = (a.x + b.x) / 2 - (b.y - a.y) * 0.18;
       const my = (a.y + b.y) / 2 + (b.x - a.x) * 0.18;
+      // End the line at the edge of the sampled cover, with an arrowhead there.
+      const ang = Math.atan2(b.y - my, b.x - mx);
+      const inset = (l.b.s * cam.k * l.b.m) / 2 + 3;
+      const ex = b.x - Math.cos(ang) * inset;
+      const ey = b.y - Math.sin(ang) * inset;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
-      ctx.quadraticCurveTo(mx, my, b.x, b.y);
+      ctx.quadraticCurveTo(mx, my, ex, ey);
       ctx.stroke();
+      ctx.setLineDash([]);
+      const ah = hot ? 9 : 7;
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - Math.cos(ang - 0.45) * ah, ey - Math.sin(ang - 0.45) * ah);
+      ctx.lineTo(ex - Math.cos(ang + 0.45) * ah, ey - Math.sin(ang + 0.45) * ah);
+      ctx.fill();
     }
     ctx.setLineDash([]);
-    // Covers
-    for (const n of this.albums) {
+    // Covers (magnified ones drawn last so they sit on top)
+    const order = [...this.albums].sort((x, y) => x.m - y.m);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const n of order) {
       const np = pos(n, n.hub);
-      const s = n.s * cam.k * (n === this.hoverAlbum ? 1.8 : 1);
       if (!onScreen(np.x, np.y)) continue;
-      ctx.globalAlpha = (dim && !related.has(n) ? 0.22 : 1) * (n.album.outside ? 0.8 : 1);
-      if (n === this.hoverAlbum) {
-        ctx.shadowColor = 'rgba(0,0,0,0.35)';
-        ctx.shadowBlur = 18;
+      const s = n.s * cam.k * n.m;
+      ctx.globalAlpha = (dim && !related.has(n) ? 0.2 : 1) * (n.album.outside ? 0.85 : 1);
+      if (n.m > 1.05) {
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 8 + 14 * (n.m - 1);
+        ctx.shadowOffsetY = 4;
       }
       const img = this.images.get(n.album.cover);
       if (img?.complete && img.naturalWidth) ctx.drawImage(img, np.x - s / 2, np.y - s / 2, s, s);
@@ -404,12 +458,23 @@ export class LibraryWeb {
         ctx.fillRect(np.x - s / 2, np.y - s / 2, s, s);
       }
       ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
       if (n.album.outside && s > 14) {
         ctx.strokeStyle = 'rgba(26,29,51,0.5)';
         ctx.setLineDash([3, 2]);
         ctx.lineWidth = 1;
         ctx.strokeRect(np.x - s / 2 - 2, np.y - s / 2 - 2, s + 4, s + 4);
         ctx.setLineDash([]);
+      }
+      // Titles appear once covers are big enough to read.
+      if (s > 78 && (!dim || related.has(n))) {
+        ctx.font = '500 11px "Helvetica Neue", Helvetica, Arial, sans-serif';
+        const t = n.album.title.length > 26 ? `${n.album.title.slice(0, 25)}…` : n.album.title;
+        const tw = ctx.measureText(t).width;
+        ctx.fillStyle = 'rgba(255,255,255,0.88)';
+        ctx.fillRect(np.x - tw / 2 - 3, np.y + s / 2 + 3, tw + 6, 15);
+        ctx.fillStyle = '#1a1d33';
+        ctx.fillText(t, np.x, np.y + s / 2 + 5);
       }
     }
     // Hub dots and names (names appear as you zoom in; the biggest always show)
@@ -427,14 +492,17 @@ export class LibraryWeb {
       ctx.arc(hp.x, hp.y, hot ? 4.5 : 2.6, 0, Math.PI * 2);
       ctx.fill();
       const screenR = h.r * cam.k;
-      if (hot || screenR > 60 || (biggest.has(h) && screenR > 26)) {
+      if (hot || screenR > 50 || (biggest.has(h) && screenR > 24)) {
         ctx.font = `${hot ? 600 : 500} ${hot ? 13 : 11.5}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
         const label = h.person.name;
         const tw = ctx.measureText(label).width;
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fillRect(hp.x - tw / 2 - 4, hp.y - 20 - 8, tw + 8, 16);
+        // Name sits on the top edge of the artist's circle.
+        const ly = h.albums.length ? hp.y - (h.r - 10) * cam.k * p : hp.y - 16;
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fillRect(hp.x - tw / 2 - 5, ly - 9, tw + 10, 18);
         ctx.fillStyle = hot ? accent : '#1a1d33';
-        ctx.fillText(label, hp.x, hp.y - 20);
+        ctx.fillText(label, hp.x, ly);
       }
     }
     ctx.globalAlpha = 1;
@@ -451,7 +519,7 @@ export class LibraryWeb {
     const w = this.toWorld(clientX - r.left, clientY - r.top);
     for (let i = this.albums.length - 1; i >= 0; i--) {
       const n = this.albums[i];
-      const half = (n.s / 2) * (n === this.hoverAlbum ? 1.8 : 1) + 2 / this.cam.k;
+      const half = (n.s / 2) * n.m + 2 / this.cam.k;
       if (Math.abs(w.x - n.x) <= half && Math.abs(w.y - n.y) <= half) return { album: n };
     }
     for (const h of this.hubs) if (Math.hypot(w.x - h.x, w.y - h.y) < 9 / this.cam.k) return { hub: h };
@@ -487,6 +555,9 @@ export class LibraryWeb {
     c.addEventListener('pointermove', (e) => {
       const prev = pointers.get(e.pointerId);
       if (!prev) {
+        const rr = c.getBoundingClientRect();
+        this.mouse = { x: e.clientX - rr.left, y: e.clientY - rr.top, in: true };
+        this.kick();
         // Hover
         const { album, hub } = this.hit(e.clientX, e.clientY);
         if (album !== (this.hoverAlbum ?? undefined) || hub !== (this.hoverHub ?? undefined)) {
@@ -541,6 +612,8 @@ export class LibraryWeb {
     c.addEventListener('pointerup', end);
     c.addEventListener('pointercancel', end);
     c.addEventListener('pointerleave', () => {
+      this.mouse.in = false;
+      this.kick();
       if (this.hoverAlbum || this.hoverHub) {
         this.hoverAlbum = this.hoverHub = null;
         this.kick();

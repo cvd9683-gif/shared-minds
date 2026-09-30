@@ -1142,6 +1142,8 @@ class MusicMapApp {
         for (const m of this.neighborsOf(n.otherId)) {
           if (count >= WIDER_LIMIT) break;
           if (nodes.has(m.otherId)) continue;
+          // In the web, the outer ring is covers only: unlabeled dots for people read as noise.
+          if (this.view === 'history' && !this.graph.tracks.has(m.otherId)) continue;
           nodes.set(m.otherId, { id: m.otherId, role: 'wider' });
           count++;
         }

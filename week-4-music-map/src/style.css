@@ -429,8 +429,8 @@ body:not(.panel-open) .mm-panel {
 .mm-canvas {
   position: absolute;
   inset: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
+  touch-action: none;
   cursor: grab;
   scrollbar-width: thin;
   scrollbar-color: var(--rule) transparent;
@@ -446,7 +446,11 @@ body:not(.panel-open) .mm-panel {
   visibility: hidden;
 }
 .mm-canvas__world {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 /* Axis with arrowheads at both ends */
@@ -483,7 +487,6 @@ body:not(.panel-open) .mm-panel {
 .mm-sec {
   position: absolute;
   top: 0;
-  bottom: 0;
   pointer-events: none;
 }
 .mm-sec__tick {
@@ -2493,4 +2496,47 @@ details summary {
   .mm-year-view {
     animation: none;
   }
+}
+
+/* ---- Focused web: clearer ownership and lines ------------------------------------- */
+
+.mm-stage[data-view='history'] .mm-edge {
+  stroke-width: 1.5;
+}
+.mm-stage[data-view='history'] .mm-edge.is-wider {
+  opacity: 0.3;
+  stroke-width: 1;
+}
+.mm-stage.has-hover .mm-edge:not(.is-hover):not(.is-path) {
+  opacity: 0.07;
+}
+.mm-stage.has-hover .mm-edge-label:not(.is-hover):not(.is-path) {
+  opacity: 0;
+}
+.mm-stage.has-hover .mm-node:not(.is-related):not(.on-path) {
+  opacity: 0.25;
+}
+.mm-node {
+  transition: opacity 0.25s var(--ease);
+}
+.mm-node__meta .mm-meta--role {
+  color: var(--release);
+  font-weight: 500;
+}
+.mm-node__label--small {
+  width: 110px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.mm-node__label--small .mm-node__name {
+  font-size: 10.5px;
+  font-weight: 500;
+}
+.mm-node.is-wider:hover .mm-node__label--small,
+.mm-stage.has-hover .mm-node.is-wider.is-related .mm-node__label--small {
+  opacity: 1;
+}
+.mm-node.is-wider.mm-node--track .mm-node__art {
+  opacity: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
