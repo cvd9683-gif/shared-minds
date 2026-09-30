@@ -47,14 +47,21 @@ export interface EnrichResult {
 }
 
 export async function enrichFromMusicBrainz(track: Track, knownPeople: Person[]): Promise<EnrichResult> {
+  // Spotify stopped sending ISRCs in Feb 2026; fall back to a strict title + artist search.
   const isrc = track.spotify?.isrc;
-  if (!isrc) {
-    return { data: {}, recordingUrl: null, added: 0, message: 'This track has no ISRC to look up.' };
+  let recId: string | undefined;
+  if (isrc) {
+    const lookup = await mb<{ recordings?: { id: string }[] }>(`/isrc/${encodeURIComponent(isrc)}`);
+    recId = lookup.recordings?.[0]?.id;
   }
-  const lookup = await mb<{ recordings?: { id: string }[] }>(`/isrc/${encodeURIComponent(isrc)}`);
-  const recId = lookup.recordings?.[0]?.id;
   if (!recId) {
-    return { data: {}, recordingUrl: null, added: 0, message: `MusicBrainz has no recording for ISRC ${isrc}.` };
+    const artist = track.artistCredit.split(',')[0].trim();
+    const q = `recording:"${track.title.replace(/"/g, '')}" AND artist:"${artist.replace(/"/g, '')}"`;
+    const found = await mb<{ recordings?: { id: string; score?: number }[] }>(`/recording?query=${encodeURIComponent(q)}&limit=3`);
+    recId = found.recordings?.find((r) => (r.score ?? 0) >= 90)?.id;
+  }
+  if (!recId) {
+    return { data: {}, recordingUrl: null, added: 0, message: `MusicBrainz has no confident match for “${track.title}”.` };
   }
   const rec = await mb<MbRecording>(`/recording/${recId}?inc=artist-rels+recording-rels+work-rels`);
   const recUrl = `https://musicbrainz.org/recording/${rec.id}`;

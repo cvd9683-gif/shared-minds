@@ -83,6 +83,9 @@ export class NetworkView {
   private hoverId: string | null = null;
   private reducedMotion = false;
   private labelsEl: HTMLDivElement;
+  /** Camera for the web: every layer is drawn in world space, then zoomed and panned. */
+  private view = { k: 1, tx: 0, ty: 0 };
+  private userMoved = false;
 
   private nodesEl: HTMLElement;
   private svg: SVGSVGElement;
@@ -128,6 +131,8 @@ export class NetworkView {
 
   clear(): void {
     this.scene = null;
+    this.setView(1, 0, 0, false);
+    this.userMoved = false;
     this.drawn.forEach((d) => d.el.remove());
     this.drawn.clear();
     this.shown.clear();
@@ -144,7 +149,9 @@ export class NetworkView {
   show(scene: Scene, spawn?: { id: string; rect: DOMRect }, instant = false): void {
     this.scene = scene;
     const stageRect = this.nodesEl.getBoundingClientRect();
-    const targets = scene.mode === 'history' ? this.layoutHistory(scene) : this.layoutRelations(scene);
+    const web = scene.mode === 'history';
+    const newNodes = scene.nodes.some((n) => !this.drawn.has(n.id));
+    const targets = web ? this.layoutWeb(scene) : this.layoutRelations(scene);
 
     // Create, update and remove node elements.
     const keep = new Set(scene.nodes.map((n) => n.id));
@@ -175,7 +182,7 @@ export class NetworkView {
         // New nodes grow out of the spawn rect, the current node, or their target.
         const start =
           spawn?.id === sn.id
-            ? { x: spawn.rect.left - stageRect.left + spawn.rect.width / 2, y: spawn.rect.top - stageRect.top + spawn.rect.height / 2 }
+            ? this.toWorld(spawn.rect.left - stageRect.left + spawn.rect.width / 2, spawn.rect.top - stageRect.top + spawn.rect.height / 2)
             : (this.shown.get(currentId) ?? targets.get(currentId) ?? targets.get(sn.id)!);
         this.shown.set(sn.id, { ...start });
         if (spawn?.id === sn.id) d.el.style.setProperty('--spawn', `${spawn.rect.width}px`);
@@ -185,7 +192,14 @@ export class NetworkView {
       this.renderNode(d, node, sn, scene);
     }
 
-    this.renderAxis(scene);
+    // The historical view is a web now: no date axis; the camera frames the whole web.
+    this.renderAxis({ ...scene, mode: 'timeline' });
+    if (web && (newNodes || !this.userMoved)) {
+      this.userMoved = false;
+      this.fit(targets, !(instant || this.reducedMotion));
+    } else if (!web) {
+      this.setView(1, 0, 0, !(instant || this.reducedMotion));
+    }
 
     // Animate from where things are to where they should be.
     this.from = new Map([...this.shown].map(([k, v]) => [k, { ...v }]));
@@ -208,6 +222,113 @@ export class NetworkView {
       }
     };
     this.anim = requestAnimationFrame(frame);
+  }
+
+  // ---- Camera (zoom and pan) --------------------------------------------------------
+
+  /** Wheel or pinch to zoom, drag the background to pan (historical web only). */
+  bindCamera(stage: HTMLElement): void {
+    const active = () => this.scene?.mode === 'history';
+    const isBackground = (t: EventTarget | null) =>
+      !(t as HTMLElement).closest('.mm-node, .mm-blurb, .mm-pathbar, .mm-zoomctl, .mm-stage-tools, .mm-howto, button, a, input, textarea');
+    stage.addEventListener(
+      'wheel',
+      (e) => {
+        if (!active() || (e.target as HTMLElement).closest('.mm-blurb, .mm-panel')) return;
+        e.preventDefault();
+        const r = stage.getBoundingClientRect();
+        // Pinch on a trackpad arrives as a ctrl+wheel; scroll pans.
+        if (e.ctrlKey || Math.abs(e.deltaY) > Math.abs(e.deltaX) * 2) {
+          this.zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0022)), e.clientX - r.left, e.clientY - r.top, false);
+        } else {
+          this.panBy(-e.deltaX, -e.deltaY);
+        }
+      },
+      { passive: false },
+    );
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinch = 0;
+    stage.addEventListener('pointerdown', (e) => {
+      if (!active() || !isBackground(e.target)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      stage.setPointerCapture(e.pointerId);
+      stage.classList.add('is-panning');
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        pinch = Math.hypot(a.x - b.x, a.y - b.y);
+      }
+    });
+    stage.addEventListener('pointermove', (e) => {
+      const prev = pointers.get(e.pointerId);
+      if (!prev) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        const r = stage.getBoundingClientRect();
+        if (pinch) this.zoomBy(d / pinch, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, false);
+        pinch = d;
+      } else {
+        this.panBy(e.clientX - prev.x, e.clientY - prev.y);
+      }
+    });
+    const end = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinch = 0;
+      if (!pointers.size) stage.classList.remove('is-panning');
+    };
+    stage.addEventListener('pointerup', end);
+    stage.addEventListener('pointercancel', end);
+  }
+
+  private toWorld(x: number, y: number): Pt {
+    return { x: (x - this.view.tx) / this.view.k, y: (y - this.view.ty) / this.view.k };
+  }
+
+  private setView(k: number, tx: number, ty: number, animate: boolean): void {
+    this.view = { k, tx, ty };
+    const t = `translate(${tx}px, ${ty}px) scale(${k})`;
+    for (const el of [this.nodesEl, this.svg as unknown as HTMLElement, this.labelsEl]) {
+      el.style.transformOrigin = '0 0';
+      el.style.transition = animate ? 'transform 0.7s cubic-bezier(0.22, 1, 0.36, 1)' : 'none';
+      el.style.transform = t;
+    }
+    this.nodesEl.parentElement?.style.setProperty('--zoom', `${k}`);
+  }
+
+  /** Zooms by a factor around a point in stage coordinates. */
+  zoomBy(factor: number, cx = this.width / 2, cy = this.height / 2, animate = true): void {
+    const k = Math.max(0.25, Math.min(2.6, this.view.k * factor));
+    const f = k / this.view.k;
+    this.userMoved = true;
+    this.setView(k, cx - (cx - this.view.tx) * f, cy - (cy - this.view.ty) * f, animate);
+  }
+
+  panBy(dx: number, dy: number): void {
+    this.userMoved = true;
+    this.setView(this.view.k, this.view.tx + dx, this.view.ty + dy, false);
+  }
+
+  /** Frames every node, leaving room for the path bar and labels. */
+  fit(targets: Map<string, Pt> = this.to, animate = true): void {
+    if (!targets.size) return;
+    let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+    targets.forEach((p, id) => {
+      const r = (this.drawn.get(id)?.size ?? 40) / 2;
+      x0 = Math.min(x0, p.x - r - 60);
+      x1 = Math.max(x1, p.x + r + 60);
+      y0 = Math.min(y0, p.y - r - 10);
+      y1 = Math.max(y1, p.y + r + 46);
+    });
+    const left = this.width < 700 ? 12 : 40;
+    const top = 64;
+    const aw = this.width - left - 24;
+    const ah = this.height - top - 24;
+    const k = Math.max(0.25, Math.min(1.25, aw / (x1 - x0), ah / (y1 - y0)));
+    const tx = left + (aw - (x1 - x0) * k) / 2 - x0 * k;
+    const ty = top + (ah - (y1 - y0) * k) / 2 - y0 * k;
+    this.userMoved = false;
+    this.setView(k, tx, ty, animate);
   }
 
   private setHover(id: string | null, el: HTMLElement | null): void {
@@ -250,7 +371,7 @@ export class NetworkView {
       const savedTxt = saved ? `<span class="mm-meta--saved">Saved ${formatSaved(saved)}</span>` : `<span class="mm-meta--outside">Outside your collection</span>`;
       const relTxt = `<span class="mm-meta--release">${node.release ? `Released ${formatPartialDate(node.release)}` : 'Release date unknown'}</span>`;
       meta = history ? `${relTxt}${sn.role === 'overview' ? '' : savedTxt}` : `<span>${escapeHtml(node.artistCredit)}</span>${sn.role === 'overview' ? '' : savedTxt}`;
-      if (history && node.release && node.release.precision !== 'day') {
+      if (history && this.axis && node.release && node.release.precision !== 'day') {
         const [a, b] = partialDateSpan(node.release);
         const w = Math.max(4, this.scaleX(b) - this.scaleX(a));
         span = `<span class="mm-node__span" style="width:${w}px" title="${node.release.precision === 'year' ? 'Only the year is known' : 'Only the month is known'}"></span>`;
@@ -324,6 +445,50 @@ export class NetworkView {
 
   // ---- Layouts ----------------------------------------------------------------
 
+  /**
+   * Historical view as a web: the current song at the centre, its connections in a
+   * ring, and their own connections (other works, samples of samples) further out.
+   */
+  private layoutWeb(scene: Scene): Map<string, Pt> {
+    const W = this.width;
+    const H = this.height;
+    const currentId = scene.path[scene.path.length - 1];
+    const center = this.toWorld(W < 700 ? W / 2 : W * 0.58, H * 0.52);
+    const ring = scene.nodes.filter((n) => n.role !== 'wider' && n.id !== currentId);
+    // Each outer node hangs from a node it's linked to.
+    const bridge = new Map<string, string>();
+    for (const e of scene.edges) {
+      const a = scene.nodes.find((n) => n.id === e.rel.from);
+      const b = scene.nodes.find((n) => n.id === e.rel.to);
+      if (a?.role === 'wider' && b && b.role !== 'wider') bridge.set(a.id, b.id);
+      if (b?.role === 'wider' && a && a.role !== 'wider') bridge.set(b.id, a.id);
+    }
+    const ringPos = new Map<string, Pt>();
+    ring.forEach((n, i) => {
+      const ang = -Math.PI / 2 + ((i + 0.5) / Math.max(1, ring.length)) * Math.PI * 2;
+      ringPos.set(n.id, { x: center.x + Math.cos(ang) * 240, y: center.y + Math.sin(ang) * 200 });
+    });
+    const sims: SimNode[] = scene.nodes.map((sn) => {
+      const node = this.graph.node(sn.id)!;
+      const r = sn.role === 'wider' ? (node.kind === 'track' ? 22 : 10) : nodeRadius(node, sn.role);
+      if (sn.id === currentId) return { id: sn.id, ...center, vx: 0, vy: 0, r, fixed: true };
+      const prev = this.shown.get(sn.id);
+      const rand = seeded(sn.id);
+      let start = prev ?? ringPos.get(sn.id);
+      if (!start) {
+        const b = bridge.get(sn.id);
+        const base = (b && (this.shown.get(b) ?? ringPos.get(b))) || center;
+        const out = Math.atan2(base.y - center.y, base.x - center.x) + (rand() - 0.5) * 1.6;
+        start = { x: base.x + Math.cos(out) * 120, y: base.y + Math.sin(out) * 120 };
+      }
+      // A gentle pull to the centre keeps the web together without a box around it.
+      return { id: sn.id, ...start, vx: 0, vy: 0, r, tx: center.x, ty: center.y, kx: 0.006, ky: 0.008 };
+    });
+    const big = 1e5;
+    this.simulate(sims, scene, { top: -big, bottom: big, left: -big, right: big }, (n) => (n.r < 26 ? 110 : 230));
+    return new Map(sims.map((s) => [s.id, { x: s.x, y: s.y }]));
+  }
+
   private layoutRelations(scene: Scene): Map<string, Pt> {
     const W = this.width;
     const H = this.height;
@@ -375,74 +540,6 @@ export class NetworkView {
 
   private scaleX(v: number): number {
     return this.axis ? this.axis.x(v) : 0;
-  }
-
-  private layoutHistory(scene: Scene): Map<string, Pt> {
-    const W = this.width;
-    const H = this.height;
-    const hasPeople = scene.nodes.some((n) => this.graph.people.has(n.id) && n.role !== 'wider');
-    const axisY = hasPeople ? H - 150 : H - 70;
-    const peopleY = H - 80;
-    const tracks = scene.nodes.map((n) => this.graph.tracks.get(n.id)).filter((t) => !!t);
-    const values = tracks.filter((t) => t.release).flatMap((t) => partialDateSpan(t.release!));
-    const hasUnknown = tracks.some((t) => !t.release);
-    this.axis = { ...buildScale(values, hasUnknown, 70, W - 50), y: axisY, peopleY };
-    const axis = this.axis;
-    const band = { top: 80, bottom: axisY - 70 };
-    const midY = (band.top + band.bottom) / 2;
-    const currentId = scene.path[scene.path.length - 1];
-
-    const sims: SimNode[] = [];
-    let unknownIndex = 0;
-    for (const sn of scene.nodes) {
-      const node = this.graph.node(sn.id)!;
-      const prev = this.shown.get(sn.id);
-      const rand = seeded(sn.id);
-      const r = sn.role === 'wider' ? (node.kind === 'track' ? 20 : 10) : nodeRadius(node, sn.role, true);
-      if (node.kind === 'track') {
-        let x: number;
-        if (node.release) {
-          const [a, b] = partialDateSpan(node.release);
-          x = axis.x((a + b) / 2);
-        } else {
-          const [ux0, ux1] = axis.unknown!;
-          x = ux0 + ((unknownIndex++ * 37) % Math.max(1, ux1 - ux0 - 20)) + 10;
-        }
-        // The current and starting recordings stay on the centre line so they are easy to find.
-        const important = sn.id === currentId || sn.role === 'origin';
-        sims.push({
-          id: sn.id,
-          x,
-          y: prev?.y ?? band.top + rand() * (band.bottom - band.top),
-          vx: 0,
-          vy: 0,
-          r,
-          fixX: true,
-          ty: midY,
-          ky: important ? 0.2 : 0.004,
-        });
-      } else {
-        // People have no release date: they live in their own lane, near their work.
-        sims.push({
-          id: sn.id,
-          x: prev?.x ?? W / 2 + (rand() - 0.5) * W * 0.5,
-          y: peopleY,
-          vx: 0,
-          vy: 0,
-          r,
-          ty: peopleY,
-          ky: 0.5,
-        });
-      }
-    }
-    this.simulate(
-      sims,
-      scene,
-      { top: band.top, bottom: peopleY + 10, left: 50, right: W - 40 },
-      () => 120,
-      (n) => (this.graph.people.has(n.id) ? { top: peopleY - 6, bottom: peopleY + 6 } : { top: band.top, bottom: band.bottom }),
-    );
-    return new Map(sims.map((s) => [s.id, { x: s.x, y: s.y }]));
   }
 
   private simulate(
@@ -502,6 +599,12 @@ export class NetworkView {
         }
         n.vx *= 0.55;
         n.vy *= 0.55;
+        // Cap each step so overlapping starts can't fling a node across the map.
+        const sp = Math.hypot(n.vx, n.vy);
+        if (sp > 24) {
+          n.vx = (n.vx / sp) * 24;
+          n.vy = (n.vy / sp) * 24;
+        }
         if (!n.fixX) n.x += n.vx;
         n.y += n.vy;
         const yb = yBounds?.(n) ?? bounds;
@@ -587,55 +690,4 @@ function curve(a: Pt, b: Pt, trimA: number, trimB: number, seed: string) {
   const e = trim(b, c, trimB);
   const mid = { x: 0.25 * s.x + 0.5 * c.x + 0.25 * e.x, y: 0.25 * s.y + 0.5 * c.y + 0.25 * e.y };
   return { d: `M${s.x.toFixed(1)},${s.y.toFixed(1)} Q${c.x.toFixed(1)},${c.y.toFixed(1)} ${e.x.toFixed(1)},${e.y.toFixed(1)}`, mid };
-}
-
-/**
- * Piecewise-linear time scale over fractional years. Long empty stretches are
- * compressed and marked with a visible break, so decades apart stay readable
- * without pretending the axis is uniform.
- */
-function buildScale(values: number[], hasUnknown: boolean, x0: number, x1: number) {
-  const now = new Date().getFullYear();
-  const sorted = [...new Set(values)].sort((a, b) => a - b);
-  const lo = Math.floor(sorted[0] ?? now - 5) - 1;
-  const hi = Math.floor(sorted[sorted.length - 1] ?? now) + 1;
-  const pts = [lo, ...sorted, hi];
-  const MAX_GAP = 6;
-  const anchors: { v: number; u: number }[] = [{ v: lo, u: 0 }];
-  const breaks: { v: number; u: number; gap: number }[] = [];
-  for (let i = 1; i < pts.length; i++) {
-    const gap = pts[i] - pts[i - 1];
-    const du = gap > MAX_GAP ? 2.5 : gap;
-    const prev = anchors[anchors.length - 1];
-    if (gap > MAX_GAP) breaks.push({ v: (pts[i] + pts[i - 1]) / 2, u: prev.u + du / 2, gap });
-    anchors.push({ v: pts[i], u: prev.u + du });
-  }
-  const total = anchors[anchors.length - 1].u || 1;
-  const right = hasUnknown ? x1 - 150 : x1;
-  const x = (v: number) => {
-    let i = anchors.findIndex((a) => a.v >= v);
-    if (i === -1) i = anchors.length - 1;
-    else if (i === 0) i = 1;
-    const a = anchors[i - 1];
-    const b = anchors[i];
-    const f = b.v === a.v ? 0 : (v - a.v) / (b.v - a.v);
-    return x0 + ((a.u + f * (b.u - a.u)) / total) * (right - x0);
-  };
-  const inBreak = (y: number) => breaks.some((b) => Math.abs(y - b.v) < b.gap / 2 - 1);
-  const pxPerYear = (right - x0) / total;
-  const step = [1, 2, 5, 10, 20].find((s) => s * pxPerYear >= 46) ?? 25;
-  const ticks: { label: string; x: number }[] = [];
-  const breakMarks = breaks.map((b) => ({ x: x0 + (b.u / total) * (right - x0), label: `≈ ${Math.round(b.gap)} yrs` }));
-  for (let y = Math.ceil(lo / step) * step; y <= hi; y += step) {
-    const tx = x(y);
-    const crowded =
-      ticks.some((t) => Math.abs(t.x - tx) < 34) || breakMarks.some((b) => Math.abs(b.x - tx) < 44);
-    if (!inBreak(y) && !crowded) ticks.push({ label: `${y}`, x: tx });
-  }
-  return {
-    x,
-    ticks,
-    breaks: breakMarks,
-    unknown: hasUnknown ? ([x1 - 120, x1] as [number, number]) : null,
-  };
 }

@@ -1,19 +1,24 @@
 // Music Map - Timeline canvas (after the paper timeline in Figma)
-// A horizontal axis with a tick per year. Under each year, its covers are packed
-// into a dense collage column, divided from the next year by a thin line. Above
-// the axis, a magnifier box shows the year you're hovering at a readable size,
-// joined to its stretch of the axis by two lines. Picking a cover pins the box:
-// the cover grows, and its details sit beside it.
+// A horizontal axis with a tick per year. Under each year, its albums overlap in a
+// loose collage; hovering spreads the nearby covers apart and lifts the one under
+// the pointer, like the reference video. Above the axis, a magnifier box shows the
+// hovered year at a readable size, joined to its stretch of the axis by two lines.
+// Picking an album pins the box: the cover grows, with its details beside it.
 // The same canvas shows the Personal Timeline (by year saved) and the Historical
 // Timeline (by release year, older years grouped by decade, gaps marked).
 
 import { coverUrl, seeded } from './covers';
 import type { Track } from './types';
 
+/** One tile: an album (or single), holding every saved song from it in that section. */
 export interface CanvasItem {
   id: string;
+  /** Track whose cover and details stand for the album. */
   track: Track;
-  /** Shown in the cover's accessible name, e.g. "Saved 12 Apr 2019". */
+  trackIds: string[];
+  title: string;
+  artist: string;
+  /** Shown in the tile's accessible name, e.g. "3 songs saved". */
   dateText: string;
   outside?: boolean;
 }
@@ -34,15 +39,23 @@ export interface CanvasCallbacks {
   onHover(id: string | null, el: HTMLElement | null): void;
   /** The year label or its caption was clicked. */
   onCaption?(sectionKey: string): void;
-  /** A click on empty canvas while a cover is pinned. */
+  /** A click on empty canvas while an album is pinned. */
   onBackground?(): void;
+}
+
+interface Tile {
+  item: CanvasItem;
+  el: HTMLButtonElement;
+  cx: number;
+  cy: number;
+  size: number;
 }
 
 interface Section {
   data: CanvasSection;
   x: number;
   w: number;
-  covers: Map<string, HTMLButtonElement>;
+  tiles: Tile[];
 }
 
 const LEFT = 56;
@@ -64,6 +77,10 @@ export class TimelineCanvas {
   private dragging = false;
   private accent: 'saved' | 'release' = 'saved';
   private lastData: CanvasSection[] = [];
+  private bloomed: Section | null = null;
+  // Smooth scrolling: wheel input moves a target; each frame eases toward it.
+  private scrollTarget = 0;
+  private scrollRaf: number | null = null;
 
   constructor(root: HTMLElement, nav: HTMLElement, cb: CanvasCallbacks) {
     this.root = root;
@@ -84,6 +101,7 @@ export class TimelineCanvas {
 
   setReducedMotion(v: boolean): void {
     this.reducedMotion = v;
+    this.root.classList.toggle('is-reduced', v);
   }
 
   resize(w: number, h: number): void {
@@ -97,8 +115,9 @@ export class TimelineCanvas {
     return Math.round(Math.max(250, Math.min(this.height - 170, this.height * 0.58)));
   }
 
-  private get cell(): number {
-    return this.width < 600 ? 24 : 30;
+  /** Grid step for the collage; tiles are drawn larger than a step so they overlap. */
+  private get step(): number {
+    return this.width < 600 ? 22 : 27;
   }
 
   // ---- Build ------------------------------------------------------------------
@@ -113,11 +132,12 @@ export class TimelineCanvas {
     this.world.innerHTML = '';
     this.sections = [];
     this.pinned = null;
+    this.bloomed = null;
 
     const y0 = this.axisY;
-    const c = this.cell;
-    const colTop = y0 + 78;
-    const rows = Math.max(2, Math.floor((this.height - 16 - colTop) / (c + 2)));
+    const step = this.step;
+    const colTop = y0 + 82;
+    const rows = Math.max(3, Math.floor((this.height - 22 - colTop) / step));
     let x = LEFT;
     const axis = document.createElement('div');
     axis.className = 'mm-canvas__axis';
@@ -132,36 +152,37 @@ export class TimelineCanvas {
         this.world.appendChild(gap);
         x += GAP_W;
       }
-      // Pack covers into a dense column; a few take a 2×2 spot, like a paper collage.
-      const n = sec.items.length;
-      const cols = Math.max(4, Math.ceil((n * 1.25) / rows));
+      // Albums with more saved songs take more room (1, 2 or 3 steps square).
+      const spans = sec.items.map((it) => (it.trackIds.length >= 4 ? 3 : it.trackIds.length >= 2 ? 2 : 1));
+      const area = spans.reduce((a, s) => a + s * s, 0);
+      const cols = Math.max(4, Math.ceil((area * 1.1) / rows));
       const grid: boolean[][] = [];
-      const free = (r: number, q: number) => r < rows && !grid[r]?.[q];
-      const take = (r: number, q: number) => ((grid[r] ??= [])[q] = true);
-      const spots: { r: number; q: number; s: number }[] = [];
-      for (let i = 0; i < n; i++) {
-        const big = n > 6 && seeded(sec.items[i].id)() < 0.12;
-        let spot: { r: number; q: number; s: number } | null = null;
-        for (let q = 0; !spot; q++) {
-          for (let r = 0; r < rows && !spot; r++) {
-            if (big && q < cols - 1 && free(r, q) && free(r + 1, q) && free(r, q + 1) && free(r + 1, q + 1)) spot = { r, q, s: 2 };
-            else if (!big && free(r, q)) spot = { r, q, s: 1 };
-          }
-          // No 2×2 room within the column's width: settle for a single spot.
-          if (!spot && big && q >= cols) {
-            for (let qq = 0; !spot; qq++) for (let r = 0; r < rows && !spot; r++) if (free(r, qq)) spot = { r, q: qq, s: 1 };
+      const free = (r: number, q: number, s: number) => {
+        for (let dr = 0; dr < s; dr++) for (let dq = 0; dq < s; dq++) if (r + dr >= rows || grid[r + dr]?.[q + dq]) return false;
+        return true;
+      };
+      const spots = spans.map((s0) => {
+        for (let s = s0; s >= 1; s--) {
+          for (let q = 0; q < cols + 60; q++) {
+            if (s > 1 && q + s > cols) break;
+            for (let r = 0; r < rows; r++) {
+              if (free(r, q, s)) {
+                for (let dr = 0; dr < s; dr++) for (let dq = 0; dq < s; dq++) (grid[r + dr] ??= [])[q + dq] = true;
+                return { r, q, s };
+              }
+            }
           }
         }
-        for (let dr = 0; dr < spot.s; dr++) for (let dq = 0; dq < spot.s; dq++) take(spot.r + dr, spot.q + dq);
-        spots.push(spot);
-      }
+        return { r: 0, q: cols, s: 1 };
+      });
       const usedCols = Math.max(cols, ...spots.map((s) => s.q + s.s));
-      const width = Math.max(170, usedCols * (c + 2) + 28);
+      const width = Math.max(170, usedCols * step + 40);
 
       const el = document.createElement('section');
       el.className = 'mm-sec';
       Object.assign(el.style, { left: `${x}px`, width: `${width}px` });
-      el.setAttribute('aria-label', `${sec.title}, ${n} track${n === 1 ? '' : 's'}`);
+      const songs = sec.items.reduce((a, it) => a + it.trackIds.length, 0);
+      el.setAttribute('aria-label', `${sec.title}, ${songs} song${songs === 1 ? '' : 's'}`);
       const caption = sec.editable
         ? `<button type="button" class="mm-sec__caption ${sec.caption ? '' : 'is-empty'}">${escapeHtml(sec.caption || '+ add a note')}</button>`
         : sec.caption
@@ -178,28 +199,35 @@ export class TimelineCanvas {
       el.querySelector<HTMLButtonElement>('button.mm-sec__caption')?.addEventListener('click', () => this.cb.onCaption?.(sec.key));
       this.world.appendChild(el);
 
-      const covers = new Map<string, HTMLButtonElement>();
+      const section: Section = { data: sec, x, w: width, tiles: [] };
       sec.items.forEach((item, i) => {
         const spot = spots[i];
-        const size = spot.s * c + (spot.s - 1) * 2;
+        const rand = seeded(item.id);
+        // Drawn bigger than its grid spot, with a little jitter, so neighbours overlap.
+        const size = spot.s * step + 12;
+        const cx = x + 20 + spot.q * step + (spot.s * step) / 2 + (rand() - 0.5) * 6;
+        const cy = colTop + spot.r * step + (spot.s * step) / 2 + (rand() - 0.5) * 6;
         const b = document.createElement('button');
         b.type = 'button';
         b.className = `mm-cov${item.outside ? ' is-outside' : ''}`;
         b.dataset.id = item.id;
         Object.assign(b.style, {
-          left: `${x + 14 + spot.q * (c + 2)}px`,
-          top: `${colTop + spot.r * (c + 2)}px`,
+          left: `${cx - size / 2}px`,
+          top: `${cy - size / 2}px`,
           width: `${size}px`,
           height: `${size}px`,
+          zIndex: `${1 + Math.floor(rand() * 20)}`,
         });
-        b.setAttribute('aria-label', `${item.track.title} by ${item.track.artistCredit}. ${item.dateText}.`);
-        b.innerHTML = `<img alt="" src="${coverUrl(item.track.cover, item.track.title)}" loading="lazy" draggable="false" />`;
-        this.bindCover(b, item, sec.key);
+        const n = item.trackIds.length;
+        b.setAttribute('aria-label', `${item.title} by ${item.artist}. ${item.dateText}.`);
+        b.innerHTML = `<img alt="" src="${coverUrl(item.track.cover, item.title)}" loading="lazy" draggable="false" />${n > 1 ? `<span class="mm-cov__count">${n}</span>` : ''}`;
+        const tile: Tile = { item, el: b, cx, cy, size };
+        this.bindTile(tile, section);
         this.world.appendChild(b);
-        covers.set(item.id, b);
+        section.tiles.push(tile);
       });
 
-      this.sections.push({ data: sec, x, w: width, covers });
+      this.sections.push(section);
       x += width;
     }
     const worldW = x + LEFT;
@@ -207,20 +235,22 @@ export class TimelineCanvas {
     this.world.style.height = `${this.height}px`;
     Object.assign(axis.style, { top: `${y0}px`, left: '16px', width: `${worldW - 32}px` });
     this.world.append(this.lines, this.zoom);
+    this.scrollTarget = this.root.scrollLeft;
 
-    const pin = keepPin && this.sections.some((s) => s.covers.has(keepPin.id)) ? keepPin : null;
+    const pin = keepPin && this.tileOf(keepPin.id) ? keepPin : null;
     this.zoomKey = null;
     if (pin) this.pin(pin.id, keepInfo);
     else this.showZoom(keepZoom && this.find(keepZoom) ? keepZoom : this.centerKey());
   }
 
-  private bindCover(b: HTMLButtonElement, item: CanvasItem, key: string): void {
+  private bindTile(tile: Tile, sec: Section): void {
+    const { el: b, item } = tile;
     b.addEventListener('click', (e) => {
       if (this.dragging) return e.preventDefault();
-      this.cb.onSelect(item.id, key, b.getBoundingClientRect());
+      this.cb.onSelect(item.id, sec.data.key, b.getBoundingClientRect());
     });
     b.addEventListener('pointerenter', () => {
-      if (!this.pinned) this.showZoom(key);
+      if (!this.pinned) this.showZoom(sec.data.key);
       this.hot(item.id, true);
       this.cb.onHover(item.id, b);
     });
@@ -229,8 +259,9 @@ export class TimelineCanvas {
       this.cb.onHover(null, null);
     });
     b.addEventListener('focus', () => {
-      this.scrollIntoView(key, false);
-      if (!this.pinned) this.showZoom(key);
+      this.scrollIntoView(sec.data.key, false);
+      if (!this.pinned) this.showZoom(sec.data.key);
+      this.bloom(sec, tile.cx, tile.cy);
       this.hot(item.id, true);
       this.cb.onHover(item.id, b);
     });
@@ -242,7 +273,7 @@ export class TimelineCanvas {
       const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
       if (!dir) return;
       e.preventDefault();
-      const all = this.sections.flatMap((s) => [...s.covers.values()]);
+      const all = this.sections.flatMap((s) => s.tiles.map((t) => t.el));
       all[all.indexOf(b) + dir]?.focus({ preventScroll: true });
     });
   }
@@ -251,8 +282,12 @@ export class TimelineCanvas {
     return this.sections.find((s) => s.data.key === key);
   }
 
-  private sectionOf(id: string): Section | undefined {
-    return this.sections.find((s) => s.covers.has(id));
+  private tileOf(id: string): { tile: Tile; sec: Section } | undefined {
+    for (const sec of this.sections) {
+      const tile = sec.tiles.find((t) => t.item.id === id);
+      if (tile) return { tile, sec };
+    }
+    return undefined;
   }
 
   private centerKey(): string | null {
@@ -266,10 +301,39 @@ export class TimelineCanvas {
     return best?.data.key ?? null;
   }
 
-  /** Links a cover in the column and its copy in the magnifier. */
+  /** Links a tile in the collage and its copy in the magnifier. */
   private hot(id: string, on: boolean): void {
-    this.sectionOf(id)?.covers.get(id)?.classList.toggle('is-hot', on);
+    this.tileOf(id)?.tile.el.classList.toggle('is-hot', on);
     this.zoom.querySelector(`[data-id="${CSS.escape(id)}"]`)?.classList.toggle('is-hot', on);
+  }
+
+  // ---- Bloom (the reference video's motion) ---------------------------------------
+
+  /** Pushes covers near the pointer outward and lifts the closest ones. */
+  private bloom(sec: Section, px: number, py: number): void {
+    if (this.bloomed && this.bloomed !== sec) this.settle(this.bloomed);
+    this.bloomed = sec;
+    const radius = this.step * 3.4;
+    for (const t of sec.tiles) {
+      const dx = t.cx - px;
+      const dy = t.cy - py;
+      const dist = Math.hypot(dx, dy) || 1;
+      const f = Math.exp(-(dist * dist) / (2 * radius * radius));
+      const push = f * this.step * 1.1;
+      const scale = 1 + f * 0.75;
+      t.el.style.transform = `translate(${(dx / dist) * push}px, ${(dy / dist) * push}px) scale(${scale.toFixed(3)})`;
+      t.el.style.setProperty('--lift', `${Math.round(f * 100)}`);
+      t.el.classList.toggle('is-lifted', f > 0.35);
+    }
+  }
+
+  private settle(sec: Section): void {
+    for (const t of sec.tiles) {
+      t.el.style.transform = '';
+      t.el.style.removeProperty('--lift');
+      t.el.classList.remove('is-lifted');
+    }
+    if (this.bloomed === sec) this.bloomed = null;
   }
 
   // ---- Magnifier ----------------------------------------------------------------
@@ -279,11 +343,16 @@ export class TimelineCanvas {
     const height = this.axisY - 58 - top;
     const width = this.pinned
       ? Math.min(this.width - 32, 1040)
-      : Math.min(this.width - 32, 920, Math.max(420, sec.w * 2.6));
+      : Math.min(this.width - 32, 920, Math.max(420, sec.w * 2.4));
     const minL = this.root.scrollLeft + 16;
     const maxL = this.root.scrollLeft + this.width - 16 - width;
     const left = Math.max(minL, Math.min(maxL, sec.x + sec.w / 2 - width / 2));
     return { top, height, width, left };
+  }
+
+  private zoomItem(it: CanvasItem, extra = '', delay = 0): string {
+    const n = it.trackIds.length;
+    return `<button type="button" class="mm-zoom__item${extra}${it.outside ? ' is-outside' : ''}" data-id="${escapeHtml(it.id)}" style="animation-delay:${delay}ms" title="${escapeHtml(it.title)} · ${escapeHtml(it.artist)}${n > 1 ? ` · ${n} songs` : ''}"><img alt="${escapeHtml(it.title)} by ${escapeHtml(it.artist)}" src="${coverUrl(it.track.cover, it.title)}" draggable="false" />${n > 1 ? `<span class="mm-cov__count">${n}</span>` : ''}</button>`;
   }
 
   private showZoom(key: string | null, force = false): void {
@@ -298,20 +367,16 @@ export class TimelineCanvas {
     this.zoom.hidden = false;
     this.zoom.classList.remove('is-pinned');
     const box = this.zoomBox(sec);
-    const n = sec.data.items.length;
-    // Size cells so the whole year fits inside the box.
+    const units = sec.data.items.reduce((a, it) => a + (it.trackIds.length > 1 ? 4 : 1), 0);
     const pw = box.width - 28;
     const ph = box.height - 50;
-    const c = Math.max(34, Math.min(150, Math.floor(Math.sqrt((pw * ph) / (n * 1.3)))));
+    const c = Math.max(30, Math.min(150, Math.floor(Math.sqrt((pw * ph) / (units * 1.2)))));
+    const songs = sec.data.items.reduce((a, it) => a + it.trackIds.length, 0);
     const items = sec.data.items
-      .map((it, i) => {
-        const big = n > 4 && seeded(it.id)() < 0.12 ? ' is-big' : '';
-        const delay = this.reducedMotion ? 0 : Math.min(i * 14, 420);
-        return `<button type="button" class="mm-zoom__item${big}${it.outside ? ' is-outside' : ''}" data-id="${escapeHtml(it.id)}" style="animation-delay:${delay}ms" title="${escapeHtml(it.track.title)} · ${escapeHtml(it.track.artistCredit)}"><img alt="${escapeHtml(it.track.title)} by ${escapeHtml(it.track.artistCredit)}" src="${coverUrl(it.track.cover, it.track.title)}" draggable="false" /></button>`;
-      })
+      .map((it, i) => this.zoomItem(it, it.trackIds.length > 1 ? ' is-big' : '', this.reducedMotion ? 0 : Math.min(i * 12, 360)))
       .join('');
     this.zoom.innerHTML = `
-      <p class="mm-zoom__head"><strong>${escapeHtml(sec.data.title)}</strong>${sec.data.caption ? ` <span>${escapeHtml(sec.data.caption)}</span>` : ''}<em>${n} track${n === 1 ? '' : 's'}</em></p>
+      <p class="mm-zoom__head"><strong>${escapeHtml(sec.data.title)}</strong>${sec.data.caption ? ` <span>${escapeHtml(sec.data.caption)}</span>` : ''}<em>${songs} song${songs === 1 ? '' : 's'} · ${sec.data.items.length} album${sec.data.items.length === 1 ? '' : 's'}</em></p>
       <div class="mm-zoom__grid" style="--c:${c}px">${items}</div>`;
     this.bindZoomItems(sec.data.key);
     this.placeZoom();
@@ -350,33 +415,28 @@ export class TimelineCanvas {
     this.lines.innerHTML = `
       <line x1="${box.left}" y1="${b}" x2="${sec.x + 4}" y2="${y0}" />
       <line x1="${box.left + box.width}" y1="${b}" x2="${sec.x + sec.w - 4}" y2="${y0}" />`;
-    this.sections.forEach((s) => s.covers.forEach((el) => el.classList.toggle('is-zoomed', s === sec)));
+    this.sections.forEach((s) => s.tiles.forEach((t) => t.el.classList.toggle('is-zoomed', s === sec)));
   }
 
-  /** Pins the magnifier on one cover: it grows, with its details beside it. */
+  /** Pins the magnifier on one album: it grows, with its details beside it. */
   private pin(id: string, html: string): void {
-    const sec = this.sectionOf(id);
-    if (!sec) return;
-    const item = sec.data.items.find((i) => i.id === id)!;
+    const found = this.tileOf(id);
+    if (!found) return;
+    const { tile, sec } = found;
     this.pinned = { id, key: sec.data.key };
     this.zoomKey = sec.data.key;
     this.zoom.hidden = false;
     this.zoom.classList.add('is-pinned');
     this.info.innerHTML = html;
-    const others = sec.data.items
-      .map(
-        (it) =>
-          `<button type="button" class="mm-zoom__item${it.id === id ? ' is-current' : ''}" data-id="${escapeHtml(it.id)}" title="${escapeHtml(it.track.title)}"><img alt="${escapeHtml(it.track.title)} by ${escapeHtml(it.track.artistCredit)}" src="${coverUrl(it.track.cover, it.track.title)}" draggable="false" /></button>`,
-      )
-      .join('');
     const pic = this.width < 600 ? 140 : Math.max(120, this.zoomBox(sec).height - 34);
+    const others = sec.data.items.map((it) => this.zoomItem(it, it.id === id ? ' is-current' : '')).join('');
     this.zoom.innerHTML = `
-      <figure class="mm-zoom__picked" style="width:${pic}px;height:${pic}px"><img src="${coverUrl(item.track.cover, item.track.title)}" alt="Cover of ${escapeHtml(item.track.title)}" /></figure>
+      <figure class="mm-zoom__picked" style="width:${pic}px;height:${pic}px"><img src="${coverUrl(tile.item.track.cover, tile.item.title)}" alt="Cover of ${escapeHtml(tile.item.title)}" /></figure>
       <div class="mm-zoom__side"></div>
-      <div class="mm-zoom__rest"><p class="mm-zoom__head"><strong>${escapeHtml(sec.data.title)}</strong><em>${sec.data.items.length} tracks</em></p><div class="mm-zoom__grid" style="--c:38px">${others}</div></div>`;
+      <div class="mm-zoom__rest"><p class="mm-zoom__head"><strong>${escapeHtml(sec.data.title)}</strong><em>${sec.data.items.length} albums</em></p><div class="mm-zoom__grid" style="--c:38px">${others}</div></div>`;
     this.zoom.querySelector('.mm-zoom__side')!.appendChild(this.info);
     this.bindZoomItems(sec.data.key);
-    this.sections.forEach((s) => s.covers.forEach((el, k) => el.classList.toggle('is-selected', k === id)));
+    this.sections.forEach((s) => s.tiles.forEach((t) => t.el.classList.toggle('is-selected', t.item.id === id)));
     this.placeZoom();
   }
 
@@ -384,16 +444,17 @@ export class TimelineCanvas {
 
   setSelected(id: string | null, html = '', label = ''): void {
     this.root.classList.toggle('has-picked', !!id);
+    if (this.bloomed) this.settle(this.bloomed);
     if (!id) {
       this.pinned = null;
-      this.sections.forEach((s) => s.covers.forEach((el) => el.classList.remove('is-selected')));
+      this.sections.forEach((s) => s.tiles.forEach((t) => t.el.classList.remove('is-selected')));
       this.showZoom(this.zoomKey, true);
       return;
     }
-    const sec = this.sectionOf(id);
-    if (!sec) return;
+    const found = this.tileOf(id);
+    if (!found) return;
     this.zoom.setAttribute('aria-label', label);
-    this.scrollIntoView(sec.data.key, true);
+    this.scrollIntoView(found.sec.data.key, true);
     this.pin(id, html);
   }
 
@@ -405,29 +466,29 @@ export class TimelineCanvas {
     return this.info;
   }
 
-  scrollToSection(key: string, smooth = true): void {
+  scrollToSection(key: string): void {
     const s = this.find(key);
-    if (s) this.root.scrollTo({ left: Math.max(0, s.x - 40), behavior: smooth && !this.reducedMotion ? 'smooth' : 'auto' });
+    if (s) this.smoothTo(s.x - 40);
   }
 
   scrollToItem(id: string, highlight = false): void {
-    const sec = this.sectionOf(id);
-    if (!sec) return;
-    this.scrollIntoView(sec.data.key, true);
-    if (!this.pinned) this.showZoom(sec.data.key);
+    const found = this.tileOf(id);
+    if (!found) return;
+    this.scrollIntoView(found.sec.data.key, true);
+    if (!this.pinned) this.showZoom(found.sec.data.key);
     if (highlight) {
-      const el = sec.covers.get(id)!;
+      const el = found.tile.el;
       el.classList.add('is-highlight');
       setTimeout(() => el.classList.remove('is-highlight'), 2400);
     }
   }
 
   focusItem(id: string): void {
-    this.sectionOf(id)?.covers.get(id)?.focus({ preventScroll: true });
+    this.tileOf(id)?.tile.el.focus({ preventScroll: true });
   }
 
   rectOf(id: string): DOMRect | null {
-    return this.sectionOf(id)?.covers.get(id)?.getBoundingClientRect() ?? null;
+    return this.tileOf(id)?.tile.el.getBoundingClientRect() ?? null;
   }
 
   private scrollIntoView(key: string, center: boolean): void {
@@ -435,7 +496,31 @@ export class TimelineCanvas {
     if (!s) return;
     const left = this.root.scrollLeft;
     if (!center && s.x > left + 40 && s.x + s.w < left + this.width - 40) return;
-    this.root.scrollTo({ left: Math.max(0, s.x + s.w / 2 - this.width / 2), behavior: this.reducedMotion ? 'auto' : 'smooth' });
+    this.smoothTo(s.x + s.w / 2 - this.width / 2);
+  }
+
+  // ---- Smooth scrolling -------------------------------------------------------------
+
+  private smoothTo(left: number): void {
+    const max = this.root.scrollWidth - this.width;
+    this.scrollTarget = Math.max(0, Math.min(max, left));
+    if (this.reducedMotion) {
+      this.root.scrollLeft = this.scrollTarget;
+      return;
+    }
+    if (this.scrollRaf === null) this.scrollRaf = requestAnimationFrame(() => this.scrollTick());
+  }
+
+  private scrollTick(): void {
+    const cur = this.root.scrollLeft;
+    const diff = this.scrollTarget - cur;
+    if (Math.abs(diff) < 0.5) {
+      this.root.scrollLeft = this.scrollTarget;
+      this.scrollRaf = null;
+      return;
+    }
+    this.root.scrollLeft = cur + diff * 0.14;
+    this.scrollRaf = requestAnimationFrame(() => this.scrollTick());
   }
 
   // ---- Input --------------------------------------------------------------------
@@ -445,30 +530,43 @@ export class TimelineCanvas {
       'wheel',
       (e) => {
         if ((e.target as HTMLElement).closest('.mm-zoom')) return;
-        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+        // Trackpads send their own smooth horizontal motion; let it through.
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+          this.scrollTarget = this.root.scrollLeft + e.deltaX;
+          return;
+        }
         e.preventDefault();
-        this.root.scrollLeft += e.deltaY;
+        const base = this.scrollRaf === null ? this.root.scrollLeft : this.scrollTarget;
+        this.smoothTo(base + e.deltaY * 1.2);
       },
       { passive: false },
     );
-    // Hovering a year's column (or its label) brings it into the magnifier.
+    // Hover: the year under the pointer goes into the magnifier, and its albums spread.
     this.root.addEventListener('pointermove', (e) => {
-      if (this.pinned || e.pointerType === 'touch') return;
+      if (e.pointerType === 'touch' || this.dragging) return;
       if ((e.target as HTMLElement).closest('.mm-zoom')) return;
       const r = this.root.getBoundingClientRect();
-      if (e.clientY - r.top < this.axisY - 24) return;
+      const y = e.clientY - r.top;
       const x = this.root.scrollLeft + e.clientX - r.left;
       const sec = this.sections.find((s) => x >= s.x && x < s.x + s.w);
-      if (sec) this.showZoom(sec.data.key);
+      if (y < this.axisY - 24 || !sec) {
+        if (this.bloomed) this.settle(this.bloomed);
+        return;
+      }
+      if (!this.pinned) this.showZoom(sec.data.key);
+      if (y > this.axisY + 60) this.bloom(sec, x, y);
+      else if (this.bloomed) this.settle(this.bloomed);
     });
+    this.root.addEventListener('pointerleave', () => this.bloomed && this.settle(this.bloomed));
     let scrollTimer = 0;
     this.root.addEventListener('scroll', () => {
       this.placeZoom();
+      if (this.scrollRaf === null) this.scrollTarget = this.root.scrollLeft;
       clearTimeout(scrollTimer);
       // After scrolling settles, the magnifier follows the year in the middle.
       scrollTimer = window.setTimeout(() => {
         if (!this.pinned) this.showZoom(this.centerKey());
-      }, 160);
+      }, 180);
     });
     this.root.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
@@ -477,27 +575,38 @@ export class TimelineCanvas {
       this.cb.onBackground?.();
     });
 
-    // Drag the background with a mouse to pan, like a canvas.
+    // Drag the background with a mouse to pan, with a little glide on release.
     let startX = 0;
     let startLeft = 0;
+    let lastX = 0;
+    let velocity = 0;
     let down = false;
     this.root.addEventListener('pointerdown', (e) => {
       if (e.pointerType !== 'mouse' || e.button !== 0 || (e.target as HTMLElement).closest('.mm-zoom, .mm-sec__head')) return;
       down = true;
       this.dragging = false;
-      startX = e.clientX;
+      startX = lastX = e.clientX;
       startLeft = this.root.scrollLeft;
+      velocity = 0;
+      if (this.scrollRaf !== null) cancelAnimationFrame(this.scrollRaf);
+      this.scrollRaf = null;
     });
     window.addEventListener('pointermove', (e) => {
       if (!down) return;
       const dx = e.clientX - startX;
-      if (Math.abs(dx) > 5) {
+      if (Math.abs(dx) > 5 && !this.dragging) {
         this.dragging = true;
         this.root.classList.add('is-dragging');
+        if (this.bloomed) this.settle(this.bloomed);
       }
-      if (this.dragging) this.root.scrollLeft = startLeft - dx;
+      if (this.dragging) {
+        velocity = e.clientX - lastX;
+        lastX = e.clientX;
+        this.root.scrollLeft = startLeft - dx;
+      }
     });
     window.addEventListener('pointerup', () => {
+      if (down && this.dragging) this.smoothTo(this.root.scrollLeft - velocity * 12);
       down = false;
       this.root.classList.remove('is-dragging');
       setTimeout(() => (this.dragging = false), 0);

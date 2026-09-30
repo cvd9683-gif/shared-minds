@@ -266,6 +266,151 @@ a {
   background: var(--release);
 }
 
+/* ---- Spotify connect, how-to ---------------------------------------------------- */
+
+.mm-connect {
+  border: 1.5px solid #1db954;
+  background: #1db954;
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font: 500 14px var(--font);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mm-connect:hover {
+  background: #17a34a;
+}
+.mm-connect.is-connected {
+  background: #fff;
+  color: var(--ink);
+  border-color: #d9d9d9;
+}
+.mm-connect__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1db954;
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+.mm-help-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  font: 500 15px var(--font);
+  cursor: pointer;
+  color: var(--ink-2);
+}
+.mm-btn.mm-btn--spotify {
+  background: #1db954;
+  border-color: #1db954;
+  color: #fff;
+}
+.mm-btn.mm-btn--spotify:hover {
+  background: #17a34a;
+}
+.mm-howto {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  z-index: 1270;
+  width: min(330px, calc(100% - 40px));
+  background: #fff;
+  border: 2px solid var(--saved);
+  padding: 14px 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+  animation: mm-rise 0.35s var(--ease);
+}
+.mm-howto h2 {
+  margin: 0 0 8px;
+  font: 500 17px var(--font);
+}
+.mm-howto ol {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.mm-howto li + li {
+  margin-top: 4px;
+}
+.mm-howto__actions {
+  display: flex;
+  gap: 8px;
+}
+.mm-stage.has-selection .mm-howto {
+  display: none;
+}
+
+.mm-dialog--spotify {
+  width: min(520px, calc(100vw - 32px));
+  background: #fff;
+}
+.mm-dialog__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mm-dialog__head h2 {
+  margin: 0;
+}
+.mm-dialog__sub {
+  margin: 0 0 4px;
+  font: 500 15px var(--font);
+}
+.mm-dialog hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 16px 0;
+}
+.mm-steps {
+  margin: 12px 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 12px;
+}
+.mm-steps p {
+  margin: 0 0 6px;
+}
+.mm-copy {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.mm-copy code {
+  flex: 1;
+  word-break: break-all;
+}
+.mm-inline-form {
+  display: flex;
+  gap: 8px;
+}
+.mm-inline-form input {
+  flex: 1;
+  min-width: 0;
+}
+.mm-dialog__actions--left {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.mm-connected {
+  font-size: 15px;
+  margin: 12px 0 4px;
+}
+.mm-keylist--compact {
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  margin-top: 10px;
+}
+
 /* ---- Timeline canvas (Figma: paper timeline) -------------------------------------- */
 
 /* The panel steps aside on the canvas and returns for search, journeys and details. */
@@ -297,8 +442,7 @@ body:not(.panel-open) .mm-panel {
 .mm-canvas.is-dragging {
   cursor: grabbing;
 }
-.mm-stage.has-selection .mm-canvas,
-.mm-stage.has-year .mm-canvas {
+.mm-stage.has-selection .mm-canvas {
   visibility: hidden;
 }
 .mm-canvas__world {
@@ -427,7 +571,46 @@ body:not(.panel-open) .mm-panel {
   border: 0;
   background: var(--paper-2);
   cursor: pointer;
-  transition: transform 0.18s var(--ease), box-shadow 0.18s, opacity 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  /* The bloom sets transform; the transition makes the spread feel like one motion. */
+  transition:
+    transform 0.42s cubic-bezier(0.2, 0.9, 0.25, 1),
+    box-shadow 0.3s,
+    opacity 0.3s;
+  will-change: transform;
+}
+.mm-cov.is-lifted {
+  z-index: calc(100 + var(--lift, 0)) !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+}
+.is-reduced .mm-cov {
+  transition: none;
+}
+.mm-cov__count {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font: 600 9.5px/15px var(--font);
+  text-align: center;
+  pointer-events: none;
+}
+.mm-zoom__item {
+  position: relative;
+}
+.mm-zoom__item .mm-cov__count {
+  font-size: 11px;
+  height: 18px;
+  line-height: 18px;
+  min-width: 18px;
+  border-radius: 9px;
+  right: 5px;
+  bottom: 5px;
 }
 .mm-cov img {
   width: 100%;
@@ -436,12 +619,11 @@ body:not(.panel-open) .mm-panel {
   object-fit: cover;
   pointer-events: none;
 }
-.mm-cov:hover,
 .mm-cov:focus-visible,
 .mm-cov.is-hot {
-  transform: scale(1.5);
-  z-index: 20;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  outline: 2px solid var(--sec-accent);
+  outline-offset: 1px;
+  z-index: 250 !important;
 }
 .mm-cov.is-outside {
   opacity: 0.75;
@@ -657,6 +839,39 @@ body:not(.panel-open) .mm-panel {
 .mm-thoughts--compact .mm-thought__text {
   font-size: 13.5px;
 }
+.mm-album-songs {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+.mm-album-song {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  background: none;
+  padding: 5px 6px;
+  border-radius: 4px;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mm-album-song em {
+  font-style: normal;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.mm-album-song:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.mm-album-song.is-current {
+  background: var(--saved-soft);
+  color: var(--saved);
+}
 .mm-chips {
   list-style: none;
   margin: 0;
@@ -778,6 +993,69 @@ body:not(.panel-open) .mm-panel {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* ---- Historical web: zoom controls, panning, morph --------------------------------- */
+
+.mm-zoomctl {
+  position: absolute;
+  right: 16px;
+  top: 64px;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+.mm-zoomctl button {
+  border: 0;
+  background: none;
+  width: 40px;
+  height: 36px;
+  font: 500 16px var(--font);
+  cursor: pointer;
+}
+.mm-zoomctl button + button {
+  border-top: 1px solid #eee;
+}
+.mm-zoomctl button:hover {
+  background: #f5f5f5;
+}
+.mm-zoomctl button[data-zoom='fit'] {
+  font-size: 12px;
+}
+.mm-stage.has-selection[data-view='history'] {
+  cursor: grab;
+  touch-action: none;
+}
+.mm-stage.is-panning {
+  cursor: grabbing;
+}
+.mm-stage-tools {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+/* The timeline dissolves as the web grows out of the chosen cover. */
+.mm-canvas {
+  transition:
+    opacity 0.5s var(--ease),
+    transform 0.6s var(--ease),
+    visibility 0s linear 0s;
+}
+.mm-stage.has-selection .mm-canvas {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 0.45s var(--ease),
+    transform 0.6s var(--ease),
+    visibility 0s linear 0.5s;
+}
+.mm-stage.has-year .mm-canvas {
+  visibility: hidden;
 }
 
 /* ---- Year experience -------------------------------------------------------------- */
@@ -2063,6 +2341,10 @@ details summary {
   }
   .mm-top__right {
     width: 100%;
+  }
+  .mm-connect {
+    padding: 7px 12px;
+    font-size: 13px;
   }
   .mm-search {
     flex: 1;

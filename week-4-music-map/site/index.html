@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="./assets/index-5rDHseNd.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DWL1EeQi.css">
+    <script type="module" crossorigin src="./assets/index-CfKVsibR.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CRD2PnOS.css">
   </head>
   <body class="mm">
     <a class="mm-skip" href="#panel">Skip to details</a>
@@ -24,11 +24,13 @@
       </div>
 
       <div class="mm-top__right">
+        <button type="button" class="mm-connect" id="connect-btn"></button>
         <form class="mm-search" id="search-form" role="search">
           <label class="sr-only" for="search-input">Search</label>
           <input id="search-input" type="search" placeholder="Search" autocomplete="off" />
           <input type="hidden" id="search-kind" value="all" />
         </form>
+        <button type="button" class="mm-help-btn" id="help-btn" aria-label="How to explore">?</button>
         <div class="mm-menu">
           <button type="button" class="mm-menu__btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu">
             <span aria-hidden="true">⋯</span>
@@ -55,12 +57,30 @@
         <div class="mm-nodes" id="nodes"></div>
 
         <div class="mm-stage-note" id="stage-note" aria-live="polite"></div>
+        <div class="mm-zoomctl" id="zoomctl" hidden role="group" aria-label="Zoom the web">
+          <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
+          <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
+          <button type="button" data-zoom="fit">Fit</button>
+        </div>
         <div class="mm-stage-tools" id="stage-tools" hidden>
           <label class="mm-toggle"><input type="checkbox" id="wider-toggle" /> Show wider web</label>
+          <span class="mm-muted mm-small">Scroll or pinch to zoom · drag to move</span>
         </div>
         <nav class="mm-yearnav" id="yearnav" aria-label="Jump to year"></nav>
         <button type="button" class="mm-demo-tag" id="demo-tag">Fictional demo data · connect Spotify in ⋯</button>
         <aside class="mm-blurb" id="blurb" hidden></aside>
+        <aside class="mm-howto" id="howto" hidden aria-labelledby="howto-title">
+          <h2 id="howto-title">How to explore</h2>
+          <ol>
+            <li><strong>Hover a year</strong> to open it up.</li>
+            <li><strong>Click an album</strong> for your memories, date added and playlists.</li>
+            <li><strong>Historical Timeline</strong> shows where a song comes from: samples, people, covers.</li>
+          </ol>
+          <div class="mm-howto__actions">
+            <button type="button" class="mm-btn mm-btn--spotify" data-howto="connect">Connect Spotify</button>
+            <button type="button" class="mm-btn" data-howto="close">Got it</button>
+          </div>
+        </aside>
         <div class="mm-tooltip" id="tooltip" role="tooltip" hidden></div>
       </section>
 
@@ -93,6 +113,10 @@
           <button type="submit" class="mm-btn mm-btn--primary" value="save">Save &amp; reload</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog class="mm-dialog mm-dialog--spotify" id="spotify-dialog" aria-labelledby="spotify-title">
+      <div id="spotify-dialog-body"></div>
     </dialog>
 
     <div class="sr-only" aria-live="polite" id="announcer"></div>

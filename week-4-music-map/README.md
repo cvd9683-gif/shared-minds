@@ -21,29 +21,40 @@ listening history.
 
 ## The journey
 
-The top bar holds only **Personal Timeline ● Historical Timeline** and a search
-box. Everything else (Spotify, your name, storage, journeys, data source) lives in
-the **⋯** menu.
+The top bar holds **Personal Timeline ● Historical Timeline**, a green **Connect
+Spotify** button, search, **?** (how to explore) and **⋯** (name, storage, journeys).
 
-1. **Personal Timeline.** A horizontal axis with a tick per year, like the paper
-   timeline. Each year's covers are packed into a collage column under the axis.
-   Hover a year and a magnifier box above the axis shows it at a readable size,
-   joined to its stretch of the axis by two lines. Scroll or drag sideways; the box
-   follows the year in the middle.
-2. **Pick a cover.** The magnifier pins: the cover grows, and beside it are
-   **1 · your memories** (add, edit, delete), **2 · date added**, and
-   **3 · playlists it's in** (playlists you made on Spotify). From there, *Step into
-   the year* opens the full year view with its caption and thoughts.
-3. **Historical Timeline.** The same canvas by release year. Older years are
-   grouped by decade, with gaps and unknown dates marked. Picking a cover (or *See
-   where it comes from*) puts the song on a release-date axis. Its samples,
-   interpolations and people branch off it, and people branch on to a few of their
-   other works. A **blurb** box explains the song using only its stored, sourced
-   relationships.
-4. **Read and follow connections.** Select a node and the blurb shows how it's
-   linked, with its evidence. Select it again, or press *Follow*, to move there. The
-   path bar keeps every step, with *Back* and *Return*. *Close* takes you back to
-   the cover you started from.
+1. **Personal Timeline.** A horizontal axis with a tick per year. Songs saved from
+   the same album are grouped into one cover (with a count), and the albums overlap
+   in a loose collage under each year. Hover and the covers near the pointer spread
+   apart and lift; the magnifier box above shows the whole year. Scrolling, dragging
+   and the magnifier all ease rather than jump.
+2. **Pick an album.** The magnifier pins it large. Beside it: the songs you saved
+   from it (each with its date added), then **1 · your memories**, **2 · date
+   added** and **3 · playlists it's in** for the selected song.
+3. **Historical Timeline → web.** Picking a cover (or *See where it comes from*)
+   dissolves the timeline into a web around that song: samples, interpolations,
+   covers, remixes and credited people, plus their own connections further out.
+   Scroll or pinch to zoom, drag to move, **Fit** to frame everything. A **blurb**
+   explains the song from its stored, sourced relationships.
+4. **Follow connections.** Select a node to read how it's linked (with its source),
+   select again to move there. The web re-forms around each step; *Back*, *Return*
+   and *Close* keep your path.
+
+## Where song history comes from
+
+- **Spotify**: saved songs and dates, albums, cover art, playlists you made.
+- **Genius** (optional, recommended): what a song samples and is sampled in,
+  interpolations, covers, remixes, live versions, and producer/writer credits. Paste
+  a free *Client Access Token* from <https://genius.com/api-clients> into the
+  Spotify dialog. Songs are looked up automatically the first time you open them.
+- **MusicBrainz**: credits and documented samples, looked up by title and artist.
+- There's no public API for WhoSampled; Genius covers most of the same links.
+
+Spotify's February 2026 changes affect this app: playlist items moved to
+`/playlists/{id}/items`, with each song under `item`. Only playlists you own or
+collaborate on return their songs. ISRCs and the album/artist lookup endpoints are
+gone for Development Mode apps, and Development Mode requires Premium.
 
 ## Assignment mapping (Shared Minds)
 

@@ -6,7 +6,7 @@
 import './style.css';
 import demoData from './data/demo-collection.json';
 import { coverUrl } from './covers';
-import { TimelineCanvas, escapeHtml as h, type CanvasSection } from './canvas';
+import { TimelineCanvas, escapeHtml as h, type CanvasItem, type CanvasSection } from './canvas';
 import {
   MusicGraph,
   formatPartialDate,
@@ -21,6 +21,7 @@ import {
 } from './graph';
 import { JourneyRecorder, describeScene, pathAfter, type PathStep, type SaveStatus } from './journey';
 import { enrichFromMusicBrainz } from './musicbrainz';
+import { enrichFromGenius, geniusToken, saveGeniusToken } from './genius';
 import { NetworkView, type Scene, type SceneEdge, type SceneNode } from './network';
 import * as spotify from './spotify';
 import {
@@ -35,6 +36,9 @@ import type { Dataset, Journey, Node, Relationship, Thought, Track, ViewMode, Ye
 
 const DATASET_KEY = 'musicMap:dataset';
 const LIBRARY_KEY = 'musicMap:spotifyLibrary';
+const HOWTO_KEY = 'musicMap:howtoSeen';
+const IMPORTED_KEY = 'musicMap:importedAt';
+const ENRICHED_KEY = 'musicMap:enriched';
 const NEIGHBOR_LIMIT = 10;
 const WIDER_LIMIT = 60;
 
@@ -62,7 +66,8 @@ class MusicMapApp {
   private path: PathStep[] = [];
   private inspected: { id: string; relIds: string[] } | null = null;
   private expanded = new Set<string>();
-  private wider = false;
+  /** The historical web shows second-degree connections by default ("zoom out" of the web). */
+  private wider = true;
   private reflecting = false;
   private showData = false;
   private search: SearchState | null = null;
@@ -78,9 +83,12 @@ class MusicMapApp {
   /** Where "Close" on the history network should return to, if opened from a year. */
   private returnYear: { year: string; featuredId: string | null } | null = null;
   private editingThought: string | null = null;
-  /** Cover picked on Personal Timeline (grown in place with its callout). */
+  /** Album tile picked on Personal Timeline, and which of its saved songs is shown. */
   private picked: string | null = null;
-  private returnPick: string | null = null;
+  private pickedTrack: string | null = null;
+  private returnPick: { group: string; track: string } | null = null;
+  /** Album tiles on the current canvas: tile id → the saved songs it holds. */
+  private groups = new Map<string, { trackIds: string[] }>();
   private panelPinned = false;
   private canvasKey = '';
 
@@ -103,7 +111,11 @@ class MusicMapApp {
   constructor() {
     this.canvas = new TimelineCanvas(document.getElementById('canvas')!, document.getElementById('yearnav')!, {
       // Personal Timeline grows the cover in place; the Historical timeline opens what it's connected to.
-      onSelect: (id, _key, rect) => (this.view === 'timeline' ? this.pickTile(id) : this.selectOrigin(id, rect)),
+      onSelect: (id, _key, rect) => {
+        if (this.view === 'timeline') return this.pickTile(id);
+        const first = this.groups.get(id)?.trackIds[0];
+        if (first) this.selectOrigin(first, rect);
+      },
       onHover: (id, el) => this.showTooltip(id, el),
       onCaption: (key) => this.openYear(key, null),
       onBackground: () => this.unpick(),
@@ -118,6 +130,7 @@ class MusicMapApp {
         onHover: (id, el) => this.showTooltip(id, el),
       },
     );
+    this.network.bindCamera(this.stage);
     this.recorder = new JourneyRecorder(this.graph, () => this.store, (s) => {
       this.saveStatus = s;
       this.renderSaveStatus();
@@ -146,7 +159,12 @@ class MusicMapApp {
     this.renderChrome();
     this.render();
     // Returning from Spotify's consent screen: bring in saved tracks right away.
-    if (login.completed) void this.importLibrary();
+    if (login.completed) {
+      void spotify.loadProfileName().then(() => this.renderChrome());
+      void this.importLibrary();
+    } else if (!localStorage.getItem(HOWTO_KEY)) {
+      this.showHowto(true);
+    }
   }
 
   // ---- Data -------------------------------------------------------------------
@@ -182,27 +200,51 @@ class MusicMapApp {
     const history = this.view === 'history';
     this.canvas.setSections(history ? this.releaseSections() : this.savedSections(), history ? 'release' : 'saved');
     // Rebuilding clears the picked cover; put it back if it's still on this timeline.
-    if (this.picked && !history && this.graph.inCollection(this.picked)) {
-      const t = this.graph.tracks.get(this.picked)!;
-      this.canvas.setSelected(this.picked, this.calloutHtml(this.picked), `${t.title} by ${t.artistCredit}`);
+    if (this.picked && !history && this.groups.has(this.picked)) {
+      this.canvas.setSelected(this.picked, this.calloutHtml(), this.pickedLabel());
     } else {
       this.picked = null;
     }
   }
 
+  /** Songs from the same album in a section become one tile. */
+  private groupItems(secKey: string, entries: { track: Track; dateText: string; outside: boolean }[]): CanvasItem[] {
+    const byAlbum = new Map<string, typeof entries>();
+    for (const e of entries) {
+      const k = e.track.album?.id ?? e.track.id;
+      byAlbum.set(k, [...(byAlbum.get(k) ?? []), e]);
+    }
+    return [...byAlbum].map(([albumKey, list]) => {
+      const id = `${secKey}|${albumKey}`;
+      const t = list[0].track;
+      this.groups.set(id, { trackIds: list.map((e) => e.track.id) });
+      return {
+        id,
+        track: t,
+        trackIds: list.map((e) => e.track.id),
+        title: t.album?.name ?? t.title,
+        artist: t.artistCredit,
+        dateText: list.length > 1 ? `${list.length} songs saved from this album` : list[0].dateText,
+        outside: list.every((e) => e.outside),
+      };
+    });
+  }
+
   /** Personal Timeline: one section per year saved, captioned by the explorer. */
   private savedSections(): CanvasSection[] {
-    const byYear = new Map<string, CanvasSection>();
+    this.groups.clear();
+    const byYear = new Map<string, { track: Track; dateText: string; outside: boolean }[]>();
     for (const { entry, track } of this.graph.savedTracks(this.hidden)) {
       const year = `${new Date(entry.savedAt).getFullYear()}`;
-      let sec = byYear.get(year);
-      if (!sec) {
-        sec = { key: year, title: year, caption: this.years[year]?.label, editable: true, items: [] };
-        byYear.set(year, sec);
-      }
-      sec.items.push({ id: track.id, track, dateText: `Saved ${formatSaved(entry.savedAt)}` });
+      byYear.set(year, [...(byYear.get(year) ?? []), { track, dateText: `Saved ${formatSaved(entry.savedAt)}`, outside: false }]);
     }
-    return [...byYear.values()];
+    return [...byYear].map(([year, entries]) => ({
+      key: year,
+      title: year,
+      caption: this.years[year]?.label,
+      editable: true,
+      items: this.groupItems(year, entries),
+    }));
   }
 
   /**
@@ -210,47 +252,49 @@ class MusicMapApp {
    * are marked as gaps, and recordings without a verified date sit apart at the end.
    */
   private releaseSections(): CanvasSection[] {
+    this.groups.clear();
     const tracks = [...this.graph.tracks.values()].filter((t) => !this.hidden.has(t.id));
     const known = tracks.filter((t) => t.release).sort((a, b) => a.release!.value.localeCompare(b.release!.value));
-    const item = (t: Track) => {
+    const entry = (t: Track) => {
       const saved = this.graph.savedAt(t.id);
-      return {
-        id: t.id,
-        track: t,
-        dateText: `Released ${formatPartialDate(t.release)}. ${saved ? `Saved ${formatSaved(saved)}` : 'Outside your collection'}`,
-        outside: !saved,
-      };
+      return { track: t, dateText: `Released ${formatPartialDate(t.release)}. ${saved ? `Saved ${formatSaved(saved)}` : 'Outside your collection'}`, outside: !saved };
     };
     // Older, sparser years are grouped by decade; recent years get their own section.
     const DECADE_BEFORE = 2010;
-    const sections: CanvasSection[] = [];
+    const secs: { key: string; decade: boolean; gap: number; entries: ReturnType<typeof entry>[] }[] = [];
     let prevEnd: number | null = null;
     for (const t of known) {
       const y = Number(t.release!.value.slice(0, 4));
       const decade = y < DECADE_BEFORE;
       const start = decade ? Math.floor(y / 10) * 10 : y;
       const key = decade ? `${start}s` : `${y}`;
-      let sec = sections[sections.length - 1];
+      let sec = secs[secs.length - 1];
       if (!sec || sec.key !== key) {
-        const gap = prevEnd !== null ? start - prevEnd - 1 : 0;
-        sec = {
-          key,
-          title: key,
-          caption: decade ? 'Grouped by decade' : undefined,
-          editable: false,
-          items: [],
-          gapBefore: gap > 0 ? `${gap} yr${gap === 1 ? '' : 's'} not shown` : undefined,
-        };
-        sections.push(sec);
+        sec = { key, decade, gap: prevEnd !== null ? start - prevEnd - 1 : 0, entries: [] };
+        secs.push(sec);
         prevEnd = decade ? start + 9 : y;
       }
-      sec.items.push(item(t));
+      sec.entries.push(entry(t));
     }
+    const sections: CanvasSection[] = secs.map((sec) => ({
+      key: sec.key,
+      title: sec.key,
+      caption: sec.decade ? 'Grouped by decade' : undefined,
+      editable: false,
+      items: this.groupItems(sec.key, sec.entries),
+      gapBefore: sec.gap > 0 ? `${sec.gap} yr${sec.gap === 1 ? '' : 's'} not shown` : undefined,
+    }));
     const unknown = tracks.filter((t) => !t.release);
     if (unknown.length) {
-      sections.push({ key: 'unknown', title: 'Date unknown', caption: 'No verified release date', editable: false, items: unknown.map(item), gapBefore: 'kept apart' });
+      sections.push({ key: 'unknown', title: 'Date unknown', caption: 'No verified release date', editable: false, items: this.groupItems('unknown', unknown.map(entry)), gapBefore: 'kept apart' });
     }
     return sections;
+  }
+
+  /** The album tile on the current canvas that holds this song. */
+  private groupOf(trackId: string): string | null {
+    for (const [id, g] of this.groups) if (g.trackIds.includes(trackId)) return id;
+    return null;
   }
 
   private async loadExplorerData(): Promise<void> {
@@ -288,6 +332,7 @@ class MusicMapApp {
       data.playlistsNote = note;
       localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
       localStorage.setItem(DATASET_KEY, 'spotify');
+      localStorage.setItem(IMPORTED_KEY, new Date().toISOString());
       this.importStatus = `Imported ${data.collection?.length ?? 0} saved tracks with the dates you saved them, and ${playlists.length} of your playlists.${note ? ` ${note}` : ''}`;
       this.loadDataset();
       this.renderChrome();
@@ -404,6 +449,13 @@ class MusicMapApp {
       }
     });
 
+    document.getElementById('zoomctl')!.addEventListener('click', (e) => {
+      const z = (e.target as HTMLElement).closest<HTMLElement>('[data-zoom]')?.dataset.zoom;
+      if (z === 'in') this.network.zoomBy(1.3);
+      if (z === 'out') this.network.zoomBy(1 / 1.3);
+      if (z === 'fit') this.network.fit();
+    });
+    (document.getElementById('wider-toggle') as HTMLInputElement).checked = this.wider;
     document.getElementById('wider-toggle')!.addEventListener('change', (e) => {
       this.wider = (e.target as HTMLInputElement).checked;
       this.render();
@@ -441,12 +493,23 @@ class MusicMapApp {
       this.renderPanel();
       this.panel.focus();
     });
-    document.getElementById('spotify-btn')!.addEventListener('click', () => {
-      if (!spotify.spotifyClientId()) return this.openSettings();
-      if (!spotify.isConnected()) return void spotify.beginLogin().catch((e: Error) => this.say(e.message));
-      this.showData = true;
-      this.renderPanel();
-      this.panel.focus();
+    document.getElementById('spotify-btn')!.addEventListener('click', () => this.openSpotifyDialog());
+    document.getElementById('connect-btn')!.addEventListener('click', () => this.openSpotifyDialog());
+    document.getElementById('help-btn')!.addEventListener('click', () => this.showHowto(document.getElementById('howto')!.hidden));
+    document.getElementById('howto')!.addEventListener('click', (e) => {
+      const act = (e.target as HTMLElement).closest<HTMLElement>('[data-howto]')?.dataset.howto;
+      if (act) this.showHowto(false);
+      if (act === 'connect') this.openSpotifyDialog();
+    });
+    const spDialog = document.getElementById('spotify-dialog') as HTMLDialogElement;
+    spDialog.addEventListener('click', (e) => {
+      if (e.target === spDialog) return spDialog.close(); // click on the backdrop
+      const el = (e.target as HTMLElement).closest<HTMLElement>('[data-sp]');
+      if (el) void this.handleSpotifyAction(el.dataset.sp!);
+    });
+    spDialog.addEventListener('submit', (e) => {
+      e.preventDefault();
+      void this.handleSpotifyAction('save-connect');
     });
     this.bindSettings();
 
@@ -555,6 +618,7 @@ class MusicMapApp {
     if (this.explorer && this.recording) this.recorder.start(this.explorer, id, this.view);
     else this.recorder.journey = null;
     this.say(`Selected ${nameOf(this.graph, id)}. ${this.neighborsOf(id).length} direct connections.`);
+    void this.autoEnrich(id);
     this.render(rect ? { id, rect } : undefined);
     this.panel.scrollTop = 0;
     if (this.narrow.matches) this.stage.scrollIntoView({ block: 'start' });
@@ -592,6 +656,7 @@ class MusicMapApp {
     this.reflecting = false;
     this.record('follow', id, rels[0].id);
     this.say(`Moved to ${nameOf(this.graph, id)}. Path length ${this.path.length}.`);
+    void this.autoEnrich(id);
     this.render();
     this.panel.scrollTop = 0;
     requestAnimationFrame(() => this.network.focusNode(id));
@@ -639,17 +704,18 @@ class MusicMapApp {
       return;
     }
     if (this.returnPick) {
-      const id = this.returnPick;
+      const { group, track } = this.returnPick;
       this.returnPick = null;
       this.view = 'timeline';
       this.render();
-      this.pickTile(id);
+      this.pickTile(group, track);
       return;
     }
     this.render();
-    if (origin) {
-      this.canvas.scrollToItem(origin, true);
-      this.canvas.focusItem(origin);
+    const tile = origin ? this.groupOf(origin) : null;
+    if (tile) {
+      this.canvas.scrollToItem(tile, true);
+      this.canvas.focusItem(tile);
     }
   }
 
@@ -687,9 +753,10 @@ class MusicMapApp {
     this.yearOpen = null;
     this.editingThought = null;
     this.render();
-    if (id) {
-      this.canvas.scrollToItem(id, true);
-      this.canvas.focusItem(id);
+    const tile = id ? this.groupOf(id) : null;
+    if (tile) {
+      this.canvas.scrollToItem(tile, true);
+      this.canvas.focusItem(tile);
     }
   }
 
@@ -780,26 +847,37 @@ class MusicMapApp {
 
   private refreshThoughtViews(): void {
     this.renderYear();
-    if (this.picked) this.canvas.updateCallout(this.calloutHtml(this.picked));
+    if (this.picked) this.canvas.updateCallout(this.calloutHtml());
   }
 
   // ---- Picked cover (Personal Timeline) -----------------------------------------------
 
-  /** Picks a cover on Personal Timeline: it grows in place and a callout opens beside it. */
-  private pickTile(id: string): void {
-    const t = this.graph.tracks.get(id);
-    if (!t) return;
-    this.picked = id;
+  /** Picks an album on the Personal Timeline: it grows in the magnifier with its details. */
+  private pickTile(groupId: string, trackId?: string): void {
+    const g = this.groups.get(groupId);
+    if (!g) return;
+    this.picked = groupId;
+    // Show the most recently saved song from the album unless one was asked for.
+    this.pickedTrack = trackId && g.trackIds.includes(trackId)
+      ? trackId
+      : [...g.trackIds].sort((a, b) => (this.graph.savedAt(b) ?? '').localeCompare(this.graph.savedAt(a) ?? ''))[0];
     this.editingThought = null;
-    if (this.recorder.journey) this.record('year', id, undefined, this.savedYear(id) ?? undefined);
-    this.canvas.setSelected(id, this.calloutHtml(id), `${t.title} by ${t.artistCredit}`);
-    this.say(`${t.title}. Saved ${formatSaved(this.graph.savedAt(id))}.`);
+    if (this.recorder.journey) this.record('year', this.pickedTrack, undefined, this.savedYear(this.pickedTrack) ?? undefined);
+    this.canvas.setSelected(groupId, this.calloutHtml(), this.pickedLabel());
+    const t = this.graph.tracks.get(this.pickedTrack)!;
+    this.say(`${t.album?.name ?? t.title}. ${g.trackIds.length > 1 ? `${g.trackIds.length} songs saved.` : `Saved ${formatSaved(this.graph.savedAt(t.id))}.`}`);
     requestAnimationFrame(() => this.canvas.calloutEl.querySelector<HTMLElement>('h3')?.focus({ preventScroll: true }));
+  }
+
+  private pickedLabel(): string {
+    const t = this.pickedTrack ? this.graph.tracks.get(this.pickedTrack) : undefined;
+    return t ? `${t.album?.name ?? t.title} by ${t.artistCredit}` : '';
   }
 
   private unpick(): void {
     const id = this.picked;
     this.picked = null;
+    this.pickedTrack = null;
     this.editingThought = null;
     this.canvas.setSelected(null);
     if (id) this.canvas.focusItem(id);
@@ -838,8 +916,19 @@ class MusicMapApp {
   }
 
   /** The callout from the sketch: 1 your memories, 2 date added, 3 playlists it's in. */
-  private calloutHtml(id: string): string {
+  private calloutHtml(): string {
+    const id = this.pickedTrack!;
     const t = this.graph.tracks.get(id)!;
+    const group = this.picked ? this.groups.get(this.picked) : undefined;
+    const albumSongs =
+      group && group.trackIds.length > 1
+        ? `<ul class="mm-album-songs" aria-label="Songs saved from this album">${group.trackIds
+            .map((tid) => {
+              const tt = this.graph.tracks.get(tid)!;
+              return `<li><button type="button" class="mm-album-song ${tid === id ? 'is-current' : ''}" data-action="pick-track" data-id="${h(tid)}" aria-pressed="${tid === id}"><span>${h(tt.title)}</span><em>${formatSaved(this.graph.savedAt(tid))}</em></button></li>`;
+            })
+            .join('')}</ul>`
+        : '';
     const saved = this.graph.savedAt(id);
     const year = this.savedYear(id) ?? '';
     const memories = (this.years[year]?.thoughts ?? []).filter((th) => th.trackId === id);
@@ -860,11 +949,12 @@ class MusicMapApp {
     return `
       <div class="mm-callout__head">
         <div>
-          <h3 tabindex="-1">${h(t.title)}</h3>
-          <p class="mm-muted">${h(t.artistCredit)}</p>
+          <h3 tabindex="-1">${h(albumSongs ? t.album?.name ?? t.title : t.title)}</h3>
+          <p class="mm-muted">${h(t.artistCredit)}${albumSongs ? ` · ${group!.trackIds.length} songs saved` : t.album && t.album.name !== t.title ? ` · from ${h(t.album.name)}` : ''}</p>
         </div>
         <button type="button" class="mm-callout__close" data-action="unpick" aria-label="Close">×</button>
       </div>
+      ${albumSongs}
       <ol class="mm-callout__list">
         <li>
           <h4><span>1</span>Your memories</h4>
@@ -1097,6 +1187,7 @@ class MusicMapApp {
     this.renderYear();
     this.renderBlurb();
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
+    (document.getElementById('zoomctl') as HTMLElement).hidden = !(selected && this.view === 'history');
     this.renderStageNote();
     this.renderPathbar();
     this.renderPanel();
@@ -1234,7 +1325,8 @@ class MusicMapApp {
       : `Saving to <strong>${h(this.store.label)}</strong>`;
     storage.classList.toggle('is-warning', !!this.storeError);
     const sp = document.getElementById('spotify-btn')!;
-    sp.textContent = !spotify.spotifyClientId() ? 'Set up Spotify' : spotify.isConnected() ? 'Spotify connected' : 'Connect Spotify';
+    sp.textContent = spotify.isConnected() ? 'Spotify & sources…' : 'Connect Spotify…';
+    this.renderConnect();
   }
 
   private renderSaveStatus(): void {
@@ -1502,27 +1594,19 @@ class MusicMapApp {
   private introSection(): string {
     const demo = this.datasetKind === 'demo';
     return `<section class="mm-card mm-card--intro">
-      <h2 class="mm-title">A song has a history before it becomes part of yours.</h2>
-      <p>Move through the tracks ${demo ? 'in this demo collection' : 'you saved'} by the date each was saved, then open one to see the recordings, samples, interpolations and people connected to it. Your route is one way through a much larger web.</p>
-      ${demo ? `<p class="mm-notice">You're looking at <strong>fictional demo data</strong>: invented tracks, people and saved dates. It isn't anyone's real listening history.</p>` : ''}
-      <h3 class="mm-subhead">Two clocks</h3>
-      <dl class="mm-legend">
-        <div><dt><span class="mm-swatch mm-swatch--saved"></span>Saved</dt><dd>When a track was added to the collection. It doesn't tell us when it was first heard, how often, or why.</dd></div>
-        <div><dt><span class="mm-swatch mm-swatch--release"></span>Released</dt><dd>When the recording came out. Unknown dates stay unknown, and year-only dates are marked.</dd></div>
-      </dl>
-      <h3 class="mm-subhead">Reading the map</h3>
-      <ul class="mm-keylist">
-        <li><span class="mm-key mm-key--track"></span>Square: a recording</li>
-        <li><span class="mm-key mm-key--person"></span>Circle: a person</li>
-        <li><span class="mm-key mm-key--group"></span>Double circle: a group</li>
-        <li><span class="mm-key mm-key--outside"></span>Dashed frame: outside your collection</li>
-        <li><span class="mm-line mm-line--samples"></span>Samples: uses the original recording</li>
-        <li><span class="mm-line mm-line--interpolates"></span>Interpolates: re-performs the composition</li>
-        <li><span class="mm-line mm-line--credit"></span>Credit: a person's role on a work</li>
-        <li><span class="mm-line mm-line--member"></span>Membership or shared credits</li>
+      <h2 class="mm-title">A song has a history before it becomes yours.</h2>
+      <p class="mm-muted">Your saves on one timeline; where the songs came from on the other.</p>
+      ${demo ? `<p class="mm-notice">Showing fictional demo data. <button type="button" class="mm-link" data-action="open-spotify">Connect Spotify</button></p>` : ''}
+      <ul class="mm-keylist mm-keylist--compact">
+        <li><span class="mm-swatch mm-swatch--saved"></span>Saved</li>
+        <li><span class="mm-swatch mm-swatch--release"></span>Released</li>
+        <li><span class="mm-key mm-key--track"></span>Song</li>
+        <li><span class="mm-key mm-key--person"></span>Person</li>
+        <li><span class="mm-line mm-line--samples"></span>Samples</li>
+        <li><span class="mm-line mm-line--interpolates"></span>Interpolates</li>
+        <li><span class="mm-line mm-line--credit"></span>Credit</li>
         <li><span class="mm-line mm-line--path"></span>Your path</li>
       </ul>
-      <p class="mm-muted mm-small">Shared credits are shown only as shared credits. The map doesn't infer friendship, mentorship or influence.</p>
     </section>`;
   }
 
@@ -1593,7 +1677,7 @@ class MusicMapApp {
       if (r.artists.length)
         remote += `<h3 class="mm-subhead">Artists</h3><ul class="mm-list">${r.artists.map((a) => `<li><button type="button" class="mm-result" data-action="sp-artist" data-id="${h(a.id)}" data-name="${h(a.name)}">${a.image ? `<img class="is-round" src="${h(a.image)}" alt="" />` : '<span class="mm-mini__dot"></span>'}<span><strong>${h(a.name)}</strong><span class="mm-muted">${h(a.genres.slice(0, 3).join(', ') || 'Artist')}</span></span></button></li>`).join('')}</ul>`;
       if (r.albums.length)
-        remote += `<h3 class="mm-subhead">Albums</h3><ul class="mm-list">${r.albums.map((a) => `<li><button type="button" class="mm-result" data-action="sp-album" data-id="${h(a.id)}" data-name="${h(a.name)}">${a.image ? `<img src="${h(a.image)}" alt="" />` : ''}<span><strong>${h(a.name)}</strong><span class="mm-muted">${h(a.artist)} · ${formatPartialDate(a.release)}</span></span></button></li>`).join('')}</ul>`;
+        remote += `<h3 class="mm-subhead">Albums</h3><ul class="mm-list">${r.albums.map((a) => `<li><button type="button" class="mm-result" data-action="sp-album" data-id="${h(a.id)}" data-name="${h(a.name)}" data-artist="${h(a.artist)}">${a.image ? `<img src="${h(a.image)}" alt="" />` : ''}<span><strong>${h(a.name)}</strong><span class="mm-muted">${h(a.artist)} · ${formatPartialDate(a.release)}</span></span></button></li>`).join('')}</ul>`;
       if (!remote) remote = `<p class="mm-muted">No Spotify results.</p>`;
     }
 
@@ -1677,10 +1761,12 @@ class MusicMapApp {
       case 'explorer':
         return void this.changeExplorer();
       case 'musicbrainz':
-        return void this.lookupMusicBrainz(id);
+        return void this.lookupSources(id);
       case 'dismiss-flash':
         this.flash = '';
         return this.renderPanel();
+      case 'open-spotify':
+        return this.openSpotifyDialog();
       case 'close-data':
         this.showData = false;
         return this.renderPanel();
@@ -1710,9 +1796,9 @@ class MusicMapApp {
         return this.selectOrigin(part.tracks![0].id);
       }
       case 'sp-artist':
-        return void this.drill(`Albums by ${el.dataset.name}`, () => spotify.artistAlbums(id).then((albums) => ({ albums })));
+        return void this.drill(`Songs by ${el.dataset.name}`, () => spotify.artistTracks(el.dataset.name ?? '').then((tracks) => ({ tracks })));
       case 'sp-album':
-        return void this.drill(el.dataset.name ?? 'Album', () => spotify.albumTracks(id).then((tracks) => ({ tracks })));
+        return void this.drill(el.dataset.name ?? 'Album', () => spotify.albumTracks(el.dataset.name ?? '', el.dataset.artist ?? '').then((tracks) => ({ tracks })));
       case 'drill-close':
         if (this.search) this.search.drill = undefined;
         return this.renderPanel();
@@ -1723,10 +1809,11 @@ class MusicMapApp {
       case 'close-year':
         return this.closeYear();
       case 'year-nav':
-        if (this.picked) {
-          const featured = this.picked;
+        if (this.picked && this.pickedTrack) {
+          const featured = this.pickedTrack;
+          const rect = this.canvas.rectOf(this.picked) ?? undefined;
           this.unpick();
-          return this.openYear(el.dataset.year!, featured, this.canvas.rectOf(featured) ?? undefined);
+          return this.openYear(el.dataset.year!, featured, rect);
         }
         return this.openYear(el.dataset.year!, null);
       case 'feature':
@@ -1751,14 +1838,19 @@ class MusicMapApp {
         return void this.deleteThought(id, el.dataset.year);
       case 'unpick':
         return this.unpick();
-      case 'pick-history':
-        this.returnPick = id;
+      case 'pick-track':
+        if (this.picked) this.pickTile(this.picked, id);
+        return;
+      case 'pick-history': {
+        const rect = this.picked ? this.canvas.rectOf(this.picked) ?? undefined : undefined;
+        if (this.picked) this.returnPick = { group: this.picked, track: id };
         this.picked = null;
         this.canvas.setSelected(null);
         this.view = 'history';
-        return this.selectOrigin(id, this.canvas.rectOf(id) ?? undefined);
+        return this.selectOrigin(id, rect);
+      }
       case 'mb-lookup':
-        return void this.lookupMusicBrainz(id);
+        return void this.lookupSources(id);
       case 'toggle-panel':
         this.panelPinned = !this.panelPinned;
         return this.render();
@@ -1815,24 +1907,178 @@ class MusicMapApp {
     this.render();
   }
 
-  private async lookupMusicBrainz(id: string): Promise<void> {
+  /** Asks Genius (when a token is set) and MusicBrainz what they document about a song. */
+  private async lookupSources(id: string, quiet = false): Promise<void> {
     const t = this.graph.tracks.get(id);
-    if (!t) return;
+    if (!t || t.origin === 'demo') return;
     this.mbStatus.set(id, 'loading');
-    this.renderPanel();
-      this.renderBlurb();
+    if (!quiet) this.renderBlurb();
+    const known = () => ({
+      tracks: [...this.graph.tracks.values()],
+      people: this.graph.neighbors(id).map((n) => this.graph.people.get(n.otherId)).filter((p) => !!p),
+    });
+    const notes: string[] = [];
+    if (geniusToken()) {
+      try {
+        const res = await enrichFromGenius(t, known());
+        this.addData(res.data);
+        notes.push(res.message);
+      } catch (err) {
+        notes.push(`Genius: ${(err as Error).message}`);
+      }
+    }
     try {
-      const known = this.graph.neighbors(id).map((n) => this.graph.people.get(n.otherId)).filter((p) => !!p);
-      const res = await enrichFromMusicBrainz(t, known);
+      const res = await enrichFromMusicBrainz(t, known().people);
       this.addData(res.data);
-      this.mbStatus.set(id, res.message);
-      this.render();
+      notes.push(`MusicBrainz: ${res.message}`);
     } catch (err) {
-      this.mbStatus.set(id, `${(err as Error).message} MusicBrainz may be unreachable from this network.`);
-      this.renderPanel();
-      this.renderBlurb();
+      notes.push(`MusicBrainz unreachable (${(err as Error).message})`);
+    }
+    if (!geniusToken()) notes.push('Add a Genius token (Spotify & sources) for samples, covers and remixes.');
+    this.mbStatus.set(id, notes.join(' '));
+    const done = new Set<string>(JSON.parse(localStorage.getItem(ENRICHED_KEY) ?? '[]'));
+    done.add(id);
+    localStorage.setItem(ENRICHED_KEY, JSON.stringify([...done]));
+    if (this.path.length) this.render();
+  }
+
+  /** Looks up a real song's history automatically the first time it's opened. */
+  private async autoEnrich(id: string): Promise<void> {
+    const t = this.graph.tracks.get(id);
+    if (!t || t.origin === 'demo' || this.mbStatus.get(id) === 'loading') return;
+    const done = new Set<string>(JSON.parse(localStorage.getItem(ENRICHED_KEY) ?? '[]'));
+    if (done.has(id)) return;
+    await this.lookupSources(id, true);
+  }
+
+  // ---- Spotify & sources dialog ------------------------------------------------------
+
+  private showHowto(show: boolean): void {
+    document.getElementById('howto')!.hidden = !show;
+    if (!show) localStorage.setItem(HOWTO_KEY, '1');
+  }
+
+  private renderConnect(): void {
+    const btn = document.getElementById('connect-btn')!;
+    const connected = spotify.isConnected();
+    btn.classList.toggle('is-connected', connected);
+    btn.innerHTML = connected
+      ? `<span class="mm-connect__dot" aria-hidden="true"></span>${h(spotify.profileName() ?? 'Spotify')}`
+      : 'Connect Spotify';
+    btn.setAttribute('aria-label', connected ? 'Spotify connected: manage' : 'Connect Spotify');
+  }
+
+  private openSpotifyDialog(): void {
+    const dialog = document.getElementById('spotify-dialog') as HTMLDialogElement;
+    this.renderSpotifyDialog();
+    if (!dialog.open) dialog.showModal();
+  }
+
+  private renderSpotifyDialog(editId = false): void {
+    const body = document.getElementById('spotify-dialog-body')!;
+    const clientId = spotify.spotifyClientId();
+    const connected = spotify.isConnected();
+    const hasLib = !!localStorage.getItem(LIBRARY_KEY);
+    const imported = localStorage.getItem(IMPORTED_KEY);
+    const redirect = spotify.redirectUri();
+    let main: string;
+    if (!clientId || editId) {
+      main = `
+        <ol class="mm-steps">
+          <li>
+            <p><strong>Create a Spotify app</strong> at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> and tick <em>Web API</em>.</p>
+          </li>
+          <li>
+            <p><strong>Add this Redirect URI</strong> to the app:</p>
+            <div class="mm-copy"><code>${h(redirect)}</code><button type="button" class="mm-btn mm-btn--small" data-sp="copy">Copy</button></div>
+          </li>
+          <li>
+            <p><strong>Paste the app's Client ID</strong></p>
+            <form class="mm-inline-form"><label class="sr-only" for="sp-client">Client ID</label>
+              <input id="sp-client" autocomplete="off" spellcheck="false" value="${h(clientId ?? '')}" placeholder="Client ID" />
+              <button type="submit" class="mm-btn mm-btn--spotify">Save &amp; connect</button></form>
+          </li>
+        </ol>
+        <p class="mm-muted mm-small">Spotify asks for Premium on development apps, and each listener has to be added under the app's <em>User Management</em>.</p>`;
+    } else if (!connected) {
+      main = `
+        <p>Ready to connect. Spotify will ask you to approve read-only access to your saved songs and the playlists you made.</p>
+        <div class="mm-dialog__actions mm-dialog__actions--left">
+          <button type="button" class="mm-btn mm-btn--spotify" data-sp="connect">Connect Spotify</button>
+          <button type="button" class="mm-link" data-sp="edit-id">Change Client ID</button>
+        </div>`;
+    } else {
+      main = `
+        <p class="mm-connected"><span class="mm-connect__dot"></span>Connected${spotify.profileName() ? ` as <strong>${h(spotify.profileName()!)}</strong>` : ''}</p>
+        <p class="mm-muted mm-small">${hasLib ? `Library imported${imported ? ` ${formatSaved(imported, true)}` : ''}: ${this.graph.collection.size} saved songs, ${this.graph.playlists.size} playlists.` : 'Library not imported yet.'}${this.graph.playlistsNote ? ` ${h(this.graph.playlistsNote)}` : ''}</p>
+        ${this.importStatus ? `<p class="mm-small" role="status">${h(this.importStatus)}</p>` : ''}
+        <div class="mm-dialog__actions mm-dialog__actions--left">
+          <button type="button" class="mm-btn mm-btn--spotify" data-sp="import">${hasLib ? 'Re-import library' : 'Import library'}</button>
+          ${hasLib ? `<button type="button" class="mm-btn" data-sp="${this.datasetKind === 'spotify' ? 'use-demo' : 'use-library'}">${this.datasetKind === 'spotify' ? 'Show demo data' : 'Show my library'}</button>` : ''}
+        </div>
+        <div class="mm-dialog__actions mm-dialog__actions--left">
+          <button type="button" class="mm-link" data-sp="switch">Use a different Spotify account</button>
+          <button type="button" class="mm-link" data-sp="disconnect">Disconnect</button>
+          <button type="button" class="mm-link" data-sp="edit-id">Change Client ID</button>
+        </div>`;
+    }
+    const token = geniusToken();
+    body.innerHTML = `
+      <div class="mm-dialog__head"><h2 id="spotify-title">Spotify</h2><button type="button" class="mm-callout__close" data-sp="close" aria-label="Close">×</button></div>
+      ${main}
+      <hr />
+      <h3 class="mm-dialog__sub">Song history sources</h3>
+      <p class="mm-muted mm-small"><strong>Genius</strong> adds what songs sample, what sampled them, interpolations, covers, remixes and producer/writer credits. Get a free <em>Client Access Token</em> at <a href="https://genius.com/api-clients" target="_blank" rel="noopener">genius.com/api-clients</a>. It stays in this browser. <strong>MusicBrainz</strong> is used automatically.</p>
+      <div class="mm-inline-form"><label class="sr-only" for="genius-token">Genius access token</label>
+        <input id="genius-token" type="password" autocomplete="off" spellcheck="false" value="${h(token ?? '')}" placeholder="Genius Client Access Token" />
+        <button type="button" class="mm-btn" data-sp="save-genius">${token ? 'Update' : 'Save'}</button></div>`;
+  }
+
+  private async handleSpotifyAction(action: string): Promise<void> {
+    const dialog = document.getElementById('spotify-dialog') as HTMLDialogElement;
+    switch (action) {
+      case 'close':
+        return dialog.close();
+      case 'copy':
+        await navigator.clipboard?.writeText(spotify.redirectUri()).catch(() => {});
+        this.say('Redirect URI copied.');
+        return;
+      case 'save-connect': {
+        const id = (document.getElementById('sp-client') as HTMLInputElement | null)?.value.trim();
+        if (!id) return;
+        spotify.saveSpotifyClientId(id);
+        spotify.disconnect();
+        return spotify.beginLogin().catch((e: Error) => this.say(e.message));
+      }
+      case 'connect':
+        return spotify.beginLogin().catch((e: Error) => this.say(e.message));
+      case 'switch':
+        spotify.disconnect();
+        return spotify.beginLogin(true).catch((e: Error) => this.say(e.message));
+      case 'disconnect':
+        spotify.disconnect();
+        this.useDataset('demo');
+        this.renderSpotifyDialog();
+        return;
+      case 'edit-id':
+        return this.renderSpotifyDialog(true);
+      case 'import':
+        await this.importLibrary();
+        return this.renderSpotifyDialog();
+      case 'use-demo':
+        this.useDataset('demo');
+        return this.renderSpotifyDialog();
+      case 'use-library':
+        this.useDataset('spotify');
+        return this.renderSpotifyDialog();
+      case 'save-genius':
+        saveGeniusToken((document.getElementById('genius-token') as HTMLInputElement).value);
+        localStorage.removeItem(ENRICHED_KEY);
+        this.say('Genius token saved.');
+        return this.renderSpotifyDialog();
     }
   }
+
 
   // ---- Search -----------------------------------------------------------------
 

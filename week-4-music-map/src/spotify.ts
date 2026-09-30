@@ -55,6 +55,24 @@ export function isConnected(): boolean {
 
 export function disconnect(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(NAME_KEY);
+}
+
+const NAME_KEY = 'musicMap:spotifyName';
+
+export function profileName(): string | null {
+  return localStorage.getItem(NAME_KEY);
+}
+
+/** Remembers the display name of the connected account, when Spotify still provides it. */
+export async function loadProfileName(): Promise<void> {
+  try {
+    const me = await api<{ display_name?: string | null; id?: string }>('/me');
+    const name = me.display_name || me.id;
+    if (name) localStorage.setItem(NAME_KEY, name);
+  } catch {
+    /* profile details are optional */
+  }
 }
 
 // ---- PKCE -----------------------------------------------------------------
@@ -64,7 +82,8 @@ function base64url(bytes: ArrayBuffer | Uint8Array): string {
   return btoa(String.fromCharCode(...arr)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export async function beginLogin(): Promise<void> {
+/** Sends you to Spotify to approve access. `chooseAccount` asks Spotify to show the account screen again. */
+export async function beginLogin(chooseAccount = false): Promise<void> {
   const clientId = spotifyClientId();
   if (!clientId) throw new Error('Add a Spotify Client ID first.');
   const verifier = base64url(crypto.getRandomValues(new Uint8Array(64)));
@@ -77,6 +96,7 @@ export async function beginLogin(): Promise<void> {
     code_challenge_method: 'S256',
     code_challenge: challenge,
     scope: SCOPES.join(' '),
+    ...(chooseAccount ? { show_dialog: 'true' } : {}),
   });
   location.assign(`https://accounts.spotify.com/authorize?${params}`);
 }
@@ -213,7 +233,8 @@ export function mapTrack(t: SpTrack, album = t.album): Partial<Dataset> {
     release: releaseOf(album),
     releaseNote:
       'Spotify reports the release date of the album this track appears on. A reissue, remaster or compilation can carry a later date than the original recording.',
-    cover: img ? { kind: 'image', url: img } : { kind: 'generated', seed: t.id },
+    cover: img ? { kind: 'image', url: img } : { kind: 'generated', seed: album?.id ?? t.id },
+    album: album ? { id: `spal:${album.id}`, name: album.name } : undefined,
     genres: [],
     origin: 'spotify',
     spotify: { id: t.id, url: t.external_urls.spotify, uri: t.uri, isrc: t.external_ids?.isrc },
@@ -262,7 +283,9 @@ export async function importSavedTracks(
   while (url && count < max) {
     const page: { items: { added_at: string; track: SpTrack | null }[]; next: string | null; total: number } =
       await api(url);
-    for (const item of page.items) {
+    for (const entry of page.items) {
+      // Saved-track entries may carry the song under `track` or (Feb 2026) `item`.
+      const item = { added_at: entry.added_at, track: entry.track ?? (entry as { item?: SpTrack }).item ?? null };
       if (!item.track?.id) continue;
       const part = mapTrack(item.track);
       part.collection = [{ trackId: trackId(item.track.id), savedAt: item.added_at, source: 'spotify' }];
@@ -288,39 +311,54 @@ export async function importSavedTracks(
  */
 export async function importPlaylists(
   onProgress?: (done: number, total: number) => void,
-  maxPlaylists = 40,
+  maxPlaylists = 60,
 ): Promise<{ playlists: Playlist[]; note: string }> {
   try {
-    const me = await api<{ id: string }>('/me');
-    const mine: { id: string; name: string; external_urls: { spotify: string } }[] = [];
+    const lists: { id: string; name: string; external_urls: { spotify: string } }[] = [];
     let url: string | null = '/me/playlists?limit=50';
-    while (url && mine.length < maxPlaylists) {
-      const page: { items: ({ id: string; name: string; owner: { id: string }; external_urls: { spotify: string } } | null)[]; next: string | null } = await api(url);
-      page.items.forEach((p) => p && p.owner.id === me.id && mine.length < maxPlaylists && mine.push(p));
+    while (url && lists.length < maxPlaylists) {
+      const page: { items: ({ id: string; name: string; external_urls: { spotify: string } } | null)[]; next: string | null } = await api(url);
+      page.items.forEach((p) => p && lists.length < maxPlaylists && lists.push(p));
       url = page.next;
     }
     const playlists: Playlist[] = [];
-    let skipped = 0;
-    for (const p of mine) {
-      const ids: string[] = [];
-      let next: string | null = `/playlists/${p.id}/tracks?${new URLSearchParams({ fields: 'items(track(id)),next', limit: '100' })}`;
-      try {
-        while (next && ids.length < 500) {
-          const page: { items: { track: { id: string | null } | null }[]; next: string | null } = await api(next);
-          page.items.forEach((it) => it.track?.id && ids.push(trackId(it.track.id)));
-          next = page.next;
-        }
-        playlists.push({ id: `spp:${p.id}`, name: p.name, url: p.external_urls.spotify, trackIds: ids });
-      } catch {
-        skipped++;
-      }
-      onProgress?.(playlists.length + skipped, mine.length);
+    let done = 0;
+    for (const p of lists) {
+      // Since Feb 2026 items live at /items (each entry's song under `item`), and only
+      // playlists you own or collaborate on return them; others answer 403 and are skipped.
+      const ids = await playlistTrackIds(p.id).catch(() => null);
+      if (ids) playlists.push({ id: `spp:${p.id}`, name: p.name, url: p.external_urls.spotify, trackIds: ids });
+      onProgress?.(++done, lists.length);
     }
-    const note = skipped ? `${skipped} playlist${skipped === 1 ? '' : 's'} couldn't be read.` : '';
-    return { playlists, note };
+    return { playlists, note: playlists.length ? '' : 'No playlists you made could be read.' };
   } catch (err) {
     return { playlists: [], note: `Playlists couldn't be read: ${(err as Error).message}` };
   }
+}
+
+type PlaylistEntry = { item?: { id: string | null } | null; track?: { id: string | null } | null };
+
+async function playlistTrackIds(playlistId: string): Promise<string[]> {
+  const ids: string[] = [];
+  const read = async (path: string) => {
+    let next: string | null = `/playlists/${playlistId}/${path}?limit=50`;
+    while (next && ids.length < 1000) {
+      const page: { items: PlaylistEntry[]; next: string | null } = await api(next);
+      page.items.forEach((e) => {
+        const id = (e.item ?? e.track)?.id;
+        if (id) ids.push(trackId(id));
+      });
+      next = page.next;
+    }
+  };
+  try {
+    await read('items');
+  } catch (err) {
+    // Older apps may still be served the pre-2026 path.
+    if (err instanceof SpotifyError && err.status === 404) await read('tracks');
+    else throw err;
+  }
+  return ids;
 }
 
 // ---- Search ---------------------------------------------------------------
@@ -360,20 +398,17 @@ export async function search(query: string, kind: SearchKind): Promise<SpotifySe
   };
 }
 
-export async function artistAlbums(artistSpId: string): Promise<SpotifySearchResults['albums']> {
-  const res = await api<{ items: SpAlbum[] }>(
-    `/artists/${artistSpId}/albums?${new URLSearchParams({ include_groups: 'album,single', limit: '20' })}`,
-  );
-  return res.items.map((al) => ({
-    id: al.id,
-    name: al.name,
-    artist: al.artists.map((a) => a.name).join(', '),
-    image: pickImage(al.images),
-    release: releaseOf(al),
-  }));
+// Album and artist-album endpoints were removed for Development Mode apps in
+// Feb 2026, so drilling down from a search result is done with search itself.
+async function searchTracks(q: string): Promise<Partial<Dataset>[]> {
+  const res = await api<{ tracks?: { items: SpTrack[] } }>(`/search?${new URLSearchParams({ q, type: 'track', limit: '10' })}`);
+  return (res.tracks?.items ?? []).filter(Boolean).map((t) => mapTrack(t));
 }
 
-export async function albumTracks(albumSpId: string): Promise<Partial<Dataset>[]> {
-  const album = await api<SpAlbum>(`/albums/${albumSpId}`);
-  return (album.tracks?.items ?? []).map((t) => mapTrack(t, album));
+export function artistTracks(artistName: string): Promise<Partial<Dataset>[]> {
+  return searchTracks(`artist:"${artistName}"`);
+}
+
+export function albumTracks(albumName: string, artistName: string): Promise<Partial<Dataset>[]> {
+  return searchTracks(`album:"${albumName}" artist:"${artistName}"`);
 }

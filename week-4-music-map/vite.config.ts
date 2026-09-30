@@ -7,6 +7,14 @@ export default defineConfig({
     // Spotify no longer accepts "localhost" redirect URIs; use the loopback IP.
     host: '127.0.0.1',
     port: 5173,
+    // If the browser can't call Genius directly (CORS), the app retries through here.
+    proxy: {
+      '/genius-api': {
+        target: 'https://api.genius.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/genius-api/, ''),
+      },
+    },
   },
   build: {
     // Committed so the class index page can link straight to it without a build step.

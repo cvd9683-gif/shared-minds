@@ -28,12 +28,16 @@ export interface Track {
   release: PartialDate | null;
   releaseNote?: string;
   cover: Cover;
+  /** The album (or single) this recording was saved from; songs are grouped by it. */
+  album?: { id: string; name: string };
   genres: string[];
   origin: Origin;
   /** Credit roles the source says nothing about, shown as "Not documented". */
   undocumented?: string[];
   spotify?: { id: string; url: string; uri: string; isrc?: string };
   musicbrainzId?: string;
+  /** A page about this recording on its source (e.g. Genius). */
+  externalUrl?: string;
 }
 
 export interface Person {
