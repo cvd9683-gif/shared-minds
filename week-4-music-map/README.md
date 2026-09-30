@@ -24,22 +24,25 @@ listening history.
 The top bar holds **Personal Timeline ● Historical Timeline**, a green **Connect
 Spotify** button, search, **?** (how to explore) and **⋯** (name, storage, journeys).
 
-1. **Personal Timeline.** A horizontal axis with a tick per year. Songs saved from
-   the same album are grouped into one cover (with a count), and the albums overlap
-   in a loose collage under each year. Hover and the covers near the pointer spread
-   apart and lift; the magnifier box above shows the whole year. Scrolling, dragging
-   and the magnifier all ease rather than jump.
-2. **Pick an album.** The magnifier pins it large. Beside it: the songs you saved
-   from it (each with its date added), then **1 · your memories**, **2 · date
-   added** and **3 · playlists it's in** for the selected song.
-3. **Historical Timeline → web.** Picking a cover (or *See where it comes from*)
-   dissolves the timeline into a web around that song: samples, interpolations,
-   covers, remixes and credited people, plus their own connections further out.
-   Scroll or pinch to zoom, drag to move, **Fit** to frame everything. A **blurb**
-   explains the song from its stored, sourced relationships.
-4. **Follow connections.** Select a node to read how it's linked (with its source),
-   select again to move there. The web re-forms around each step; *Back*, *Return*
-   and *Close* keep your path.
+1. **Personal Timeline.** Albums sit on the axis itself, overlapping, one stretch
+   per year. Songs saved from the same album are one cover with a count (matched by
+   Spotify album, or by identical cover art for older imports). A lens follows the
+   pointer: nearby covers bloom into a collage above and below the line, then
+   settle back. The magnifier docked top-right shows the year under the lens,
+   joined to it by two lines.
+2. **Pick an album.** It grows on the line and pins the magnifier. Beside it you
+   get the songs you saved from it, then **1 · your memories**, **2 · date added**
+   and **3 · playlists it's in**. Your name is only asked for when you first save a
+   memory.
+3. **Historical Timeline starts as a web.** Every album in the map is fanned around
+   its artist. Artists who share credits or sampled songs are pulled together, and
+   sample and interpolation links arc across. Scroll or pinch to zoom from the whole
+   library down to single covers, drag to move. Hover an artist or album to light
+   up its connections.
+4. **Open a song.** Clicking an album or artist opens its focused web: samples,
+   interpolations, covers, remixes, credited people and their other work. A blurb
+   explains it from sourced relationships. Select a node to read the link, select
+   again to follow; *Close* returns to the whole web.
 
 ## Where song history comes from
 

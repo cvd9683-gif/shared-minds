@@ -7,6 +7,7 @@ import './style.css';
 import demoData from './data/demo-collection.json';
 import { coverUrl } from './covers';
 import { TimelineCanvas, escapeHtml as h, type CanvasItem, type CanvasSection } from './canvas';
+import { LibraryWeb, type WebAlbum, type WebLink, type WebPerson } from './web';
 import {
   MusicGraph,
   formatPartialDate,
@@ -105,6 +106,10 @@ class MusicMapApp {
   private announcer = document.getElementById('announcer')!;
   private yearEl = document.getElementById('year-view')!;
   private canvas: TimelineCanvas;
+  private web: LibraryWeb;
+  private webKey = '';
+  /** Web album id → its songs. */
+  private webAlbums = new Map<string, string[]>();
   private network: NetworkView;
   private recorder: JourneyRecorder;
 
@@ -131,6 +136,13 @@ class MusicMapApp {
       },
     );
     this.network.bindCamera(this.stage);
+    this.web = new LibraryWeb(document.getElementById('web') as HTMLCanvasElement, {
+      onSelect: (kind, id, rect) => {
+        const target = kind === 'album' ? this.webAlbums.get(id)?.[0] : id;
+        if (target) this.selectOrigin(target, rect);
+      },
+      onHover: (info) => this.showWebTooltip(info),
+    });
     this.recorder = new JourneyRecorder(this.graph, () => this.store, (s) => {
       this.saveStatus = s;
       this.renderSaveStatus();
@@ -195,12 +207,11 @@ class MusicMapApp {
   private refreshCanvas(force = false): void {
     const labels = Object.entries(this.years).map(([k, v]) => `${k}:${v.label ?? ''}`).join('|');
     const key = `${this.view}|${this.graph.tracks.size}|${this.graph.collection.size}|${[...this.hidden].join()}|${labels}`;
-    if (!force && key === this.canvasKey) return;
+    if (this.view === 'history' || (!force && key === this.canvasKey)) return;
     this.canvasKey = key;
-    const history = this.view === 'history';
-    this.canvas.setSections(history ? this.releaseSections() : this.savedSections(), history ? 'release' : 'saved');
+    this.canvas.setSections(this.savedSections(), 'saved');
     // Rebuilding clears the picked cover; put it back if it's still on this timeline.
-    if (this.picked && !history && this.groups.has(this.picked)) {
+    if (this.picked && this.groups.has(this.picked)) {
       this.canvas.setSelected(this.picked, this.calloutHtml(), this.pickedLabel());
     } else {
       this.picked = null;
@@ -211,7 +222,7 @@ class MusicMapApp {
   private groupItems(secKey: string, entries: { track: Track; dateText: string; outside: boolean }[]): CanvasItem[] {
     const byAlbum = new Map<string, typeof entries>();
     for (const e of entries) {
-      const k = e.track.album?.id ?? e.track.id;
+      const k = this.albumKey(e.track);
       byAlbum.set(k, [...(byAlbum.get(k) ?? []), e]);
     }
     return [...byAlbum].map(([albumKey, list]) => {
@@ -247,48 +258,70 @@ class MusicMapApp {
     }));
   }
 
-  /**
-   * Historical timeline: every recording in the map by release year. Empty years
-   * are marked as gaps, and recordings without a verified date sit apart at the end.
-   */
-  private releaseSections(): CanvasSection[] {
-    this.groups.clear();
-    const tracks = [...this.graph.tracks.values()].filter((t) => !this.hidden.has(t.id));
-    const known = tracks.filter((t) => t.release).sort((a, b) => a.release!.value.localeCompare(b.release!.value));
-    const entry = (t: Track) => {
-      const saved = this.graph.savedAt(t.id);
-      return { track: t, dateText: `Released ${formatPartialDate(t.release)}. ${saved ? `Saved ${formatSaved(saved)}` : 'Outside your collection'}`, outside: !saved };
-    };
-    // Older, sparser years are grouped by decade; recent years get their own section.
-    const DECADE_BEFORE = 2010;
-    const secs: { key: string; decade: boolean; gap: number; entries: ReturnType<typeof entry>[] }[] = [];
-    let prevEnd: number | null = null;
-    for (const t of known) {
-      const y = Number(t.release!.value.slice(0, 4));
-      const decade = y < DECADE_BEFORE;
-      const start = decade ? Math.floor(y / 10) * 10 : y;
-      const key = decade ? `${start}s` : `${y}`;
-      let sec = secs[secs.length - 1];
-      if (!sec || sec.key !== key) {
-        sec = { key, decade, gap: prevEnd !== null ? start - prevEnd - 1 : 0, entries: [] };
-        secs.push(sec);
-        prevEnd = decade ? start + 9 : y;
+  /** Songs group by album; without album info, the same cover art means the same album. */
+  private albumKey(t: Track): string {
+    return t.album?.id ?? (t.cover.kind === 'image' ? `img:${t.cover.url}` : t.id);
+  }
+
+  /** Historical Timeline: every album in the map as one web, fanned around its artists. */
+  private refreshWeb(force = false): void {
+    const key = `${this.graph.tracks.size}|${this.graph.rels.size}|${this.graph.collection.size}|${[...this.hidden].join()}`;
+    if (!force && key === this.webKey) return;
+    this.webKey = key;
+    const albums = new Map<string, WebAlbum>();
+    const people = new Map<string, WebPerson>();
+    this.webAlbums.clear();
+    const PRIMARY = /^(primary artist|credited artist)/;
+    for (const t of this.graph.tracks.values()) {
+      if (this.hidden.has(t.id)) continue;
+      const k = this.albumKey(t);
+      let a = albums.get(k);
+      if (!a) {
+        const title = t.album?.name ?? t.title;
+        a = { id: k, trackIds: [], title, artist: t.artistCredit, cover: coverUrl(t.cover, title), outside: true, artistIds: [], creditIds: [] };
+        albums.set(k, a);
       }
-      sec.entries.push(entry(t));
+      a.trackIds.push(t.id);
+      if (this.graph.inCollection(t.id)) a.outside = false;
+      for (const n of this.graph.neighbors(t.id)) {
+        if (n.rel.type !== 'credit' || n.outgoing) continue;
+        const person = this.graph.people.get(n.otherId);
+        if (!person) continue;
+        people.set(person.id, { id: person.id, name: person.name });
+        const list = PRIMARY.test(n.rel.role ?? '') ? a.artistIds : a.creditIds;
+        if (!list.includes(person.id)) list.push(person.id);
+      }
     }
-    const sections: CanvasSection[] = secs.map((sec) => ({
-      key: sec.key,
-      title: sec.key,
-      caption: sec.decade ? 'Grouped by decade' : undefined,
-      editable: false,
-      items: this.groupItems(sec.key, sec.entries),
-      gapBefore: sec.gap > 0 ? `${sec.gap} yr${sec.gap === 1 ? '' : 's'} not shown` : undefined,
-    }));
-    const unknown = tracks.filter((t) => !t.release);
-    if (unknown.length) {
-      sections.push({ key: 'unknown', title: 'Date unknown', caption: 'No verified release date', editable: false, items: this.groupItems('unknown', unknown.map(entry)), gapBefore: 'kept apart' });
+    for (const a of albums.values()) {
+      a.creditIds = a.creditIds.filter((id) => !a.artistIds.includes(id));
+      this.webAlbums.set(a.id, a.trackIds);
     }
-    return sections;
+    const links: WebLink[] = [];
+    for (const r of this.graph.rels.values()) {
+      if (r.type !== 'samples' && r.type !== 'interpolates' && r.type !== 'documented') continue;
+      const ta = this.graph.tracks.get(r.from);
+      const tb = this.graph.tracks.get(r.to);
+      if (!ta || !tb) continue;
+      links.push({
+        a: this.albumKey(ta),
+        b: this.albumKey(tb),
+        kind: r.type === 'documented' ? 'other' : r.type,
+        uncertain: r.evidence.status !== 'documented',
+      });
+    }
+    this.web.setData([...albums.values()], [...people.values()], links);
+  }
+
+  private showWebTooltip(info: { title: string; sub: string; x: number; y: number } | null): void {
+    if (!info) {
+      this.tooltip.hidden = true;
+      return;
+    }
+    this.tooltip.innerHTML = `<strong>${h(info.title)}</strong><span>${h(info.sub)}</span>`;
+    this.tooltip.hidden = false;
+    const tw = this.tooltip.offsetWidth;
+    const x = info.x + 16 + tw > this.stage.clientWidth ? info.x - tw - 16 : info.x + 16;
+    this.tooltip.style.transform = `translate(${Math.max(8, x)}px, ${Math.max(8, info.y - 10)}px)`;
   }
 
   /** The album tile on the current canvas that holds this song. */
@@ -451,9 +484,11 @@ class MusicMapApp {
 
     document.getElementById('zoomctl')!.addEventListener('click', (e) => {
       const z = (e.target as HTMLElement).closest<HTMLElement>('[data-zoom]')?.dataset.zoom;
-      if (z === 'in') this.network.zoomBy(1.3);
-      if (z === 'out') this.network.zoomBy(1 / 1.3);
-      if (z === 'fit') this.network.fit();
+      // With a song open the buttons zoom its web; otherwise the whole-library web.
+      const target = this.path.length ? this.network : this.web;
+      if (z === 'in') target.zoomBy(1.3);
+      if (z === 'out') target.zoomBy(1 / 1.3);
+      if (z === 'fit') target.fit();
     });
     (document.getElementById('wider-toggle') as HTMLInputElement).checked = this.wider;
     document.getElementById('wider-toggle')!.addEventListener('change', (e) => {
@@ -517,6 +552,7 @@ class MusicMapApp {
       const r = this.stage.getBoundingClientRect();
       this.canvas.resize(r.width, r.height);
       this.network.resize(r.width, r.height);
+      this.web.resize(r.width, r.height);
     }).observe(this.stage);
     this.narrow.addEventListener('change', () => this.applyEnvironment());
     this.reducedMotion.addEventListener('change', () => this.applyEnvironment());
@@ -526,6 +562,7 @@ class MusicMapApp {
   private applyEnvironment(): void {
     this.canvas.setReducedMotion(this.reducedMotion.matches);
     this.network.setReducedMotion(this.reducedMotion.matches);
+    this.web.setReducedMotion(this.reducedMotion.matches);
     document.body.classList.toggle('is-narrow', this.narrow.matches);
   }
 
@@ -607,7 +644,6 @@ class MusicMapApp {
 
   private selectOrigin(id: string, rect?: DOMRect): void {
     this.stopReplay();
-    this.ensureExplorer();
     this.path = [{ nodeId: id }];
     this.inspected = null;
     this.expanded.clear();
@@ -1178,16 +1214,20 @@ class MusicMapApp {
 
     const year = !selected && !!this.yearOpen;
     this.stage.classList.toggle('has-year', year);
+    const history = this.view === 'history';
     if (selected) {
       this.network.show(this.buildScene(), spawn);
     } else {
       this.network.clear();
-      this.refreshCanvas();
+      if (history) this.refreshWeb();
+      else this.refreshCanvas();
     }
+    this.canvas.setVisible(!selected && !history && !year);
+    this.web.setVisible(!selected && history);
     this.renderYear();
     this.renderBlurb();
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
-    (document.getElementById('zoomctl') as HTMLElement).hidden = !(selected && this.view === 'history');
+    (document.getElementById('zoomctl') as HTMLElement).hidden = this.view !== 'history';
     this.renderStageNote();
     this.renderPathbar();
     this.renderPanel();
@@ -1203,7 +1243,7 @@ class MusicMapApp {
           ? matchMedia('(hover: none)').matches
             ? 'Swipe sideways through the years you saved tracks. Covers open up as they pass the middle; tap one to step into that year.'
             : 'Scroll sideways or drag through the years you saved tracks. Hover to open up a stretch of covers; click one to step into that year.'
-          : 'Every recording in this map by release year: the same songs on a different clock. Dashed covers are outside your collection. Click one to see what it is connected to.';
+          : 'Every album in the map as a web, fanned around its artists. Scroll or pinch to zoom, drag to move, click an album to see what it is connected to.';
     } else {
       const total = this.neighborsOf(cur).length;
       const shown = this.expanded.has(cur) ? total : Math.min(total, NEIGHBOR_LIMIT);
