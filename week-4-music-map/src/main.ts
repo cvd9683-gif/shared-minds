@@ -7,7 +7,7 @@ import './style.css';
 import demoData from './data/demo-collection.json';
 import { coverUrl } from './covers';
 import { TimelineCanvas, escapeHtml as h, type CanvasItem, type CanvasSection } from './canvas';
-import { LibraryWeb, type WebAlbum, type WebLink, type WebPerson } from './web';
+import { LibraryWeb, type WebHub, type WebItem, type WebLink } from './web';
 import {
   MusicGraph,
   formatPartialDate,
@@ -21,7 +21,7 @@ import {
   type Neighbor,
 } from './graph';
 import { JourneyRecorder, describeScene, pathAfter, type PathStep, type SaveStatus } from './journey';
-import { enrichFromMusicBrainz } from './musicbrainz';
+import { artistGenres, enrichFromMusicBrainz } from './musicbrainz';
 import { enrichFromGenius, geniusToken, saveGeniusToken } from './genius';
 import { NetworkView, type Scene, type SceneEdge, type SceneNode } from './network';
 import * as spotify from './spotify';
@@ -110,6 +110,10 @@ class MusicMapApp {
   private webKey = '';
   /** Web album id → its songs. */
   private webAlbums = new Map<string, string[]>();
+  /** What the historical web is organised by. */
+  private webMode: 'artist' | 'album' | 'song' | 'genre' = 'artist';
+  private webFilter = '';
+  private genreJob = false;
   private network: NetworkView;
   private recorder: JourneyRecorder;
 
@@ -137,10 +141,7 @@ class MusicMapApp {
     );
     this.network.bindCamera(this.stage);
     this.web = new LibraryWeb(document.getElementById('web') as HTMLCanvasElement, {
-      onSelect: (kind, id, rect) => {
-        const target = kind === 'album' ? this.webAlbums.get(id)?.[0] : id;
-        if (target) this.selectOrigin(target, rect);
-      },
+      onSelect: (kind, id, rect) => this.onWebSelect(kind, id, rect),
       onHover: (info) => this.showWebTooltip(info),
     });
     this.recorder = new JourneyRecorder(this.graph, () => this.store, (s) => {
@@ -263,53 +264,215 @@ class MusicMapApp {
     return t.album?.id ?? (t.cover.kind === 'image' ? `img:${t.cover.url}` : t.id);
   }
 
-  /** Historical Timeline: every album in the map as one web, fanned around its artists. */
+  /** Genres for a track: its own, or (for Spotify imports) its artist's MusicBrainz tags. */
+  private genresOf(t: Track): string[] {
+    if (t.genres.length) return t.genres;
+    const cache = this.genreCache();
+    return cache[t.artistCredit.split(',')[0].trim().toLowerCase()] ?? [];
+  }
+
+  private genreCache(): Record<string, string[]> {
+    try {
+      return JSON.parse(localStorage.getItem('musicMap:artistGenres') ?? '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  /** Looks up genres for artists without them, one per second (MusicBrainz's limit). */
+  private async fetchGenres(): Promise<void> {
+    if (this.genreJob) return;
+    const cache = this.genreCache();
+    const names = [...new Set([...this.graph.tracks.values()].filter((t) => !t.genres.length).map((t) => t.artistCredit.split(',')[0].trim().toLowerCase()))].filter(
+      (n) => !(n in cache),
+    );
+    if (!names.length) return;
+    this.genreJob = true;
+    let done = 0;
+    for (const name of names) {
+      if (this.webMode !== 'genre' || this.view !== 'history') break;
+      try {
+        cache[name] = await artistGenres(name);
+      } catch {
+        cache[name] = [];
+      }
+      done++;
+      localStorage.setItem('musicMap:artistGenres', JSON.stringify(cache));
+      this.setWebStatus(`Finding genres on MusicBrainz… ${done} of ${names.length} artists`);
+      if (done % 8 === 0 || done === names.length) this.refreshWeb(true);
+    }
+    this.genreJob = false;
+    this.setWebStatus('');
+  }
+
+  private setWebStatus(text: string): void {
+    const el = document.getElementById('web-status');
+    if (el) el.textContent = text;
+  }
+
+  /**
+   * Historical Timeline: the whole library as a web, organised by artist, album,
+   * song or genre. Changing the organisation morphs the covers into the new form.
+   */
   private refreshWeb(force = false): void {
-    const key = `${this.graph.tracks.size}|${this.graph.rels.size}|${this.graph.collection.size}|${[...this.hidden].join()}`;
+    const key = `${this.webMode}|${this.graph.tracks.size}|${this.graph.rels.size}|${this.graph.collection.size}|${[...this.hidden].join()}`;
     if (!force && key === this.webKey) return;
     this.webKey = key;
-    const albums = new Map<string, WebAlbum>();
-    const people = new Map<string, WebPerson>();
-    this.webAlbums.clear();
     const PRIMARY = /^(primary artist|credited artist)/;
-    for (const t of this.graph.tracks.values()) {
-      if (this.hidden.has(t.id)) continue;
-      const k = this.albumKey(t);
-      let a = albums.get(k);
-      if (!a) {
-        const title = t.album?.name ?? t.title;
-        a = { id: k, trackIds: [], title, artist: t.artistCredit, cover: coverUrl(t.cover, title), outside: true, artistIds: [], creditIds: [] };
-        albums.set(k, a);
-      }
-      a.trackIds.push(t.id);
-      if (this.graph.inCollection(t.id)) a.outside = false;
+    const mode = this.webMode;
+    const tracks = [...this.graph.tracks.values()].filter((t) => !this.hidden.has(t.id));
+    const creditsOf = (t: Track) => {
+      const artists: string[] = [];
+      const others: string[] = [];
       for (const n of this.graph.neighbors(t.id)) {
-        if (n.rel.type !== 'credit' || n.outgoing) continue;
-        const person = this.graph.people.get(n.otherId);
-        if (!person) continue;
-        people.set(person.id, { id: person.id, name: person.name });
-        const list = PRIMARY.test(n.rel.role ?? '') ? a.artistIds : a.creditIds;
-        if (!list.includes(person.id)) list.push(person.id);
+        if (n.rel.type !== 'credit' || n.outgoing || !this.graph.people.has(n.otherId)) continue;
+        (PRIMARY.test(n.rel.role ?? '') ? artists : others).push(n.otherId);
       }
-    }
-    for (const a of albums.values()) {
-      a.creditIds = a.creditIds.filter((id) => !a.artistIds.includes(id));
-      this.webAlbums.set(a.id, a.trackIds);
+      return { artists, others: others.filter((o) => !artists.includes(o)) };
+    };
+    const hubs = new Map<string, WebHub>();
+    const personHub = (id: string) => {
+      const p = this.graph.people.get(id)!;
+      hubs.set(id, { id, name: p.name });
+      return id;
+    };
+    const items: WebItem[] = [];
+    this.webAlbums.clear();
+
+    if (mode === 'song') {
+      for (const t of tracks) {
+        const { artists, others } = creditsOf(t);
+        const saved = this.graph.inCollection(t.id) ? 1 : 0;
+        items.push({
+          id: t.id,
+          title: t.title,
+          sub: `${t.artistCredit}${t.album && t.album.name !== t.title ? ` · ${t.album.name}` : ''}`,
+          cover: coverUrl(t.cover, t.title),
+          saved,
+          outside: !saved,
+          hubId: artists[0] ? personHub(artists[0]) : '',
+          linkHubIds: others.map(personHub),
+          search: `${t.title} ${t.artistCredit} ${t.album?.name ?? ''} ${this.genresOf(t).join(' ')}`.toLowerCase(),
+          morphFrom: this.albumKey(t),
+        });
+      }
+    } else {
+      const albums = new Map<string, { tracks: Track[] }>();
+      for (const t of tracks) {
+        const k = this.albumKey(t);
+        (albums.get(k) ?? albums.set(k, { tracks: [] }).get(k)!).tracks.push(t);
+      }
+      for (const [k, { tracks: list }] of albums) {
+        const t = list[0];
+        const title = t.album?.name ?? t.title;
+        const saved = list.filter((x) => this.graph.inCollection(x.id)).length;
+        const artists = new Set<string>();
+        const others = new Set<string>();
+        list.forEach((x) => {
+          const c = creditsOf(x);
+          c.artists.forEach((a) => artists.add(a));
+          c.others.forEach((o) => others.add(o));
+        });
+        const genres = [...new Set(list.flatMap((x) => this.genresOf(x)))];
+        let hubId = '';
+        if (mode === 'artist') {
+          // Collaborations sit with the artist you have most albums by.
+          const first = [...artists][0];
+          hubId = first ? personHub(first) : '';
+        } else if (mode === 'genre') {
+          const g = genres[0] ?? 'genre not known yet';
+          hubs.set(`g:${g}`, { id: `g:${g}`, name: g });
+          hubId = `g:${g}`;
+        }
+        this.webAlbums.set(k, list.map((x) => x.id));
+        items.push({
+          id: k,
+          title,
+          sub: `${t.artistCredit}${saved > 1 ? ` · ${saved} songs saved` : ''}${genres.length ? ` · ${genres.slice(0, 2).join(', ')}` : ''}`,
+          cover: coverUrl(t.cover, title),
+          saved,
+          outside: saved === 0,
+          hubId,
+          linkHubIds: mode === 'artist' ? [...others].map(personHub) : [],
+          search: `${title} ${list.map((x) => x.title).join(' ')} ${t.artistCredit} ${genres.join(' ')}`.toLowerCase(),
+        });
+      }
     }
     const links: WebLink[] = [];
+    const itemOf = (t: Track) => (mode === 'song' ? t.id : this.albumKey(t));
     for (const r of this.graph.rels.values()) {
       if (r.type !== 'samples' && r.type !== 'interpolates' && r.type !== 'documented') continue;
       const ta = this.graph.tracks.get(r.from);
       const tb = this.graph.tracks.get(r.to);
       if (!ta || !tb) continue;
-      links.push({
-        a: this.albumKey(ta),
-        b: this.albumKey(tb),
-        kind: r.type === 'documented' ? 'other' : r.type,
-        uncertain: r.evidence.status !== 'documented',
-      });
+      links.push({ a: itemOf(ta), b: itemOf(tb), kind: r.type === 'documented' ? 'other' : r.type, uncertain: r.evidence.status !== 'documented' });
     }
-    this.web.setData([...albums.values()], [...people.values()], links);
+    this.web.setData(items, [...hubs.values()], links, { bare: mode === 'album' });
+    if (this.webFilter) this.web.setFilter(this.webFilter);
+    document.querySelectorAll<HTMLButtonElement>('.mm-webbar__mode').forEach((b) => b.setAttribute('aria-pressed', `${b.dataset.mode === mode}`));
+    if (mode === 'genre' && this.datasetKind === 'spotify') void this.fetchGenres();
+  }
+
+  private onWebSelect(kind: 'item' | 'hub', id: string, rect: DOMRect): void {
+    if (kind === 'hub') {
+      if (id.startsWith('g:')) {
+        // A genre: narrow the map to it.
+        const input = document.getElementById('web-filter') as HTMLInputElement;
+        input.value = id.slice(2);
+        this.applyWebFilter(input.value);
+      } else if (this.graph.people.has(id)) this.selectOrigin(id, rect);
+      return;
+    }
+    if (this.webMode === 'song') return this.selectOrigin(id, rect);
+    const songs = this.webAlbums.get(id) ?? [];
+    if (songs.length === 1) return this.selectOrigin(songs[0], rect);
+    this.openAlbumPicker(id, songs, rect);
+  }
+
+  /** Album chosen in the web: pick which of its songs to follow. */
+  private openAlbumPicker(albumId: string, songs: string[], rect: DOMRect): void {
+    const el = document.getElementById('album-picker')!;
+    const tracks = songs.map((id) => this.graph.tracks.get(id)!).filter(Boolean);
+    const t = tracks[0];
+    if (!t) return;
+    const title = t.album?.name ?? t.title;
+    const hint = (id: string) => {
+      const n = this.graph.neighbors(id);
+      const c = (type: string, out: boolean) => n.filter((x) => x.rel.type === type && x.outgoing === out).length;
+      const parts = [
+        c('samples', true) && `samples ${c('samples', true)}`,
+        c('samples', false) && `sampled on ${c('samples', false)}`,
+        c('interpolates', true) && `interpolates ${c('interpolates', true)}`,
+        c('interpolates', false) && `interpolated on ${c('interpolates', false)}`,
+      ].filter(Boolean);
+      return parts.length ? parts.join(' · ') : 'no samples recorded yet';
+    };
+    el.innerHTML = `
+      <button type="button" class="mm-callout__close" data-pick="close" aria-label="Close">×</button>
+      <img class="mm-picker__cover" src="${coverUrl(t.cover, title)}" alt="" />
+      <h2 class="mm-picker__title">${h(title)}</h2>
+      <p class="mm-muted">${h(t.artistCredit)} · pick a song to see how it's sampled and who made it</p>
+      <ul class="mm-picker__list">${tracks
+        .map((x) => {
+          const saved = this.graph.savedAt(x.id);
+          return `<li><button type="button" data-pick="${h(x.id)}"><strong>${h(x.title)}</strong><span>${h(hint(x.id))}</span><em>${saved ? `saved ${formatSaved(saved)}` : 'not saved'}</em></button></li>`;
+        })
+        .join('')}</ul>`;
+    el.hidden = false;
+    el.dataset.album = albumId;
+    void rect;
+    el.querySelector<HTMLButtonElement>('[data-pick]:not([data-pick="close"])')?.focus();
+  }
+
+  private closeAlbumPicker(): void {
+    const el = document.getElementById('album-picker');
+    if (el) el.hidden = true;
+  }
+
+  private applyWebFilter(q: string): void {
+    this.webFilter = q;
+    const n = this.web.setFilter(q);
+    this.setWebStatus(q ? `${n} match${n === 1 ? '' : 'es'}` : '');
   }
 
   private showWebTooltip(info: { title: string; sub: string; x: number; y: number } | null): void {
@@ -421,6 +584,7 @@ class MusicMapApp {
       if (target.matches('input, textarea, select')) return;
       if (e.key === 'Escape') {
         if (this.inspected) this.inspect(null);
+        else if (!document.getElementById('album-picker')!.hidden) this.closeAlbumPicker();
         else if (this.yearOpen && !this.path.length) this.closeYear();
         else if (this.picked && !this.path.length) this.unpick();
         else if (this.path.length > 1) this.back();
@@ -482,10 +646,27 @@ class MusicMapApp {
       }
     });
 
+    document.querySelectorAll<HTMLButtonElement>('.mm-webbar__mode').forEach((b) =>
+      b.addEventListener('click', () => {
+        this.webMode = b.dataset.mode as typeof this.webMode;
+        this.closeAlbumPicker();
+        this.refreshWeb(true);
+      }),
+    );
+    document.getElementById('web-filter')!.addEventListener('input', (e) => this.applyWebFilter((e.target as HTMLInputElement).value));
+    const picker = document.getElementById('album-picker')!;
+    picker.addEventListener('click', (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>('[data-pick]');
+      if (!el) return;
+      if (el.dataset.pick === 'close') return this.closeAlbumPicker();
+      const rect = picker.querySelector('.mm-picker__cover')?.getBoundingClientRect();
+      this.closeAlbumPicker();
+      this.selectOrigin(el.dataset.pick!, rect);
+    });
     document.getElementById('zoomctl')!.addEventListener('click', (e) => {
       const z = (e.target as HTMLElement).closest<HTMLElement>('[data-zoom]')?.dataset.zoom;
       // With a song open the buttons zoom its web; otherwise the whole-library web.
-      const target = this.path.length ? this.network : this.web;
+      const target = this.path.length ? this.network : this.view === 'history' ? this.web : this.canvas;
       if (z === 'in') target.zoomBy(1.3);
       if (z === 'out') target.zoomBy(1 / 1.3);
       if (z === 'fit') target.fit();
@@ -1142,8 +1323,6 @@ class MusicMapApp {
         for (const m of this.neighborsOf(n.otherId)) {
           if (count >= WIDER_LIMIT) break;
           if (nodes.has(m.otherId)) continue;
-          // In the web, the outer ring is covers only: unlabeled dots for people read as noise.
-          if (this.view === 'history' && !this.graph.tracks.has(m.otherId)) continue;
           nodes.set(m.otherId, { id: m.otherId, role: 'wider' });
           count++;
         }
@@ -1155,10 +1334,21 @@ class MusicMapApp {
       let count = 0;
       for (const n of shown) {
         if (!this.graph.people.has(n.otherId)) continue;
-        const works = this.neighborsOf(n.otherId).filter((m) => this.graph.tracks.has(m.otherId) && !nodes.has(m.otherId)).slice(0, 3);
+        const works = this.neighborsOf(n.otherId).filter((m) => this.graph.tracks.has(m.otherId) && !nodes.has(m.otherId)).slice(0, 5);
         for (const m of works) {
-          if (count++ >= 15) break;
+          if (count++ >= 24) break;
           nodes.set(m.otherId, { id: m.otherId, role: 'wider' });
+        }
+      }
+      // …and the people they made those songs with: their collaborators, named.
+      let people = 0;
+      for (const [id, sn] of [...nodes]) {
+        if (sn.role !== 'wider' || !this.graph.tracks.has(id)) continue;
+        for (const m of this.neighborsOf(id)) {
+          if (people >= 24) break;
+          if (!this.graph.people.has(m.otherId) || nodes.has(m.otherId)) continue;
+          nodes.set(m.otherId, { id: m.otherId, role: 'wider' });
+          people++;
         }
       }
     }
@@ -1226,10 +1416,12 @@ class MusicMapApp {
     }
     this.canvas.setVisible(!selected && !history && !year);
     this.web.setVisible(!selected && history);
+    document.getElementById('webbar')!.hidden = !(history && !selected);
+    if (selected || !history) this.closeAlbumPicker();
     this.renderYear();
     this.renderBlurb();
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
-    (document.getElementById('zoomctl') as HTMLElement).hidden = this.view !== 'history';
+    (document.getElementById('zoomctl') as HTMLElement).hidden = year;
     this.renderStageNote();
     this.renderPathbar();
     this.renderPanel();

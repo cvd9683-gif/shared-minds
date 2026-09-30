@@ -1,11 +1,11 @@
 // Music Map - Personal Timeline canvas
-// Albums sit on the axis as a lightly overlapping strip, one stretch per year.
-// The canvas pans in every direction (drag, trackpad) and zooms (pinch / ctrl+wheel).
-// A lens follows the pointer like a fisheye: covers near it grow and the strip
-// stretches around them (so nothing leaves a gap), they drift toward the pointer
-// and scatter into a collage, and every cover moves on a spring so the whole line
-// feels fluid. When you stop moving, the nearest year eases into the centre; the
-// magnifier docked on the right shows that year, joined to it by two lines.
+// Each year's albums stack in columns centred on the axis, taking the room they
+// need so none are hidden; an album's size grows with how many of its songs you
+// saved. The canvas pans in every direction and zooms (buttons, pinch, ctrl+wheel).
+// A magnifying lens follows the pointer in 2D: the album under the cursor stays
+// under it and grows, and its neighbours spread just enough to make room, all on
+// springs so it feels like moving through the collage by hand. The year panel sits
+// at the top centre, joined to its year by two lines.
 
 import { coverUrl, seeded } from './covers';
 import type { Track } from './types';
@@ -146,7 +146,12 @@ export class TimelineCanvas {
   }
 
   private get axisY(): number {
-    return Math.round(this.height * 0.62);
+    return Math.round(this.height * 0.6);
+  }
+
+  /** Height of each year's column of albums, centred on the axis. */
+  private get colH(): number {
+    return Math.max(160, Math.min(this.height * 0.46, 440));
   }
 
   // ---- Build ------------------------------------------------------------------
@@ -181,48 +186,70 @@ export class TimelineCanvas {
         x += GAP_W;
       }
       const section: Section = { data: sec, x, w: 0, tiles: [] };
-      // Covers overlap only a little so each one stays readable; more songs = bigger cover.
+      // Stack albums into columns centred on the axis: no overlaps, every cover visible.
+      const GAP = small ? 4 : 6;
+      const colH = this.colH;
+      const sizes = sec.items.map((it) => Math.min(small ? 84 : 124, Math.round((small ? 36 : 46) + (small ? 18 : 26) * (Math.sqrt(it.trackIds.length) - 1))));
       let cursor = x + PAD;
-      let prev = 0;
-      sec.items.forEach((item, i) => {
-        const n = item.trackIds.length;
-        const rs = Math.min(small ? 50 : 68, (small ? 34 : 42) + (n - 1) * 9);
-        cursor += prev ? (prev + rs) * 0.42 : rs / 2;
-        prev = rs;
-        const rand = seeded(item.id);
-        const ry = y0 + (i % 2 ? 1 : -1) * rs * (0.1 + rand() * 0.14);
-        const tile: Tile = {
-          item,
-          section,
-          el: document.createElement('button'),
-          rx: cursor,
-          ry,
-          rs,
-          sy: (i % 2 ? 1 : -1) * (0.35 + rand() * 0.65),
-          sx: rand() - 0.5,
-          scale: 0.85 + rand() * 0.3,
-          z: 1 + Math.floor(rand() * 30),
-          x: cursor,
-          y: ry,
-          s: rs,
-          vx: 0,
-          vy: 0,
-          vs: 0,
-          lastZ: -1,
-        };
-        const b = tile.el;
-        b.type = 'button';
-        b.className = `mm-cov${item.outside ? ' is-outside' : ''}`;
-        b.dataset.id = item.id;
-        b.setAttribute('aria-label', `${item.title} by ${item.artist}. ${item.dateText}.`);
-        b.innerHTML = `<img alt="" src="${coverUrl(item.track.cover, item.title)}" loading="lazy" draggable="false" />${n > 1 ? `<span class="mm-cov__count">${n}</span>` : ''}`;
-        this.bindTile(tile);
-        this.world.appendChild(b);
-        this.writeTile(tile);
-        section.tiles.push(tile);
-        this.tiles.push(tile);
+      let col: number[] = [];
+      const flush = () => {
+        if (!col.length) return;
+        const w = Math.max(...col.map((i) => sizes[i]));
+        const total = col.reduce((t, i) => t + sizes[i], 0) + GAP * (col.length - 1);
+        let y = y0 - total / 2;
+        for (const i of col) {
+          const item = sec.items[i];
+          const rs = sizes[i];
+          const rand = seeded(item.id);
+          const rx = cursor + w / 2 + (rand() - 0.5) * Math.max(0, w - rs);
+          const ry = y + rs / 2;
+          y += rs + GAP;
+          const tile: Tile = {
+            item,
+            section,
+            el: document.createElement('button'),
+            rx,
+            ry,
+            rs,
+            sx: 0,
+            sy: 0,
+            scale: 1,
+            z: 10 + Math.round(rs / 10),
+            x: rx,
+            y: ry,
+            s: rs,
+            vx: 0,
+            vy: 0,
+            vs: 0,
+            lastZ: -1,
+          };
+          const n = item.trackIds.length;
+          const b = tile.el;
+          b.type = 'button';
+          b.className = `mm-cov${item.outside ? ' is-outside' : ''}`;
+          b.dataset.id = item.id;
+          b.setAttribute('aria-label', `${item.title} by ${item.artist}. ${item.dateText}.`);
+          b.innerHTML = `<img alt="" src="${coverUrl(item.track.cover, item.title)}" loading="lazy" draggable="false" />${n > 1 ? `<span class="mm-cov__count">${n}</span>` : ''}`;
+          this.bindTile(tile);
+          this.world.appendChild(b);
+          this.writeTile(tile);
+          section.tiles.push(tile);
+          this.tiles.push(tile);
+        }
+        cursor += w + GAP;
+        col = [];
+      };
+      let h = 0;
+      sec.items.forEach((_, i) => {
+        if (col.length && h + GAP + sizes[i] > colH) {
+          flush();
+          h = 0;
+        }
+        h += (col.length ? GAP : 0) + sizes[i];
+        col.push(i);
       });
-      section.w = Math.max(small ? 140 : 180, cursor + prev / 2 + PAD - x);
+      flush();
+      section.w = Math.max(small ? 140 : 180, cursor - x + PAD - GAP);
 
       const el = document.createElement('section');
       el.className = 'mm-sec';
@@ -251,14 +278,7 @@ export class TimelineCanvas {
     Object.assign(this.world.style, { width: `${this.worldW}px`, height: `${this.height}px` });
     Object.assign(axis.style, { top: `${y0}px`, left: '16px', width: `${this.worldW - 32}px` });
 
-    if (!keepState) {
-      // Open on the most recent year, centred.
-      const last = this.sections[this.sections.length - 1];
-      const cx = last ? last.x + Math.min(last.w, this.width * 0.8) / 2 : 0;
-      this.goal = { k: 1, tx: this.width / 2 - cx, ty: 0 };
-      this.clampGoal();
-      this.cam = { ...this.goal };
-    }
+    if (!keepState || !this.userMoved) this.home();
     this.lens.s = this.lens.ts = this.touch ? 1 : 0;
     this.lens.x = (this.width / 2 - this.cam.tx) / this.cam.k;
     this.lens.y = this.axisY;
@@ -337,6 +357,17 @@ export class TimelineCanvas {
 
   // ---- Camera -----------------------------------------------------------------------
 
+  private userMoved = false;
+
+  /** Opening view: the most recent years, ending near the right edge. */
+  private home(): void {
+    const last = this.sections[this.sections.length - 1];
+    const end = last ? last.x + last.w : 0;
+    this.goal = { k: 1, tx: this.width * 0.88 - end, ty: 0 };
+    this.clampGoal();
+    this.cam = { ...this.goal };
+  }
+
   private clampGoal(): void {
     const g = this.goal;
     const half = this.width / 2;
@@ -345,6 +376,7 @@ export class TimelineCanvas {
   }
 
   private panBy(dx: number, dy: number, direct = false): void {
+    this.userMoved = true;
     this.goal.tx += dx;
     this.goal.ty += dy;
     this.clampGoal();
@@ -355,8 +387,16 @@ export class TimelineCanvas {
     this.kick();
   }
 
-  private zoomBy(f: number, cx = this.width / 2, cy = this.height / 2): void {
-    const k = Math.max(0.35, Math.min(2.5, this.goal.k * f));
+  /** Zooms out to show every year at once. */
+  fit(): void {
+    const k = Math.max(0.15, Math.min(1, (this.width - 40) / this.worldW));
+    this.goal = { k, tx: (this.width - this.worldW * k) / 2, ty: this.height * 0.62 - this.axisY * k };
+    this.kick();
+  }
+
+  zoomBy(f: number, cx = this.width / 2, cy = this.height / 2): void {
+    this.userMoved = true;
+    const k = Math.max(0.15, Math.min(3, this.goal.k * f));
     const r = k / this.goal.k;
     this.goal = { k, tx: cx - (cx - this.goal.tx) * r, ty: cy - (cy - this.goal.ty) * r };
     this.clampGoal();
@@ -415,11 +455,7 @@ export class TimelineCanvas {
     l.s += (l.ts - l.s) * (snap ? 1 : 0.1);
     moving ||= Math.abs(lx - l.x) > 0.3 || Math.abs(l.ts - l.s) > 0.003;
 
-    const y0 = this.axisY;
-    const R = Math.max(120, Math.min(230, this.width * 0.15)) / c.k;
-    const spread = (this.height * (this.width < 600 ? 0.17 : 0.22)) / c.k;
-    const big = Math.max(70, Math.min(170, this.height * 0.22, this.width * 0.28));
-    const pull = Math.max(-this.height * 0.3, Math.min(this.height * 0.3, l.y - y0));
+    const R = Math.max(90, Math.min(170, this.width * 0.11)) / c.k;
     const pinnedId = this.pinned?.id;
     const left = -c.tx / c.k - R * 3;
     const right = (this.width - c.tx) / c.k + R * 3;
@@ -431,19 +467,18 @@ export class TimelineCanvas {
       let ts = t.rs;
       let z = t.z;
       if (t.item.id === pinnedId) {
-        tx = t.rx;
-        ty = y0;
-        ts = big * 1.3;
+        ts = t.rs * 1.8;
         z = 400;
       } else if (onScreen && !pinnedId) {
-        const d = t.rx - l.x;
-        const f = Math.exp(-(d * d) / (2 * R * R)) * l.s;
-        // Fisheye: the strip stretches around the pointer (continuous, so no gap)…
-        tx = l.x + d * (1 + 1.15 * f) + t.sx * f * 26;
-        // …covers near it grow, lean toward the pointer and scatter into a collage.
-        ts = t.rs * (1 + 2.1 * f * t.scale);
-        ty = t.ry * (1 - f) + y0 * f + t.sy * f * spread + pull * f * 0.45;
-        z = t.z + Math.round(f * 150);
+        // 2D magnifier: positions scale out from the pointer and sizes grow with them,
+        // so the album under the cursor stays under it and its neighbours make room.
+        const dx = t.rx - l.x;
+        const dy = t.ry - l.y;
+        const f = Math.exp(-(dx * dx + dy * dy) / (2 * R * R)) * l.s;
+        tx = l.x + dx * (1 + 0.95 * f);
+        ty = l.y + dy * (1 + 0.95 * f);
+        ts = t.rs * (1 + 1.05 * f);
+        z = t.z + Math.round(f * 200);
       }
       if (!onScreen && Math.abs(t.x - tx) < 0.5 && Math.abs(t.s - ts) < 0.5) continue;
       if (snap || !onScreen) {
@@ -463,7 +498,7 @@ export class TimelineCanvas {
       }
       if (onScreen || snap) {
         this.writeTile(t, z);
-        t.el.classList.toggle('is-bloomed', t.s > t.rs * 1.8);
+        t.el.classList.toggle('is-bloomed', t.s > t.rs * 1.5);
       }
     }
     this.placeLines();
@@ -486,9 +521,10 @@ export class TimelineCanvas {
   private zoomBox() {
     const pinned = !!this.pinned;
     const narrow = this.width < 600;
-    const width = narrow ? this.width - 24 : pinned ? Math.min(this.width - 32, 960) : Math.min(440, Math.max(300, this.width * 0.3));
-    const height = narrow ? (pinned ? 280 : 170) : Math.max(190, Math.min(pinned ? 360 : 300, this.height * (pinned ? 0.44 : 0.38)));
-    return { top: 12, height, width, left: this.width - width - (narrow ? 12 : 16) };
+    const width = narrow ? this.width - 24 : pinned ? Math.min(this.width - 32, 960) : Math.min(520, Math.max(320, this.width * 0.36));
+    const height = narrow ? (pinned ? 280 : 150) : Math.max(150, Math.min(pinned ? 340 : 230, this.height * (pinned ? 0.42 : 0.26)));
+    // Top centre, above the year it describes.
+    return { top: 12, height, width, left: (this.width - width) / 2 };
   }
 
   private zoomItem(it: CanvasItem, extra = '', delay = 0): string {
@@ -552,7 +588,7 @@ export class TimelineCanvas {
     const { k, tx, ty } = this.cam;
     const box = this.zoomBox();
     const b = box.top + box.height;
-    const ay = this.axisY * k + ty;
+    const ay = (this.axisY - this.colH / 2 - 8) * k + ty;
     const clampX = (v: number) => Math.max(-60, Math.min(this.width + 60, v));
     this.lines.setAttribute('width', `${this.width}`);
     this.lines.setAttribute('height', `${this.height}`);

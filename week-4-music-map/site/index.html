@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="./assets/index-DcmiEwR8.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-miVlxcCN.css">
+    <script type="module" crossorigin src="./assets/index-C6MuaR4b.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-D7njE_hs.css">
   </head>
   <body class="mm">
     <a class="mm-skip" href="#panel">Skip to details</a>
@@ -51,6 +51,19 @@
         <nav class="mm-pathbar" id="pathbar" aria-label="Your path" hidden></nav>
 
         <div class="mm-canvas" id="canvas" aria-label="Timeline. Scroll sideways to move through time."></div>
+        <div class="mm-webbar" id="webbar" hidden>
+          <div class="mm-webbar__modes" role="group" aria-label="Map by">
+            <span class="mm-webbar__label">Map by</span>
+            <button type="button" class="mm-webbar__mode" data-mode="artist" aria-pressed="true">Artist</button>
+            <button type="button" class="mm-webbar__mode" data-mode="album" aria-pressed="false">Album</button>
+            <button type="button" class="mm-webbar__mode" data-mode="song" aria-pressed="false">Song</button>
+            <button type="button" class="mm-webbar__mode" data-mode="genre" aria-pressed="false">Genre</button>
+          </div>
+          <label class="sr-only" for="web-filter">Filter the map</label>
+          <input id="web-filter" class="mm-webbar__filter" type="search" placeholder="Filter by artist, album, song or genre" autocomplete="off" />
+          <span class="mm-webbar__status" id="web-status" aria-live="polite"></span>
+        </div>
+        <aside class="mm-picker" id="album-picker" hidden></aside>
         <canvas class="mm-web" id="web" hidden aria-label="Web of every album in the map, grouped around its artists. Scroll or pinch to zoom, drag to move; use search to open a song by name."></canvas>
         <div class="mm-year-view" id="year-view" hidden></div>
         <div class="mm-axis" id="axis" hidden></div>
@@ -58,7 +71,7 @@
         <div class="mm-nodes" id="nodes"></div>
 
         <div class="mm-stage-note" id="stage-note" aria-live="polite"></div>
-        <div class="mm-zoomctl" id="zoomctl" hidden role="group" aria-label="Zoom the web">
+        <div class="mm-zoomctl" id="zoomctl" hidden role="group" aria-label="Zoom">
           <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
           <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
           <button type="button" data-zoom="fit">Fit</button>

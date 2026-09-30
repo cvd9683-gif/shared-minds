@@ -170,3 +170,20 @@ export async function enrichFromMusicBrainz(track: Track, knownPeople: Person[])
       : 'MusicBrainz has this recording but documents no credits or samples for it yet.',
   };
 }
+
+/**
+ * Genre tags MusicBrainz's community has given an artist, most-voted first.
+ * Spotify no longer returns genres to development apps, so this fills the gap.
+ */
+export async function artistGenres(name: string): Promise<string[]> {
+  const res = await mb<{ artists?: { name: string; score?: number; tags?: { name: string; count: number }[] }[] }>(
+    `/artist?query=${encodeURIComponent(`artist:"${name.replace(/"/g, '')}"`)}&limit=1`,
+  );
+  const a = res.artists?.[0];
+  if (!a || (a.score ?? 0) < 90) return [];
+  return (a.tags ?? [])
+    .filter((t) => t.count > 0)
+    .sort((x, y) => y.count - x.count)
+    .slice(0, 3)
+    .map((t) => t.name.toLowerCase());
+}

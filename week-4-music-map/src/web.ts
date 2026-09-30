@@ -1,24 +1,29 @@
-// Music Map - Historical Timeline as a whole-library web
-// Every album in the map, fanned around the artist it's credited to (a sunflower
-// of covers per artist, like the network maps in the brief). Thin lines join
-// artists to their albums; sampled and interpolated recordings arc between albums;
-// people credited on other artists' work (producers, writers, features) reach
-// across the web. Drawn on a 2D canvas so a large library stays smooth: scroll or
-// pinch to zoom from the whole web down to single covers, drag to move.
+// Music Map - Historical Timeline as a web of the whole library
+// Items (albums or songs) gather around hubs (artists, genres), or float in one
+// open field when mapped by album. Changing what the map is organised by morphs
+// every cover from where it was to where it belongs. Covers are sized by how much
+// of them you saved. Drawn on a 2D canvas so a large library stays smooth: scroll
+// or pinch to zoom, drag to move (with a glide), and a soft lens under the cursor
+// parts and enlarges the covers you pass over.
 
-export interface WebAlbum {
+export interface WebItem {
   id: string;
-  trackIds: string[];
   title: string;
-  artist: string;
+  sub: string;
   cover: string;
+  /** Songs you saved from it (0 = outside your collection). Drives the cover size. */
+  saved: number;
   outside: boolean;
-  /** People credited as the artist (hub candidates), strongest first. */
-  artistIds: string[];
-  /** Other credited people (producers, writers…): drawn as links across the web. */
-  creditIds: string[];
+  /** The hub this item gathers around ('' = none). */
+  hubId: string;
+  /** Other hubs it's linked to (producers, writers…), drawn as lines across the web. */
+  linkHubIds: string[];
+  /** Lowercase text used by the filter. */
+  search: string;
+  /** Item to morph from when this id didn't exist in the previous form (e.g. song ← album). */
+  morphFrom?: string;
 }
-export interface WebPerson {
+export interface WebHub {
   id: string;
   name: string;
 }
@@ -26,33 +31,38 @@ export interface WebLink {
   a: string;
   b: string;
   kind: 'samples' | 'interpolates' | 'other';
-  /** A link that's not documented (disputed/unconfirmed) is drawn dashed. */
   uncertain: boolean;
 }
 
 export interface WebCallbacks {
-  onSelect(kind: 'album' | 'person', id: string, rect: DOMRect): void;
+  onSelect(kind: 'item' | 'hub', id: string, rect: DOMRect): void;
   onHover(info: { title: string; sub: string; x: number; y: number } | null): void;
 }
 
-interface ANode {
-  album: WebAlbum;
-  /** Current magnification from the cursor (eased). */
-  m: number;
+interface INode {
+  item: WebItem;
+  hub: HNode;
   x: number;
   y: number;
+  fx: number;
+  fy: number;
   s: number;
-  hub: HNode;
+  /** Eased lens amount (0…1) and the last drawn screen box, for hit-testing. */
+  f: number;
+  sx: number;
+  sy: number;
+  ss: number;
 }
 interface HNode {
-  person: WebPerson;
+  hub: WebHub;
   x: number;
   y: number;
   r: number;
-  albums: ANode[];
+  items: INode[];
+  bare: boolean;
 }
 
-const EASE = (t: number) => 1 - Math.pow(1 - t, 3);
+const EASE = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 export class LibraryWeb {
   private canvas: HTMLCanvasElement;
@@ -61,24 +71,26 @@ export class LibraryWeb {
   private dpr = Math.min(2, window.devicePixelRatio || 1);
   private w = 800;
   private h = 600;
-  private albums: ANode[] = [];
+  private items: INode[] = [];
   private hubs: HNode[] = [];
-  private byId = new Map<string, ANode>();
+  private byId = new Map<string, INode>();
   private hubById = new Map<string, HNode>();
-  private links: { a: ANode; b: ANode; kind: WebLink['kind']; uncertain: boolean }[] = [];
-  private credits: { hub: HNode; album: ANode }[] = [];
+  private links: { a: INode; b: INode; kind: WebLink['kind']; uncertain: boolean }[] = [];
+  private credits: { hub: HNode; item: INode }[] = [];
   private images = new Map<string, HTMLImageElement>();
   private cam = { k: 1, tx: 0, ty: 0 };
   private goal = { k: 1, tx: 0, ty: 0 };
-  private intro = 1;
-  private introStart = 0;
-  private hoverAlbum: ANode | null = null;
+  private morph = 1;
+  private morphStart = 0;
+  private hoverItem: INode | null = null;
   private hoverHub: HNode | null = null;
+  private mouse = { x: 0, y: 0, in: false };
+  private match: Set<INode> | null = null;
   private raf: number | null = null;
   private reducedMotion = false;
   private visible = false;
-  private mouse = { x: 0, y: 0, in: false };
   private fitted = false;
+  private bare = false;
 
   constructor(canvas: HTMLCanvasElement, cb: WebCallbacks) {
     this.canvas = canvas;
@@ -112,104 +124,133 @@ export class LibraryWeb {
 
   // ---- Layout -----------------------------------------------------------------------
 
-  setData(albums: WebAlbum[], people: WebPerson[], links: WebLink[]): void {
-    const personById = new Map(people.map((p) => [p.id, p]));
-    // Count albums per person so collaborations sit with the better-known artist.
-    const count = new Map<string, number>();
-    albums.forEach((a) => a.artistIds.forEach((id) => count.set(id, (count.get(id) ?? 0) + 1)));
+  /** Lays out a new form. Covers move from their previous positions to the new ones. */
+  setData(items: WebItem[], hubs: WebHub[], links: WebLink[], opts: { bare?: boolean } = {}): void {
+    const prev = new Map(this.items.map((n) => [n.item.id, { x: this.curX(n), y: this.curY(n) }]));
+    const first = this.items.length === 0;
+    this.bare = !!opts.bare;
     const hubMap = new Map<string, HNode>();
-    const unknown: WebPerson = { id: '_unknown', name: 'Unknown artist' };
-    this.albums = [];
-    for (const album of albums) {
-      const primary = [...album.artistIds].sort((a, b) => (count.get(b) ?? 0) - (count.get(a) ?? 0))[0];
-      const person = (primary && personById.get(primary)) || unknown;
-      let hub = hubMap.get(person.id);
-      if (!hub) hubMap.set(person.id, (hub = { person, x: 0, y: 0, r: 0, albums: [] }));
-      const node: ANode = { album, m: 1, x: 0, y: 0, s: 44 + Math.min(3, album.trackIds.length - 1) * 10, hub };
-      hub.albums.push(node);
-      this.albums.push(node);
+    const hubInfo = new Map(hubs.map((h) => [h.id, h]));
+    const none: WebHub = { id: '_none', name: '' };
+    this.items = [];
+    for (const item of items) {
+      const hub = (item.hubId && hubInfo.get(item.hubId)) || none;
+      let h = hubMap.get(hub.id);
+      if (!h) hubMap.set(hub.id, (h = { hub, x: 0, y: 0, r: 0, items: [], bare: this.bare || hub === none }));
+      const s = item.saved > 0 ? 34 + 22 * Math.sqrt(item.saved) : 30;
+      const n: INode = { item, hub: h, x: 0, y: 0, fx: 0, fy: 0, s, f: 0, sx: 0, sy: 0, ss: 0 };
+      h.items.push(n);
+      this.items.push(n);
     }
-    // Credited people with no albums of their own still get a small hub to link from.
-    for (const album of albums)
-      for (const id of album.creditIds) {
-        const p = personById.get(id);
-        if (p && !hubMap.has(id)) hubMap.set(id, { person: p, x: 0, y: 0, r: 0, albums: [] });
-      }
+    // Hubs that are only linked to (e.g. a producer with no albums of their own).
+    if (!this.bare)
+      for (const item of items)
+        for (const id of item.linkHubIds) {
+          const hub = hubInfo.get(id);
+          if (hub && !hubMap.has(id)) hubMap.set(id, { hub, x: 0, y: 0, r: 10, items: [], bare: false });
+        }
     this.hubs = [...hubMap.values()];
-    // Each artist's albums form a sunflower around their hub, covers overlapping a little.
-    for (const hub of this.hubs) {
-      hub.albums.forEach((n, i) => {
-        const r = hub.albums.length === 1 ? 46 : 42 + 25 * Math.sqrt(i + 0.5);
+    // Each hub's covers form a tight sunflower, biggest in the middle, barely overlapping.
+    for (const h of this.hubs) {
+      h.items.sort((a, b) => b.s - a.s);
+      const mean = h.items.reduce((t, n) => t + n.s, 0) / Math.max(1, h.items.length);
+      h.items.forEach((n, i) => {
+        const r = h.items.length === 1 ? 0 : mean * 0.62 * Math.sqrt(i + (h.bare ? 0.2 : 0.8));
         const a = i * 2.39996;
         n.x = Math.cos(a) * r;
         n.y = Math.sin(a) * r;
       });
-      hub.r = hub.albums.length ? 46 + 25 * Math.sqrt(hub.albums.length) + 22 : 12;
+      const far = h.items.reduce((m, n) => Math.max(m, Math.hypot(n.x, n.y) + n.s * 0.7), 0);
+      h.r = h.items.length ? far + (h.bare ? 0 : 16) : 10;
     }
-    this.packHubs(albums, links);
-    for (const hub of this.hubs) for (const n of hub.albums) [n.x, n.y] = [n.x + hub.x, n.y + hub.y];
-    this.byId = new Map(this.albums.map((n) => [n.album.id, n]));
-    this.hubById = new Map(this.hubs.map((h) => [h.person.id, h]));
+    this.packHubs(links);
+    for (const h of this.hubs)
+      for (const n of h.items) {
+        n.x += h.x;
+        n.y += h.y;
+      }
+    this.byId = new Map(this.items.map((n) => [n.item.id, n]));
+    this.hubById = new Map(this.hubs.map((h) => [h.hub.id, h]));
     this.links = links
       .map((l) => ({ a: this.byId.get(l.a)!, b: this.byId.get(l.b)!, kind: l.kind, uncertain: l.uncertain }))
       .filter((l) => l.a && l.b && l.a !== l.b);
     this.credits = [];
-    for (const n of this.albums)
-      for (const id of n.album.creditIds.slice(0, 6)) {
-        const hub = this.hubById.get(id);
-        if (hub && hub !== n.hub) this.credits.push({ hub, album: n });
+    if (!this.bare)
+      for (const n of this.items)
+        for (const id of n.item.linkHubIds.slice(0, 6)) {
+          const h = this.hubById.get(id);
+          if (h && h !== n.hub) this.credits.push({ hub: h, item: n });
+        }
+    // Morph: start each cover where it (or what it came from) was.
+    for (const n of this.items) {
+      const from = prev.get(n.item.id) ?? (n.item.morphFrom ? prev.get(n.item.morphFrom) : undefined);
+      if (from) {
+        n.fx = from.x;
+        n.fy = from.y;
+      } else {
+        n.fx = first ? n.hub.x * 0.2 : n.x;
+        n.fy = first ? n.hub.y * 0.2 : n.y;
       }
-    for (const n of this.albums) this.loadImage(n.album.cover);
-    // Everything grows out from the centre.
-    this.intro = this.reducedMotion ? 1 : 0;
-    this.introStart = performance.now();
+      this.loadImage(n.item.cover);
+    }
+    this.morph = this.reducedMotion ? 1 : 0;
+    this.morphStart = performance.now();
+    this.match = null;
     this.fitted = false;
-    if (this.visible) this.fit(false);
+    if (this.visible) this.fit(!first);
     this.kick();
   }
 
-  /**
-   * Packs artist hubs into one cloud: a spiral start, a pull toward the centre,
-   * springs between artists who share credits or sampled songs, no overlaps.
-   */
-  private packHubs(albums: WebAlbum[], links: WebLink[]): void {
+  /** Fades everything that doesn't match, and frames what does. */
+  setFilter(q: string): number {
+    const t = q.trim().toLowerCase();
+    if (!t) {
+      this.match = null;
+      this.fit();
+      return this.items.length;
+    }
+    this.match = new Set(this.items.filter((n) => n.item.search.includes(t)));
+    if (this.match.size) this.fit(true, [...this.match]);
+    this.kick();
+    return this.match.size;
+  }
+
+  private packHubs(links: WebLink[]): void {
     const hubs = [...this.hubs].sort((a, b) => b.r - a.r);
     const meanR = hubs.reduce((t, h) => t + h.r, 0) / Math.max(1, hubs.length);
     hubs.forEach((h, i) => {
       const a = i * 2.39996;
-      const rad = Math.sqrt(i) * meanR * 1.7;
+      const rad = Math.sqrt(i) * meanR * 1.5;
       h.x = Math.cos(a) * rad;
       h.y = Math.sin(a) * rad * 0.8;
     });
-    const hubOfAlbum = new Map<string, HNode>();
-    for (const h of this.hubs) for (const n of h.albums) hubOfAlbum.set(n.album.id, h);
-    const byPerson = new Map(this.hubs.map((h) => [h.person.id, h]));
+    if (hubs.length < 2) return;
+    const hubOf = new Map<string, HNode>();
+    for (const h of this.hubs) for (const n of h.items) hubOf.set(n.item.id, h);
     const springs: [HNode, HNode][] = [];
-    for (const al of albums) {
-      const home = hubOfAlbum.get(al.id);
-      if (!home) continue;
-      for (const id of [...al.artistIds, ...al.creditIds]) {
-        const other = byPerson.get(id);
-        if (other && other !== home) springs.push([home, other]);
-      }
-    }
+    for (const h of this.hubs)
+      for (const n of h.items)
+        for (const id of n.item.linkHubIds) {
+          const o = this.hubs.find((x) => x.hub.id === id);
+          if (o && o !== h) springs.push([h, o]);
+        }
     for (const l of links) {
-      const a = hubOfAlbum.get(l.a);
-      const b = hubOfAlbum.get(l.b);
+      const a = hubOf.get(l.a);
+      const b = hubOf.get(l.b);
       if (a && b && a !== b) springs.push([a, b]);
     }
-    const iterations = hubs.length > 400 ? 70 : 140;
+    const iterations = hubs.length > 400 ? 70 : 150;
     for (let it = 0; it < iterations; it++) {
       const cool = 1 - it / iterations;
       for (const h of hubs) {
-        h.x -= h.x * 0.02 * cool;
-        h.y -= h.y * 0.025 * cool;
+        h.x -= h.x * 0.03 * cool;
+        h.y -= h.y * 0.035 * cool;
       }
       for (const [a, b] of springs) {
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const d = Math.hypot(dx, dy) || 1;
-        const f = ((d - (a.r + b.r + 20)) / d) * 0.03 * cool;
+        const f = ((d - (a.r + b.r)) / d) * 0.03 * cool;
         a.x += dx * f;
         a.y += dy * f;
         b.x -= dx * f;
@@ -221,7 +262,7 @@ export class LibraryWeb {
           const b = hubs[j];
           const dx = b.x - a.x;
           const dy = b.y - a.y;
-          const min = a.r + b.r + 6;
+          const min = a.r + b.r + 2;
           if (Math.abs(dx) > min || Math.abs(dy) > min) continue;
           const d = Math.hypot(dx, dy) || 0.01;
           if (d >= min) continue;
@@ -243,31 +284,35 @@ export class LibraryWeb {
     this.images.set(src, img);
   }
 
-  // ---- Camera ---------------------------------------------------------------------
-
-  private bounds() {
-    let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
-    for (const h of this.hubs) {
-      x0 = Math.min(x0, h.x - h.r);
-      x1 = Math.max(x1, h.x + h.r);
-      y0 = Math.min(y0, h.y - h.r);
-      y1 = Math.max(y1, h.y + h.r);
-    }
-    return isFinite(x0) ? { x0, y0, x1, y1 } : { x0: -100, y0: -100, x1: 100, y1: 100 };
+  private curX(n: INode): number {
+    return n.fx + (n.x - n.fx) * EASE(this.morph);
+  }
+  private curY(n: INode): number {
+    return n.fy + (n.y - n.fy) * EASE(this.morph);
   }
 
-  fit(animate = true): void {
-    const b = this.bounds();
-    const top = 60;
-    const k = Math.max(0.05, Math.min(2, (this.w - 60) / (b.x1 - b.x0), (this.h - top - 40) / (b.y1 - b.y0)));
-    this.goal = { k, tx: this.w / 2 - ((b.x0 + b.x1) / 2) * k, ty: top + (this.h - top - 40) / 2 - ((b.y0 + b.y1) / 2) * k };
+  // ---- Camera ---------------------------------------------------------------------
+
+  fit(animate = true, only?: INode[]): void {
+    const list = only ?? this.items;
+    let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const n of list) {
+      x0 = Math.min(x0, n.x - n.s);
+      x1 = Math.max(x1, n.x + n.s);
+      y0 = Math.min(y0, n.y - n.s);
+      y1 = Math.max(y1, n.y + n.s);
+    }
+    if (!isFinite(x0)) [x0, y0, x1, y1] = [-100, -100, 100, 100];
+    const top = 110;
+    const k = Math.max(0.04, Math.min(2.2, (this.w - 80) / (x1 - x0), (this.h - top - 40) / (y1 - y0)));
+    this.goal = { k, tx: this.w / 2 - ((x0 + x1) / 2) * k, ty: top + (this.h - top - 40) / 2 - ((y0 + y1) / 2) * k };
     if (!animate || this.reducedMotion) this.cam = { ...this.goal };
     this.fitted = true;
     this.kick();
   }
 
   zoomBy(f: number, cx = this.w / 2, cy = this.h / 2): void {
-    const k = Math.max(0.05, Math.min(6, this.goal.k * f));
+    const k = Math.max(0.04, Math.min(6, this.goal.k * f));
     const r = k / this.goal.k;
     this.goal = { k, tx: cx - (cx - this.goal.tx) * r, ty: cy - (cy - this.goal.ty) * r };
     this.kick();
@@ -281,22 +326,6 @@ export class LibraryWeb {
     this.kick();
   }
 
-  /** Eases the camera onto one album (used when opening its focused web). */
-  focusOn(albumId: string): DOMRect | null {
-    const n = this.byId.get(albumId);
-    if (!n) return null;
-    const k = Math.max(this.goal.k, 2.2);
-    this.goal = { k, tx: this.w * 0.55 - n.x * k, ty: this.h * 0.5 - n.y * k };
-    this.kick();
-    return this.rectOf(n);
-  }
-
-  private rectOf(n: ANode): DOMRect {
-    const r = this.canvas.getBoundingClientRect();
-    const s = n.s * this.cam.k;
-    return new DOMRect(r.left + n.x * this.cam.k + this.cam.tx - s / 2, r.top + n.y * this.cam.k + this.cam.ty - s / 2, s, s);
-  }
-
   // ---- Drawing --------------------------------------------------------------------
 
   private kick(): void {
@@ -307,29 +336,27 @@ export class LibraryWeb {
     this.raf = null;
     const c = this.cam;
     const g = this.goal;
-    const e = this.reducedMotion ? 1 : 0.16;
+    const e = this.reducedMotion ? 1 : 0.14;
     c.k += (g.k - c.k) * e;
     c.tx += (g.tx - c.tx) * e;
     c.ty += (g.ty - c.ty) * e;
-    if (this.intro < 1) this.intro = Math.min(1, (performance.now() - this.introStart) / 1300);
-    // Covers near the cursor swell a little, so the web responds as you move.
-    let swelling = false;
-    for (const n of this.albums) {
-      let target = 1;
+    if (this.morph < 1) this.morph = Math.min(1, (performance.now() - this.morphStart) / 1100);
+    let lensMoving = false;
+    for (const n of this.items) {
+      let target = 0;
       if (this.mouse.in) {
-        const dx = n.x * c.k + c.tx - this.mouse.x;
-        const dy = n.y * c.k + c.ty - this.mouse.y;
+        const dx = this.curX(n) * c.k + c.tx - this.mouse.x;
+        const dy = this.curY(n) * c.k + c.ty - this.mouse.y;
         const d2 = dx * dx + dy * dy;
-        if (d2 < 260 * 260) target = 1 + 0.65 * Math.exp(-d2 / (2 * 95 * 95));
+        if (d2 < 300 * 300) target = Math.exp(-d2 / (2 * 110 * 110));
       }
-      if (n === this.hoverAlbum) target = 2;
-      if (Math.abs(target - n.m) > 0.004) {
-        n.m += (target - n.m) * (this.reducedMotion ? 1 : 0.2);
-        swelling = true;
-      } else n.m = target;
+      if (Math.abs(target - n.f) > 0.003) {
+        n.f += (target - n.f) * (this.reducedMotion ? 1 : 0.18);
+        lensMoving = true;
+      } else n.f = target;
     }
     this.draw();
-    const moving = swelling || Math.abs(g.k - c.k) > 0.0005 || Math.abs(g.tx - c.tx) > 0.3 || Math.abs(g.ty - c.ty) > 0.3 || this.intro < 1;
+    const moving = lensMoving || this.morph < 1 || Math.abs(g.k - c.k) > 0.0005 || Math.abs(g.tx - c.tx) > 0.3 || Math.abs(g.ty - c.ty) > 0.3;
     if (moving) this.kick();
   }
 
@@ -338,89 +365,76 @@ export class LibraryWeb {
     const accent = getComputedStyle(this.canvas).getPropertyValue('--release').trim() || '#b0148c';
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.clearRect(0, 0, this.w, this.h);
-    const p = EASE(this.intro);
-    const pos = (n: { x: number; y: number }, hub?: { x: number; y: number }) => {
-      const hx = hub ? hub.x * p : 0;
-      const hy = hub ? hub.y * p : 0;
-      return { x: (hx + (n.x - (hub?.x ?? 0)) * p) * cam.k + cam.tx, y: (hy + (n.y - (hub?.y ?? 0)) * p) * cam.k + cam.ty };
-    };
-    const hubPos = (h: HNode) => ({ x: h.x * p * cam.k + cam.tx, y: h.y * p * cam.k + cam.ty });
-    const focusHub = this.hoverHub ?? this.hoverAlbum?.hub ?? null;
-    const related = new Set<ANode>();
-    if (this.hoverAlbum) {
-      related.add(this.hoverAlbum);
-      this.links.forEach((l) => (l.a === this.hoverAlbum ? related.add(l.b) : l.b === this.hoverAlbum && related.add(l.a)));
+    const m = EASE(this.morph);
+    const hubPos = (h: HNode) => ({ x: h.x * cam.k + cam.tx, y: h.y * cam.k + cam.ty });
+    // Screen positions, with the lens parting covers around the cursor.
+    for (const n of this.items) {
+      const bx = this.curX(n) * cam.k + cam.tx;
+      const by = this.curY(n) * cam.k + cam.ty;
+      const f = n.f;
+      n.sx = this.mouse.in ? this.mouse.x + (bx - this.mouse.x) * (1 + 0.5 * f) : bx;
+      n.sy = this.mouse.in ? this.mouse.y + (by - this.mouse.y) * (1 + 0.5 * f) : by;
+      n.ss = n.s * cam.k * (1 + 0.85 * f) * (n === this.hoverItem ? 1.25 : 1);
     }
-    if (this.hoverHub) {
-      this.hoverHub.albums.forEach((n) => related.add(n));
-      this.credits.forEach((c) => c.hub === this.hoverHub && related.add(c.album));
+    const focusHub = this.hoverHub ?? this.hoverItem?.hub ?? null;
+    const related = new Set<INode>();
+    if (this.hoverItem) {
+      related.add(this.hoverItem);
+      this.links.forEach((l) => (l.a === this.hoverItem ? related.add(l.b) : l.b === this.hoverItem && related.add(l.a)));
     }
-    const dim = related.size > 0;
-    const margin = 80;
+    if (this.hoverHub && !this.hoverHub.bare) {
+      this.hoverHub.items.forEach((n) => related.add(n));
+      this.credits.forEach((cr) => cr.hub === this.hoverHub && related.add(cr.item));
+    }
+    const faded = (n: INode) => (this.match && !this.match.has(n)) || (related.size > 0 && !related.has(n));
+    const margin = 120;
     const onScreen = (x: number, y: number) => x > -margin && x < this.w + margin && y > -margin && y < this.h + margin;
 
-    // A soft circle around each artist's albums makes ownership readable at any zoom.
+    // Hub circles (who owns what) and fans
     for (const h of this.hubs) {
-      if (!h.albums.length) continue;
+      if (h.bare || !h.items.length) continue;
       const hp = hubPos(h);
-      const r = (h.r - 10) * cam.k * p;
+      const r = (h.r - 6) * cam.k * m;
       if (hp.x + r < 0 || hp.x - r > this.w || hp.y + r < 0 || hp.y - r > this.h) continue;
       const hot = focusHub === h;
-      ctx.globalAlpha = hot ? 0.12 : dim ? 0.02 : 0.045;
+      const dimHub = (this.match && !h.items.some((n) => this.match!.has(n))) || (related.size > 0 && !hot);
+      ctx.globalAlpha = hot ? 0.12 : dimHub ? 0.015 : 0.05;
       ctx.fillStyle = accent;
       ctx.beginPath();
       ctx.arc(hp.x, hp.y, r, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = hot ? 0.6 : dim ? 0.08 : 0.18;
+      ctx.globalAlpha = hot ? 0.55 : dimHub ? 0.05 : 0.16;
       ctx.strokeStyle = accent;
       ctx.lineWidth = hot ? 1.4 : 0.8;
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
-    // Fans: hub → album
-    ctx.lineWidth = 0.7;
-    for (const h of this.hubs) {
-      const hp = hubPos(h);
-      const hot = focusHub === h;
-      ctx.strokeStyle = hot ? accent : 'rgba(26, 29, 51, 0.13)';
-      ctx.globalAlpha = dim && !hot ? 0.35 : 1;
-      ctx.beginPath();
-      for (const n of h.albums) {
-        const np = pos(n, h);
-        if (!onScreen(np.x, np.y) && !onScreen(hp.x, hp.y)) continue;
-        ctx.moveTo(hp.x, hp.y);
-        ctx.lineTo(np.x, np.y);
-      }
-      ctx.stroke();
-    }
-    // Credits across the web (producers, writers, features)
-    ctx.globalAlpha = 1;
-    for (const c of this.credits) {
-      const hot = focusHub === c.hub || related.has(c.album);
-      if (dim && !hot) continue;
-      const a = hubPos(c.hub);
-      const b = pos(c.album, c.album.hub);
-      ctx.strokeStyle = hot ? accent : 'rgba(26, 29, 51, 0.06)';
-      ctx.lineWidth = hot ? 1 : 0.6;
+    // Credits across the web
+    for (const cr of this.credits) {
+      const hot = focusHub === cr.hub || related.has(cr.item);
+      if (related.size && !hot) continue;
+      if (this.match && !this.match.has(cr.item)) continue;
+      const a = hubPos(cr.hub);
+      ctx.strokeStyle = hot ? accent : 'rgba(26, 29, 51, 0.07)';
+      ctx.lineWidth = hot ? 1.2 : 0.6;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
+      ctx.lineTo(cr.item.sx, cr.item.sy);
       ctx.stroke();
     }
-    // Samples and interpolations arc between albums
+    // Samples and interpolations, arrowed into the song they borrow from
     for (const l of this.links) {
-      const a = pos(l.a, l.a.hub);
-      const b = pos(l.b, l.b.hub);
+      const a = { x: l.a.sx, y: l.a.sy };
+      const b = { x: l.b.sx, y: l.b.sy };
       const hot = related.has(l.a) && related.has(l.b);
-      ctx.globalAlpha = dim && !hot ? 0.25 : 1;
-      ctx.strokeStyle = l.kind === 'other' ? 'rgba(26, 29, 51, 0.45)' : accent;
-      ctx.lineWidth = hot ? 2.2 : l.kind === 'samples' ? 1.4 : 1.1;
+      ctx.globalAlpha = faded(l.a) && faded(l.b) ? 0.12 : 1;
+      ctx.strokeStyle = l.kind === 'other' ? 'rgba(26, 29, 51, 0.5)' : accent;
+      ctx.lineWidth = hot ? 2.4 : l.kind === 'samples' ? 1.5 : 1.2;
       ctx.setLineDash(l.kind === 'interpolates' || l.uncertain ? [5, 4] : []);
       const mx = (a.x + b.x) / 2 - (b.y - a.y) * 0.18;
       const my = (a.y + b.y) / 2 + (b.x - a.x) * 0.18;
-      // End the line at the edge of the sampled cover, with an arrowhead there.
       const ang = Math.atan2(b.y - my, b.x - mx);
-      const inset = (l.b.s * cam.k * l.b.m) / 2 + 3;
+      const inset = l.b.ss / 2 + 3;
       const ex = b.x - Math.cos(ang) * inset;
       const ey = b.y - Math.sin(ang) * inset;
       ctx.beginPath();
@@ -436,73 +450,70 @@ export class LibraryWeb {
       ctx.lineTo(ex - Math.cos(ang + 0.45) * ah, ey - Math.sin(ang + 0.45) * ah);
       ctx.fill();
     }
-    ctx.setLineDash([]);
-    // Covers (magnified ones drawn last so they sit on top)
-    const order = [...this.albums].sort((x, y) => x.m - y.m);
+    ctx.globalAlpha = 1;
+    // Covers, lens-enlarged ones on top
+    const order = [...this.items].sort((a, b) => a.ss - b.ss);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (const n of order) {
-      const np = pos(n, n.hub);
-      if (!onScreen(np.x, np.y)) continue;
-      const s = n.s * cam.k * n.m;
-      ctx.globalAlpha = (dim && !related.has(n) ? 0.2 : 1) * (n.album.outside ? 0.85 : 1);
-      if (n.m > 1.05) {
+      if (!onScreen(n.sx, n.sy)) continue;
+      const s = n.ss;
+      ctx.globalAlpha = (faded(n) ? 0.14 : 1) * (n.item.outside ? 0.85 : 1);
+      if (n.f > 0.15 || n === this.hoverItem) {
         ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        ctx.shadowBlur = 8 + 14 * (n.m - 1);
-        ctx.shadowOffsetY = 4;
+        ctx.shadowBlur = 6 + 18 * n.f;
+        ctx.shadowOffsetY = 3;
       }
-      const img = this.images.get(n.album.cover);
-      if (img?.complete && img.naturalWidth) ctx.drawImage(img, np.x - s / 2, np.y - s / 2, s, s);
+      const img = this.images.get(n.item.cover);
+      if (img?.complete && img.naturalWidth) ctx.drawImage(img, n.sx - s / 2, n.sy - s / 2, s, s);
       else {
         ctx.fillStyle = '#e6e6e6';
-        ctx.fillRect(np.x - s / 2, np.y - s / 2, s, s);
+        ctx.fillRect(n.sx - s / 2, n.sy - s / 2, s, s);
       }
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
-      if (n.album.outside && s > 14) {
+      if (n.item.outside && s > 14) {
         ctx.strokeStyle = 'rgba(26,29,51,0.5)';
         ctx.setLineDash([3, 2]);
         ctx.lineWidth = 1;
-        ctx.strokeRect(np.x - s / 2 - 2, np.y - s / 2 - 2, s + 4, s + 4);
+        ctx.strokeRect(n.sx - s / 2 - 2, n.sy - s / 2 - 2, s + 4, s + 4);
         ctx.setLineDash([]);
       }
-      // Titles appear once covers are big enough to read.
-      if (s > 78 && (!dim || related.has(n))) {
+      if (s > 84 && !faded(n)) {
         ctx.font = '500 11px "Helvetica Neue", Helvetica, Arial, sans-serif';
-        const t = n.album.title.length > 26 ? `${n.album.title.slice(0, 25)}…` : n.album.title;
+        const t = n.item.title.length > 28 ? `${n.item.title.slice(0, 27)}…` : n.item.title;
         const tw = ctx.measureText(t).width;
-        ctx.fillStyle = 'rgba(255,255,255,0.88)';
-        ctx.fillRect(np.x - tw / 2 - 3, np.y + s / 2 + 3, tw + 6, 15);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillRect(n.sx - tw / 2 - 3, n.sy + s / 2 + 3, tw + 6, 15);
         ctx.fillStyle = '#1a1d33';
-        ctx.fillText(t, np.x, np.y + s / 2 + 5);
+        ctx.fillText(t, n.sx, n.sy + s / 2 + 5);
       }
     }
-    // Hub dots and names (names appear as you zoom in; the biggest always show)
+    // Hub names on the rim of their circle
     ctx.globalAlpha = 1;
-    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const biggest = new Set([...this.hubs].sort((a, b) => b.albums.length - a.albums.length).slice(0, 12));
+    const biggest = new Set([...this.hubs].sort((a, b) => b.items.length - a.items.length).slice(0, 14));
     for (const h of this.hubs) {
+      if (h.bare) continue;
       const hp = hubPos(h);
       if (!onScreen(hp.x, hp.y)) continue;
       const hot = focusHub === h;
-      ctx.globalAlpha = dim && !hot ? 0.4 : 1;
-      ctx.fillStyle = hot ? accent : '#1a1d33';
-      ctx.beginPath();
-      ctx.arc(hp.x, hp.y, hot ? 4.5 : 2.6, 0, Math.PI * 2);
-      ctx.fill();
       const screenR = h.r * cam.k;
-      if (hot || screenR > 50 || (biggest.has(h) && screenR > 24)) {
-        ctx.font = `${hot ? 600 : 500} ${hot ? 13 : 11.5}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-        const label = h.person.name;
-        const tw = ctx.measureText(label).width;
-        // Name sits on the top edge of the artist's circle.
-        const ly = h.albums.length ? hp.y - (h.r - 10) * cam.k * p : hp.y - 16;
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
-        ctx.fillRect(hp.x - tw / 2 - 5, ly - 9, tw + 10, 18);
-        ctx.fillStyle = hot ? accent : '#1a1d33';
-        ctx.fillText(label, hp.x, ly);
+      const matched = !this.match || h.items.some((n) => this.match!.has(n));
+      if (!hot && (!matched || !(screenR > 46 || (biggest.has(h) && screenR > 22)))) continue;
+      ctx.globalAlpha = related.size && !hot ? 0.4 : 1;
+      ctx.font = `${hot ? 600 : 500} ${hot ? 13 : 12}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      const label = h.hub.name;
+      const tw = ctx.measureText(label).width;
+      const ly = h.items.length ? hp.y - (h.r - 6) * cam.k * m : hp.y - 14;
+      ctx.fillStyle = 'rgba(255,255,255,0.94)';
+      ctx.fillRect(hp.x - tw / 2 - 6, ly - 10, tw + 12, 20);
+      ctx.fillStyle = hot ? accent : '#1a1d33';
+      ctx.fillText(label, hp.x, ly);
+      if (!h.items.length) {
+        ctx.beginPath();
+        ctx.arc(hp.x, hp.y, 3, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
     ctx.globalAlpha = 1;
@@ -510,19 +521,24 @@ export class LibraryWeb {
 
   // ---- Input --------------------------------------------------------------------
 
-  private toWorld(x: number, y: number) {
-    return { x: (x - this.cam.tx) / this.cam.k, y: (y - this.cam.ty) / this.cam.k };
-  }
-
-  private hit(clientX: number, clientY: number): { album?: ANode; hub?: HNode } {
+  private hit(clientX: number, clientY: number): { item?: INode; hub?: HNode } {
     const r = this.canvas.getBoundingClientRect();
-    const w = this.toWorld(clientX - r.left, clientY - r.top);
-    for (let i = this.albums.length - 1; i >= 0; i--) {
-      const n = this.albums[i];
-      const half = (n.s / 2) * n.m + 2 / this.cam.k;
-      if (Math.abs(w.x - n.x) <= half && Math.abs(w.y - n.y) <= half) return { album: n };
+    const x = clientX - r.left;
+    const y = clientY - r.top;
+    let best: INode | undefined;
+    for (const n of this.items) {
+      if (this.match && !this.match.has(n)) continue;
+      const half = n.ss / 2 + 2;
+      if (Math.abs(x - n.sx) <= half && Math.abs(y - n.sy) <= half && (!best || n.ss > best.ss)) best = n;
     }
-    for (const h of this.hubs) if (Math.hypot(w.x - h.x, w.y - h.y) < 9 / this.cam.k) return { hub: h };
+    if (best) return { item: best };
+    for (const h of this.hubs) {
+      if (h.bare) continue;
+      const hp = { x: h.x * this.cam.k + this.cam.tx, y: h.y * this.cam.k + this.cam.ty };
+      const ly = h.items.length ? hp.y - (h.r - 6) * this.cam.k : hp.y - 14;
+      if (Math.abs(x - hp.x) < 60 && Math.abs(y - ly) < 11) return { hub: h };
+      if (!h.items.length && Math.hypot(x - hp.x, y - hp.y) < 8) return { hub: h };
+    }
     return {};
   }
 
@@ -533,8 +549,9 @@ export class LibraryWeb {
       (e) => {
         e.preventDefault();
         const r = c.getBoundingClientRect();
-        if (e.ctrlKey || Math.abs(e.deltaY) > Math.abs(e.deltaX) * 2) this.zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0014)), e.clientX - r.left, e.clientY - r.top);
-        else this.panBy(-e.deltaX, -e.deltaY);
+        if (e.ctrlKey || (e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40)) {
+          this.zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX - r.left, e.clientY - r.top);
+        } else this.panBy(-e.deltaX, -e.deltaY);
       },
       { passive: false },
     );
@@ -553,31 +570,26 @@ export class LibraryWeb {
       }
     });
     c.addEventListener('pointermove', (e) => {
+      const r = c.getBoundingClientRect();
       const prev = pointers.get(e.pointerId);
       if (!prev) {
-        const rr = c.getBoundingClientRect();
-        this.mouse = { x: e.clientX - rr.left, y: e.clientY - rr.top, in: true };
-        this.kick();
-        // Hover
-        const { album, hub } = this.hit(e.clientX, e.clientY);
-        if (album !== (this.hoverAlbum ?? undefined) || hub !== (this.hoverHub ?? undefined)) {
-          this.hoverAlbum = album ?? null;
+        this.mouse = { x: e.clientX - r.left, y: e.clientY - r.top, in: e.pointerType !== 'touch' };
+        const { item, hub } = this.hit(e.clientX, e.clientY);
+        if (item !== (this.hoverItem ?? undefined) || hub !== (this.hoverHub ?? undefined)) {
+          this.hoverItem = item ?? null;
           this.hoverHub = hub ?? null;
-          c.style.cursor = album || hub ? 'pointer' : 'grab';
-          this.kick();
+          c.style.cursor = item || hub ? 'pointer' : 'grab';
         }
-        const r = c.getBoundingClientRect();
-        if (album)
-          this.cb.onHover({ title: album.album.title, sub: `${album.album.artist}${album.album.trackIds.length > 1 ? ` · ${album.album.trackIds.length} songs` : ''}`, x: e.clientX - r.left, y: e.clientY - r.top });
-        else if (hub) this.cb.onHover({ title: hub.person.name, sub: `${hub.albums.length} album${hub.albums.length === 1 ? '' : 's'} here`, x: e.clientX - r.left, y: e.clientY - r.top });
+        if (item) this.cb.onHover({ title: item.item.title, sub: item.item.sub, x: this.mouse.x, y: this.mouse.y });
+        else if (hub) this.cb.onHover({ title: hub.hub.name, sub: `${hub.items.length} here`, x: this.mouse.x, y: this.mouse.y });
         else this.cb.onHover(null);
+        this.kick();
         return;
       }
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pointers.size === 2) {
         const [a, b] = [...pointers.values()];
         const d = Math.hypot(a.x - b.x, a.y - b.y);
-        const r = c.getBoundingClientRect();
         if (pinch) this.zoomBy(d / pinch, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
         pinch = d;
         moved += 10;
@@ -589,6 +601,7 @@ export class LibraryWeb {
       velocity = { x: dx, y: dy };
       if (moved > 4) {
         c.style.cursor = 'grabbing';
+        this.mouse.in = false;
         this.panBy(dx, dy);
       }
     });
@@ -598,13 +611,13 @@ export class LibraryWeb {
       if (pointers.size < 2) pinch = 0;
       if (!was) return;
       if (moved <= 4) {
-        const { album, hub } = this.hit(e.clientX, e.clientY);
-        if (album) this.cb.onSelect('album', album.album.id, this.rectOf(album));
-        else if (hub && hub.person.id !== '_unknown') this.cb.onSelect('person', hub.person.id, c.getBoundingClientRect());
+        const { item, hub } = this.hit(e.clientX, e.clientY);
+        const r = c.getBoundingClientRect();
+        if (item) this.cb.onSelect('item', item.item.id, new DOMRect(r.left + item.sx - item.ss / 2, r.top + item.sy - item.ss / 2, item.ss, item.ss));
+        else if (hub) this.cb.onSelect('hub', hub.hub.id, r);
       } else if (!this.reducedMotion) {
-        // A little glide after a drag.
-        this.goal.tx += velocity.x * 8;
-        this.goal.ty += velocity.y * 8;
+        this.goal.tx += velocity.x * 10;
+        this.goal.ty += velocity.y * 10;
         this.kick();
       }
       c.style.cursor = 'grab';
@@ -613,12 +626,9 @@ export class LibraryWeb {
     c.addEventListener('pointercancel', end);
     c.addEventListener('pointerleave', () => {
       this.mouse.in = false;
-      this.kick();
-      if (this.hoverAlbum || this.hoverHub) {
-        this.hoverAlbum = this.hoverHub = null;
-        this.kick();
-      }
+      this.hoverItem = this.hoverHub = null;
       this.cb.onHover(null);
+      this.kick();
     });
   }
 }

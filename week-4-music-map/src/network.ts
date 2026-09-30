@@ -86,6 +86,9 @@ export class NetworkView {
   /** Camera for the web: every layer is drawn in world space, then zoomed and panned. */
   private view = { k: 1, tx: 0, ty: 0 };
   private userMoved = false;
+  /** Nodes you've dragged stay where you put them. */
+  private manual = new Map<string, Pt>();
+  private dragMoved = false;
 
   private nodesEl: HTMLElement;
   private svg: SVGSVGElement;
@@ -131,6 +134,7 @@ export class NetworkView {
 
   clear(): void {
     this.scene = null;
+    this.manual.clear();
     this.setView(1, 0, 0, false);
     this.userMoved = false;
     this.drawn.forEach((d) => d.el.remove());
@@ -171,7 +175,11 @@ export class NetworkView {
         const el = document.createElement('button');
         el.type = 'button';
         el.dataset.id = sn.id;
-        el.addEventListener('click', () => this.cb.onActivate(sn.id));
+        el.addEventListener('click', (ev) => {
+          if (this.dragMoved) return ev.preventDefault();
+          this.cb.onActivate(sn.id);
+        });
+        this.bindDrag(el, sn.id);
         el.addEventListener('pointerenter', () => this.setHover(sn.id, el));
         el.addEventListener('pointerleave', () => this.setHover(null, null));
         el.addEventListener('focus', () => this.setHover(sn.id, el));
@@ -222,6 +230,47 @@ export class NetworkView {
       }
     };
     this.anim = requestAnimationFrame(frame);
+  }
+
+  // ---- Dragging nodes -------------------------------------------------------------
+
+  /** In the web, any node can be picked up and moved; its lines follow. */
+  private bindDrag(el: HTMLElement, id: string): void {
+    let start: { x: number; y: number; px: number; py: number } | null = null;
+    el.addEventListener('pointerdown', (e) => {
+      if (this.scene?.mode !== 'history' || e.button !== 0) return;
+      const p = this.shown.get(id);
+      if (!p) return;
+      start = { x: e.clientX, y: e.clientY, px: p.x, py: p.y };
+      this.dragMoved = false;
+      el.setPointerCapture(e.pointerId);
+      e.stopPropagation();
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!start) return;
+      const dx = (e.clientX - start.x) / this.view.k;
+      const dy = (e.clientY - start.y) / this.view.k;
+      if (!this.dragMoved && Math.hypot(dx, dy) * this.view.k < 5) return;
+      this.dragMoved = true;
+      el.classList.add('is-dragging');
+      const p = { x: start.px + dx, y: start.py + dy };
+      this.shown.set(id, p);
+      this.to.set(id, p);
+      this.manual.set(id, p);
+      if (this.anim) {
+        cancelAnimationFrame(this.anim);
+        this.anim = null;
+      }
+      this.paint();
+    });
+    const end = () => {
+      if (!start) return;
+      start = null;
+      el.classList.remove('is-dragging');
+      setTimeout(() => (this.dragMoved = false), 0);
+    };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
   }
 
   // ---- Camera (zoom and pan) --------------------------------------------------------
@@ -312,6 +361,9 @@ export class NetworkView {
   /** Frames every node, leaving room for the path bar and labels. */
   fit(targets: Map<string, Pt> = this.to, animate = true): void {
     if (!targets.size) return;
+    // Frame the song and its direct connections; the outer ring is a zoom-out away.
+    const core = this.scene?.nodes.filter((n) => n.role !== 'wider').map((n) => n.id) ?? [];
+    if (core.length >= 4) targets = new Map([...targets].filter(([id]) => core.includes(id)));
     let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
     targets.forEach((p, id) => {
       const r = (this.drawn.get(id)?.size ?? 40) / 2;
@@ -370,7 +422,9 @@ export class NetworkView {
       el.setAttribute('aria-hidden', 'true');
       el.innerHTML = isTrack
         ? `<span class="mm-node__art"><img alt="" src="${coverUrl(node.cover, node.title)}" draggable="false" /></span><span class="mm-node__label mm-node__label--small"><span class="mm-node__name">${escapeHtml(node.title)}</span></span>`
-        : `<span class="mm-node__art"></span>`;
+        : history
+          ? `<span class="mm-node__art"><span class="mm-node__initials">${escapeHtml(initials(node.name))}</span></span><span class="mm-node__label mm-node__label--person"><span class="mm-node__name">${escapeHtml(node.name)}</span></span>`
+          : `<span class="mm-node__art"></span>`;
       return;
     }
     el.removeAttribute('aria-hidden');
@@ -495,23 +549,47 @@ export class NetworkView {
     const ringPos = new Map<string, Pt>();
     ring.forEach((n, i) => {
       const ang = -Math.PI / 2 + ((i + 0.5) / Math.max(1, ring.length)) * Math.PI * 2;
-      ringPos.set(n.id, { x: center.x + Math.cos(ang) * 330, y: center.y + Math.sin(ang) * 270 });
+      ringPos.set(n.id, { x: center.x + Math.cos(ang) * 360, y: center.y + Math.sin(ang) * 290 });
     });
+    // Outer nodes get a target beyond whatever they hang from; collaborators of those
+    // songs hang one step further out again.
+    const anchor = new Map<string, Pt>(ringPos);
+    anchor.set(currentId, center);
+    const widerTarget = new Map<string, Pt>();
+    const adj = new Map<string, string[]>();
+    for (const e of scene.edges) {
+      adj.set(e.rel.from, [...(adj.get(e.rel.from) ?? []), e.rel.to]);
+      adj.set(e.rel.to, [...(adj.get(e.rel.to) ?? []), e.rel.from]);
+    }
+    for (let pass = 0; pass < 3; pass++) {
+      for (const sn of scene.nodes) {
+        if (sn.role !== 'wider' || widerTarget.has(sn.id)) continue;
+        const from = bridge.get(sn.id) ?? (adj.get(sn.id) ?? []).find((o) => anchor.has(o) && o !== currentId);
+        if (!from || !anchor.has(from)) continue;
+        const base = anchor.get(from)!;
+        const rand = seeded(sn.id);
+        const out = Math.atan2(base.y - center.y, base.x - center.x) + (rand() - 0.5) * 1.3;
+        const dist = bridge.has(sn.id) ? 210 : 140;
+        const t = { x: base.x + Math.cos(out) * dist, y: base.y + Math.sin(out) * dist };
+        widerTarget.set(sn.id, t);
+        anchor.set(sn.id, t);
+      }
+    }
     const sims: SimNode[] = scene.nodes.map((sn) => {
       const node = this.graph.node(sn.id)!;
       const r = nodeRadius(node, sn.role, true);
-      if (sn.id === currentId) return { id: sn.id, ...center, vx: 0, vy: 0, r, fixed: true };
+      if (sn.id === currentId) return { id: sn.id, ...(this.manual.get(sn.id) ?? center), vx: 0, vy: 0, r, fixed: true };
+      const placed = this.manual.get(sn.id);
+      if (placed) return { id: sn.id, ...placed, vx: 0, vy: 0, r, fixed: true };
       const prev = this.shown.get(sn.id);
       const rand = seeded(sn.id);
       let start = prev ?? ringPos.get(sn.id);
       const b = bridge.get(sn.id);
-      if (sn.role === 'wider' && b) {
-        // Second-degree covers sit beyond the node they hang from, fanned outward,
-        // so it's clear they belong to that person or song, not to the centre.
-        const base = ringPos.get(b) ?? this.shown.get(b) ?? center;
-        const out = Math.atan2(base.y - center.y, base.x - center.x) + (rand() - 0.5) * 1.3;
-        const target = { x: base.x + Math.cos(out) * 210, y: base.y + Math.sin(out) * 210 };
-        start ??= { x: base.x + Math.cos(out) * 160, y: base.y + Math.sin(out) * 160 };
+      const target = widerTarget.get(sn.id);
+      if (sn.role === 'wider' && target) {
+        // Outer nodes sit beyond the node they hang from, fanned outward, so it's
+        // clear they belong to that person or song, not to the centre.
+        start ??= { x: (target.x + center.x) / 2, y: (target.y + center.y) / 2 };
         return { id: sn.id, ...start, vx: 0, vy: 0, r, tx: target.x, ty: target.y, kx: 0.05, ky: 0.05 };
       }
       if (!start) {
@@ -523,7 +601,7 @@ export class NetworkView {
       return { id: sn.id, ...start, vx: 0, vy: 0, r, tx: center.x, ty: center.y, kx: 0.006, ky: 0.008 };
     });
     const big = 1e5;
-    this.simulate(sims, scene, { top: -big, bottom: big, left: -big, right: big }, (n) => (n.r < 45 ? 150 : 320));
+    this.simulate(sims, scene, { top: -big, bottom: big, left: -big, right: big }, (n) => (n.r < 50 ? 180 : 380));
     return new Map(sims.map((s) => [s.id, { x: s.x, y: s.y }]));
   }
 
@@ -694,7 +772,7 @@ function initials(name: string): string {
 function nodeSize(node: Node, role: NodeRole, web = false): number {
   if (web) {
     // The historical web shows covers big enough to recognise.
-    if (role === 'wider') return node.kind === 'track' ? 54 : 10;
+    if (role === 'wider') return node.kind === 'track' ? 58 : 36;
     if (node.kind === 'track') return role === 'origin' ? 150 : role === 'current' ? 136 : role === 'path' ? 104 : 96;
     return role === 'current' ? 84 : 62;
   }
