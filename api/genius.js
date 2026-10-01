@@ -1,9 +1,9 @@
-// Music Map - Genius proxy (Vercel serverless function)
+// Music Map - Genius helper (Vercel serverless function, served at /api/genius)
 // Keeps the Genius token on the server and lets the browser read Genius, which it
 // can't do directly (no CORS). Only the two read-only lookups the app uses are passed on.
 //   GET /api/genius?path=/search?q=...   GET /api/genius?path=/songs/123?text_format=plain
-// Environment variables: GENIUS_TOKEN (required), ALLOWED_ORIGIN (optional, e.g.
-// https://cvd9683-gif.github.io; defaults to any origin).
+// Vercel environment variables: GENIUS_TOKEN (required); ALLOWED_ORIGIN (optional) limits
+// which other sites may call it, e.g. https://cvd9683-gif.github.io. Defaults to any.
 
 const ALLOWED = /^\/(search\?q=[^&]*|songs\/\d+(\?text_format=plain)?)$/;
 

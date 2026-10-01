@@ -6,7 +6,7 @@
 export interface SiteConfig {
   /** The site owner's Spotify app. Visitors can still use their own instead. */
   spotifyClientId: string;
-  /** URL of the Genius proxy (genius-proxy/), which holds the Genius token. */
+  /** Address of the Genius helper (/api/genius on Vercel), which holds the Genius token. */
   geniusProxy: string;
   /** Where the app is hosted, for when it's opened inside a preview frame. */
   liveUrl: string;

@@ -3,9 +3,9 @@
 // remixes and live versions, plus producer, writer and other credits. Nothing is
 // inferred: each relationship links back to the Genius page it came from.
 // Requests go, in order of preference, through: a token saved in this browser
-// (direct, or via the dev server's /genius-api when CORS blocks it); the site's
-// Genius proxy from config.json (so every visitor gets Genius without a token);
-// or the dev server, when GENIUS_TOKEN is set in .env.local.
+// (direct, or via the dev server's /genius-api when CORS blocks it); the dev server,
+// when GENIUS_TOKEN is set in .env.local; or the site's Genius helper from config.json
+// (/api/genius on Vercel), so every visitor gets Genius without a token.
 
 import { siteConfig } from './config';
 import type { Dataset, PartialDate, Person, Relationship, Track } from './types';
@@ -19,8 +19,10 @@ export function geniusToken(): string | null {
 /** Where Genius comes from right now, or null when it isn't available. */
 export function geniusSource(): 'token' | 'site' | 'dev' | null {
   if (geniusToken()) return 'token';
-  if (siteConfig().geniusProxy) return 'site';
   if (import.meta.env.DEV && __GENIUS_DEV__) return 'dev';
+  // A same-site address like /api/genius only exists on the hosted site, not the dev server.
+  const proxy = siteConfig().geniusProxy;
+  if (proxy && !(import.meta.env.DEV && proxy.startsWith('/'))) return 'site';
   return null;
 }
 

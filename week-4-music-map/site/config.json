@@ -1,6 +1,6 @@
 {
   "spotifyClientId": "",
-  "geniusProxy": "",
-  "liveUrl": "https://cvd9683-gif.github.io/shared-minds/week-4-music-map/site/",
+  "geniusProxy": "/api/genius",
+  "liveUrl": "",
   "owner": "Cathy"
 }

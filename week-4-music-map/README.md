@@ -95,25 +95,31 @@ Connections** in the app (they're stored in this browser).
 
 **Making it work for everyone (hosted site)**
 
-The hosted site reads `site/config.json` (source: `public/config.json`), which you can
-edit on GitHub without rebuilding:
+The whole `shared-minds` repo deploys as one Vercel project (Root Directory `./`,
+preset *Other*, no build step): the class page at `/`, Music Map at
+`/week-4-music-map/site/`, and `api/genius.js`, a small function at `/api/genius`
+that holds the Genius token (Vercel environment variable `GENIUS_TOKEN`) so visitors
+get samples and credits without one.
+
+The app reads `site/config.json` (source: `public/config.json`), which you can edit
+on GitHub without rebuilding:
 
 - `spotifyClientId`: your Spotify app's Client ID. Visitors then just press *Connect*.
-- `geniusProxy`: the URL of the Genius proxy (see `genius-proxy/README.md`), so every
-  visitor gets samples and credits without a token.
-- `liveUrl`: the hosted address. Previews (such as a claude.ai artifact) run the app
-  inside a frame, where Spotify's sign-in refuses to load, so the app links here instead.
+- `geniusProxy`: `/api/genius` on Vercel. Use the full Vercel address
+  (`https://….vercel.app/api/genius`) to also give other hosts, like GitHub Pages, Genius.
+- `liveUrl`: the hosted Music Map address. Previews (such as a claude.ai artifact) run
+  the app inside a frame, where Spotify's sign-in refuses to load, so the app links here.
 
 Spotify limits who can use a Development Mode app: only accounts you add under
 *User Management* can sign in through it, and Spotify grants wider access only to
-registered organisations. Anyone else can connect with their own free Spotify app.
-The Connect dialog walks them through it and shows the exact Redirect URI.
+registered organisations. Anyone else can connect with their own free Spotify app;
+the Connect dialog walks them through it and shows the exact Redirect URI.
 
 **Spotify**
 
 1. Create an app at <https://developer.spotify.com/dashboard> and choose Web API.
-2. Add the Redirect URIs `http://127.0.0.1:5173/` and
-   `https://cvd9683-gif.github.io/shared-minds/week-4-music-map/site/`. Spotify no longer
+2. Add the Redirect URIs `http://127.0.0.1:5173/` and the hosted address,
+   e.g. `https://<project>.vercel.app/week-4-music-map/site/`. Spotify no longer
    accepts `localhost`, which is why the dev server binds to `127.0.0.1`.
 3. Put the Client ID in `config.json` (everyone), `VITE_SPOTIFY_CLIENT_ID` (local dev), or
    paste it in the app. The app asks only for read access: saved tracks
@@ -124,7 +130,9 @@ The Connect dialog walks them through it and shows the exact Redirect URI.
 **Genius**
 
 Locally, put `GENIUS_TOKEN=…` in `.env.local`; the dev server adds it to Genius requests
-and it never ends up in the built site. For the hosted site, deploy `genius-proxy/`.
+and it never ends up in the built site. For the hosted site, set `GENIUS_TOKEN` in the
+Vercel project (get a token at <https://genius.com/api-clients> → New API Client →
+Save → Generate Access Token).
 
 **Firebase**
 
