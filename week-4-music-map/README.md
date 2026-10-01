@@ -119,7 +119,7 @@ the Connect dialog walks them through it and shows the exact Redirect URI.
 
 1. Create an app at <https://developer.spotify.com/dashboard> and choose Web API.
 2. Add the Redirect URIs `http://127.0.0.1:5173/` and the hosted address,
-   e.g. `https://<project>.vercel.app/week-4-music-map/site/`. Spotify no longer
+   `https://shared-minds-two.vercel.app/week-4-music-map/site/`. Spotify no longer
    accepts `localhost`, which is why the dev server binds to `127.0.0.1`.
 3. Put the Client ID in `config.json` (everyone), `VITE_SPOTIFY_CLIENT_ID` (local dev), or
    paste it in the app. The app asks only for read access: saved tracks
