@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // Shown in the ⋯ menu, so you can tell which version is running.
+  define: { __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')) },
   // Relative paths so the built app works from any folder (GitHub Pages, python -m http.server).
   base: './',
   server: {

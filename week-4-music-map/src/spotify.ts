@@ -16,6 +16,16 @@ interface Token {
   access_token: string;
   refresh_token?: string;
   expires_at: number;
+  /** Permissions Spotify actually granted (space-separated). */
+  scope?: string;
+}
+
+/** Permissions this app asks for that the current sign-in doesn't have (e.g. after an upgrade). */
+export function missingScopes(): string[] {
+  const t = readToken();
+  if (!t) return SCOPES;
+  const granted = new Set((t.scope ?? '').split(/\s+/));
+  return SCOPES.filter((s) => !granted.has(s));
 }
 
 export function spotifyClientId(): string | null {
@@ -39,12 +49,13 @@ function readToken(): Token | null {
   }
 }
 
-function storeToken(t: { access_token: string; refresh_token?: string; expires_in: number }): void {
+function storeToken(t: { access_token: string; refresh_token?: string; expires_in: number; scope?: string }): void {
   const prev = readToken();
   const token: Token = {
     access_token: t.access_token,
     refresh_token: t.refresh_token ?? prev?.refresh_token,
     expires_at: Date.now() + (t.expires_in - 60) * 1000,
+    scope: t.scope ?? prev?.scope,
   };
   localStorage.setItem(TOKEN_KEY, JSON.stringify(token));
 }
@@ -313,6 +324,9 @@ export async function importPlaylists(
   onProgress?: (done: number, total: number) => void,
   maxPlaylists = 60,
 ): Promise<{ playlists: Playlist[]; note: string }> {
+  if (missingScopes().some((sc) => sc.startsWith('playlist'))) {
+    return { playlists: [], note: 'reconnect' };
+  }
   try {
     const lists: { id: string; name: string; external_urls: { spotify: string } }[] = [];
     let url: string | null = '/me/playlists?limit=50';
@@ -322,31 +336,51 @@ export async function importPlaylists(
       url = page.next;
     }
     const playlists: Playlist[] = [];
+    let refused = 0;
     let done = 0;
     for (const p of lists) {
       // Since Feb 2026 items live at /items (each entry's song under `item`), and only
       // playlists you own or collaborate on return them; others answer 403 and are skipped.
-      const ids = await playlistTrackIds(p.id).catch(() => null);
-      if (ids) playlists.push({ id: `spp:${p.id}`, name: p.name, url: p.external_urls.spotify, trackIds: ids });
+      try {
+        const { ids, keys } = await playlistTrackIds(p.id);
+        playlists.push({ id: `spp:${p.id}`, name: p.name, url: p.external_urls.spotify, trackIds: ids, keys });
+      } catch {
+        refused++;
+      }
       onProgress?.(++done, lists.length);
     }
-    return { playlists, note: playlists.length ? '' : 'No playlists you made could be read.' };
+    const note = !lists.length
+      ? 'Spotify returned no playlists for this account.'
+      : refused
+        ? `${refused} of ${lists.length} playlists couldn't be read (Spotify only shares playlists you made or collaborate on).`
+        : '';
+    return { playlists, note };
   } catch (err) {
     return { playlists: [], note: `Playlists couldn't be read: ${(err as Error).message}` };
   }
 }
 
-type PlaylistEntry = { item?: { id: string | null } | null; track?: { id: string | null } | null };
+type PlaylistSong = { id: string | null; name?: string; artists?: { name: string }[] };
+type PlaylistEntry = { item?: PlaylistSong | null; track?: PlaylistSong | null };
 
-async function playlistTrackIds(playlistId: string): Promise<string[]> {
+/** "Song Title (Remastered)" + "Artist" → a key that survives Spotify giving the same song a different id. */
+export function songKey(title: string, artist: string): string {
+  const norm = (x: string) => x.toLowerCase().replace(/\(.*?\)|\[.*?\]|- .*remaster.*$|feat\..*$/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  return `${norm(title)}|${norm(artist)}`;
+}
+
+async function playlistTrackIds(playlistId: string): Promise<{ ids: string[]; keys: string[] }> {
   const ids: string[] = [];
+  const keys: string[] = [];
   const read = async (path: string) => {
     let next: string | null = `/playlists/${playlistId}/${path}?limit=50`;
     while (next && ids.length < 1000) {
       const page: { items: PlaylistEntry[]; next: string | null } = await api(next);
       page.items.forEach((e) => {
-        const id = (e.item ?? e.track)?.id;
-        if (id) ids.push(trackId(id));
+        const song = e.item ?? e.track;
+        if (!song?.id) return;
+        ids.push(trackId(song.id));
+        if (song.name && song.artists?.[0]) keys.push(songKey(song.name, song.artists[0].name));
       });
       next = page.next;
     }
@@ -358,7 +392,7 @@ async function playlistTrackIds(playlistId: string): Promise<string[]> {
     if (err instanceof SpotifyError && err.status === 404) await read('tracks');
     else throw err;
   }
-  return ids;
+  return { ids, keys };
 }
 
 // ---- Search ---------------------------------------------------------------

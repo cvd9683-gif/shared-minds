@@ -78,6 +78,11 @@ export class LibraryWeb {
   private links: { a: INode; b: INode; kind: WebLink['kind']; uncertain: boolean }[] = [];
   private credits: { hub: HNode; item: INode }[] = [];
   private images = new Map<string, HTMLImageElement>();
+  /** Small pre-drawn copies of each cover: drawing these is far cheaper than the originals. */
+  private thumbs = new Map<string, HTMLCanvasElement>();
+  private thumbQueue: string[] = [];
+  private bigThumbs = new Map<string, HTMLCanvasElement>();
+  private bigBudget = 0;
   private cam = { k: 1, tx: 0, ty: 0 };
   private goal = { k: 1, tx: 0, ty: 0 };
   private morph = 1;
@@ -279,9 +284,49 @@ export class LibraryWeb {
     if (!src || this.images.has(src)) return;
     const img = new Image();
     img.decoding = 'async';
-    img.onload = () => this.kick();
+    img.onload = () => {
+      this.thumbQueue.push(src);
+      this.kick();
+    };
     img.src = src;
     this.images.set(src, img);
+  }
+
+  /** A sharper copy for covers drawn large; made a couple per frame, on demand. */
+  private bigThumb(src: string): HTMLCanvasElement | undefined {
+    const have = this.bigThumbs.get(src);
+    if (have || this.bigBudget <= 0) return have;
+    const img = this.images.get(src);
+    if (!img?.complete || !img.naturalWidth) return undefined;
+    this.bigBudget--;
+    const c = document.createElement('canvas');
+    c.width = c.height = 320;
+    try {
+      c.getContext('2d')!.drawImage(img, 0, 0, 320, 320);
+      this.bigThumbs.set(src, c);
+      return c;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** Turns a few loaded covers into thumbnails per frame, so a big library never blocks. */
+  private makeThumbs(): boolean {
+    const start = performance.now();
+    while (this.thumbQueue.length && performance.now() - start < 6) {
+      const src = this.thumbQueue.shift()!;
+      const img = this.images.get(src);
+      if (!img?.naturalWidth && !img?.complete) continue;
+      const c = document.createElement('canvas');
+      c.width = c.height = 96;
+      try {
+        c.getContext('2d')!.drawImage(img, 0, 0, 96, 96);
+        this.thumbs.set(src, c);
+      } catch {
+        /* cross-origin or broken image: fall back to the original */
+      }
+    }
+    return this.thumbQueue.length > 0;
   }
 
   private curX(n: INode): number {
@@ -304,8 +349,11 @@ export class LibraryWeb {
     }
     if (!isFinite(x0)) [x0, y0, x1, y1] = [-100, -100, 100, 100];
     const top = 110;
-    const k = Math.max(0.04, Math.min(2.2, (this.w - 80) / (x1 - x0), (this.h - top - 40) / (y1 - y0)));
-    this.goal = { k, tx: this.w / 2 - ((x0 + x1) / 2) * k, ty: top + (this.h - top - 40) / 2 - ((y0 + y1) / 2) * k };
+    // Leave room for the guide panel on the right on wide screens.
+    const right = this.w > 1000 ? 400 : 20;
+    const aw = this.w - 60 - right;
+    const k = Math.max(0.04, Math.min(2.2, aw / (x1 - x0), (this.h - top - 40) / (y1 - y0)));
+    this.goal = { k, tx: 40 + aw / 2 - ((x0 + x1) / 2) * k, ty: top + (this.h - top - 40) / 2 - ((y0 + y1) / 2) * k };
     if (!animate || this.reducedMotion) this.cam = { ...this.goal };
     this.fitted = true;
     this.kick();
@@ -355,8 +403,10 @@ export class LibraryWeb {
         lensMoving = true;
       } else n.f = target;
     }
+    const pending = this.makeThumbs();
+    this.bigBudget = 2;
     this.draw();
-    const moving = lensMoving || this.morph < 1 || Math.abs(g.k - c.k) > 0.0005 || Math.abs(g.tx - c.tx) > 0.3 || Math.abs(g.ty - c.ty) > 0.3;
+    const moving = pending || lensMoving || this.morph < 1 || Math.abs(g.k - c.k) > 0.0005 || Math.abs(g.tx - c.tx) > 0.3 || Math.abs(g.ty - c.ty) > 0.3;
     if (moving) this.kick();
   }
 
@@ -459,13 +509,17 @@ export class LibraryWeb {
       if (!onScreen(n.sx, n.sy)) continue;
       const s = n.ss;
       ctx.globalAlpha = (faded(n) ? 0.14 : 1) * (n.item.outside ? 0.85 : 1);
-      if (n.f > 0.15 || n === this.hoverItem) {
+      if (n === this.hoverItem) {
         ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        ctx.shadowBlur = 6 + 18 * n.f;
-        ctx.shadowOffsetY = 3;
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetY = 4;
       }
-      const img = this.images.get(n.item.cover);
-      if (img?.complete && img.naturalWidth) ctx.drawImage(img, n.sx - s / 2, n.sy - s / 2, s, s);
+      // Small covers draw from the thumbnail; only big ones use the full image.
+      const thumb = s > 110 ? (this.bigThumb(n.item.cover) ?? this.thumbs.get(n.item.cover)) : this.thumbs.get(n.item.cover);
+      if (s < 3) {
+        ctx.fillStyle = '#c8c8c8';
+        ctx.fillRect(n.sx - 1, n.sy - 1, 2, 2);
+      } else if (thumb) ctx.drawImage(thumb, n.sx - s / 2, n.sy - s / 2, s, s);
       else {
         ctx.fillStyle = '#e6e6e6';
         ctx.fillRect(n.sx - s / 2, n.sy - s / 2, s, s);

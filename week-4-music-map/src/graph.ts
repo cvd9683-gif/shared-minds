@@ -12,6 +12,7 @@ import type {
   Relationship,
   Track,
 } from './types';
+import { songKey } from './spotify';
 
 export interface Neighbor {
   rel: Relationship;
@@ -75,7 +76,9 @@ export class MusicGraph {
 
   /** Playlists (created by the listener) that contain this track. */
   playlistsFor(trackId: string): Playlist[] {
-    return [...this.playlists.values()].filter((p) => p.trackIds.includes(trackId));
+    const t = this.tracks.get(trackId);
+    const key = t ? songKey(t.title, t.artistCredit.split(',')[0].trim()) : '';
+    return [...this.playlists.values()].filter((p) => p.trackIds.includes(trackId) || (!!key && !!p.keys?.includes(key)));
   }
 
   inCollection(trackId: string): boolean {

@@ -372,10 +372,10 @@ export class NetworkView {
       y0 = Math.min(y0, p.y - r - 10);
       y1 = Math.max(y1, p.y + r + 46);
     });
-    // Leave room for the blurb on the left on wide screens.
-    const left = this.width < 700 ? 12 : this.width > 1000 ? 420 : 40;
+    // Leave room for the guide panel on the right on wide screens.
+    const left = this.width < 700 ? 12 : 80;
     const top = 64;
-    const aw = this.width - left - 70;
+    const aw = this.width - left - (this.width > 1000 ? 400 : 24);
     const ah = this.height - top - 24;
     const k = Math.max(0.25, Math.min(1.25, aw / (x1 - x0), ah / (y1 - y0)));
     const tx = left + (aw - (x1 - x0) * k) / 2 - x0 * k;
@@ -536,7 +536,7 @@ export class NetworkView {
     const W = this.width;
     const H = this.height;
     const currentId = scene.path[scene.path.length - 1];
-    const center = this.toWorld(W < 700 ? W / 2 : W * 0.58, H * 0.52);
+    const center = this.toWorld(W < 700 ? W / 2 : W > 1000 ? (W - 380) / 2 : W * 0.5, H * 0.52);
     const ring = scene.nodes.filter((n) => n.role !== 'wider' && n.id !== currentId);
     // Each outer node hangs from a node it's linked to.
     const bridge = new Map<string, string>();

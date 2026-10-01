@@ -98,6 +98,8 @@ export interface Playlist {
   name: string;
   url?: string;
   trackIds: string[];
+  /** Title|artist keys, to match songs Spotify lists under a different id. */
+  keys?: string[];
 }
 
 export interface Dataset {

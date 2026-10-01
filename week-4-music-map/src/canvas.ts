@@ -146,12 +146,12 @@ export class TimelineCanvas {
   }
 
   private get axisY(): number {
-    return Math.round(this.height * 0.6);
+    return Math.round(this.height * 0.63);
   }
 
   /** Height of each year's column of albums, centred on the axis. */
   private get colH(): number {
-    return Math.max(160, Math.min(this.height * 0.46, 440));
+    return Math.max(180, Math.min(this.height * 0.6, 560));
   }
 
   // ---- Build ------------------------------------------------------------------
@@ -264,7 +264,7 @@ export class TimelineCanvas {
       el.innerHTML = `
         <span class="mm-sec__tick" style="top:${y0}px"></span>
         <span class="mm-sec__divider"></span>
-        <div class="mm-sec__head">
+        <div class="mm-sec__head" style="top:${Math.max(4, y0 - this.colH / 2 - 44)}px">
           <button type="button" class="mm-sec__year">${escapeHtml(sec.title)}</button>
           ${caption}
         </div>`;
@@ -506,10 +506,13 @@ export class TimelineCanvas {
   }
 
   private writeTile(t: Tile, z = t.z): void {
-    const s = t.s;
-    t.el.style.width = `${s}px`;
-    t.el.style.height = `${s}px`;
-    t.el.style.transform = `translate(${t.x - s / 2}px, ${t.y - s / 2}px)`;
+    // Size is set once; growth is a GPU scale, so moving the lens never forces layout.
+    if (!t.el.style.width) {
+      t.el.style.width = `${t.rs}px`;
+      t.el.style.height = `${t.rs}px`;
+    }
+    const k = t.s / t.rs;
+    t.el.style.transform = `translate(${t.x - t.rs / 2}px, ${t.y - t.rs / 2}px) scale(${k.toFixed(4)})`;
     if (z !== t.lastZ) {
       t.el.style.zIndex = `${z}`;
       t.lastZ = z;
@@ -522,9 +525,12 @@ export class TimelineCanvas {
     const pinned = !!this.pinned;
     const narrow = this.width < 600;
     const width = narrow ? this.width - 24 : pinned ? Math.min(this.width - 32, 960) : Math.min(520, Math.max(320, this.width * 0.36));
-    const height = narrow ? (pinned ? 280 : 150) : Math.max(150, Math.min(pinned ? 340 : 230, this.height * (pinned ? 0.42 : 0.26)));
-    // Top centre, above the year it describes.
-    return { top: 12, height, width, left: (this.width - width) / 2 };
+    const height = narrow ? (pinned ? 280 : 140) : Math.max(140, Math.min(pinned ? 340 : 210, this.height * (pinned ? 0.42 : 0.22)));
+    // Centred above the year it describes (kept on screen).
+    const sec = this.zoomKey ? this.find(this.zoomKey) : undefined;
+    const cx = sec ? (sec.x + sec.w / 2) * this.cam.k + this.cam.tx : this.width / 2;
+    const left = narrow ? 12 : Math.max(16, Math.min(this.width - width - 16, cx - width / 2));
+    return { top: 12, height, width, left };
   }
 
   private zoomItem(it: CanvasItem, extra = '', delay = 0): string {
@@ -585,6 +591,8 @@ export class TimelineCanvas {
       this.lines.innerHTML = '';
       return;
     }
+    const zb = this.zoomBox();
+    this.zoom.style.left = `${zb.left}px`;
     const { k, tx, ty } = this.cam;
     const box = this.zoomBox();
     const b = box.top + box.height;
@@ -649,6 +657,11 @@ export class TimelineCanvas {
 
   get calloutEl(): HTMLElement {
     return this.info;
+  }
+
+  /** The year panel lives outside the canvas, so the app listens to it directly. */
+  get panelEl(): HTMLElement {
+    return this.zoom;
   }
 
   scrollToSection(key: string): void {

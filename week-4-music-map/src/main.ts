@@ -151,6 +151,7 @@ class MusicMapApp {
   }
 
   async init(): Promise<void> {
+    document.getElementById('build-ver')!.textContent = `Version ${__BUILD__}`;
     const login = await spotify
       .completeLoginFromUrl()
       .catch((e: Error) => ({ completed: false, error: e.message }));
@@ -347,7 +348,7 @@ class MusicMapApp {
           id: t.id,
           title: t.title,
           sub: `${t.artistCredit}${t.album && t.album.name !== t.title ? ` · ${t.album.name}` : ''}`,
-          cover: coverUrl(t.cover, t.title),
+          cover: coverUrl(t.cover, t.album?.name ?? t.title),
           saved,
           outside: !saved,
           hubId: artists[0] ? personHub(artists[0]) : '',
@@ -529,7 +530,10 @@ class MusicMapApp {
       localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
       localStorage.setItem(DATASET_KEY, 'spotify');
       localStorage.setItem(IMPORTED_KEY, new Date().toISOString());
-      this.importStatus = `Imported ${data.collection?.length ?? 0} saved tracks with the dates you saved them, and ${playlists.length} of your playlists.${note ? ` ${note}` : ''}`;
+      this.importStatus =
+        note === 'reconnect'
+          ? `Imported ${data.collection?.length ?? 0} saved songs. To read your playlists, reconnect Spotify (it needs one more permission).`
+          : `Imported ${data.collection?.length ?? 0} saved songs and ${playlists.length} of your playlists.${note ? ` ${note}` : ''}`;
       this.loadDataset();
       this.renderChrome();
       this.render();
@@ -609,7 +613,7 @@ class MusicMapApp {
     this.panel.addEventListener('focusout', (e) => this.handleCommit(e.target as HTMLElement));
     document.getElementById('blurb')!.addEventListener('click', onAction);
     // The year view and the picked-cover callout share actions and forms.
-    for (const host of [this.yearEl, document.getElementById('canvas')!]) {
+    for (const host of [this.yearEl, document.getElementById('canvas')!, this.canvas.panelEl]) {
       host.addEventListener('click', onAction);
       host.addEventListener('focusout', (e) => this.handleCommit(e.target as HTMLElement));
       host.addEventListener('keydown', (e) => {
@@ -1156,8 +1160,11 @@ class MusicMapApp {
       playlistHtml = `<ul class="mm-chips">${playlists
         .map((p) => (p.url ? `<li><a href="${h(p.url)}" target="_blank" rel="noopener">${h(p.name)}</a></li>` : `<li><span>${h(p.name)}</span></li>`))
         .join('')}</ul>${demo ? '<p class="mm-muted mm-small">Fictional demo playlists.</p>' : ''}`;
+    } else if (this.datasetKind === 'spotify' && (this.graph.playlistsNote === 'reconnect' || spotify.missingScopes().length || !this.graph.playlists.size)) {
+      playlistHtml = `<p class="mm-muted mm-small">Your playlists aren't loaded yet: Spotify needs one more permission.</p>
+        <button type="button" class="mm-btn mm-btn--small mm-btn--spotify" data-action="reconnect-spotify">Reconnect Spotify</button>`;
     } else if (this.datasetKind === 'spotify' && this.graph.playlistsNote) {
-      playlistHtml = `<p class="mm-muted mm-small">${h(this.graph.playlistsNote)}</p>`;
+      playlistHtml = `<p class="mm-muted mm-small">Not in any of your ${this.graph.playlists.size} playlists. ${h(this.graph.playlistsNote)}</p>`;
     } else if (this.datasetKind === 'spotify' || demo) {
       playlistHtml = '<p class="mm-muted mm-small">Not in any playlist you made.</p>';
     } else {
@@ -1448,72 +1455,131 @@ class MusicMapApp {
   }
 
   /**
-   * The blurb box from the sketch: a plain account of the selected song built only
-   * from its stored relationships and their sources. When a connection is being
-   * read, it shows that connection instead, with a way to follow it.
+   * The guide panel on the right of the Historical Timeline. Before a song is open
+   * it explains how to read the map; with a song open it walks through that song in
+   * numbered steps (the song, what it samples, where it's been sampled or
+   * re-performed, who made it, what else they made). Every entry is clickable.
    */
   private renderBlurb(): void {
     const el = document.getElementById('blurb')!;
+    const history = this.view === 'history';
     const cur = this.currentId;
-    if (!cur) {
+    if (!history || this.yearOpen) {
       el.hidden = true;
       el.innerHTML = '';
       return;
     }
     el.hidden = false;
+    if (!cur) {
+      el.innerHTML = `
+        <p class="mm-guide__eyebrow">How to read this map</p>
+        <ol class="mm-guide__steps">
+          <li><strong>Choose what the map is organised by</strong> (Artist, Album, Song or Genre, top left). Each cover is something in your library; bigger covers are ones you saved more of.</li>
+          <li><strong>Click an album</strong>, then pick one of its songs.</li>
+          <li><strong>Read the song's story</strong> here: what it samples, where it's been sampled or re-performed, and the people who made it.</li>
+          <li><strong>Follow any link</strong> to travel through the history, then return to your song.</li>
+        </ol>
+        <p class="mm-muted mm-small">Arrows point from a song to the song it borrows from. Solid = sample (the original recording), dashed = interpolation (the melody re-performed).</p>`;
+      return;
+    }
     if (this.inspected) {
       el.innerHTML = this.connectionCard();
       return;
     }
     const node = this.graph.node(cur)!;
     const nbrs = this.graph.neighbors(cur).filter((n) => this.visible(n.otherId));
-    const name = (id: string) => h(nameOf(this.graph, id));
-    const flag = (n: Neighbor) => (n.rel.evidence.status === 'disputed' ? ' <em class="mm-flag">disputed</em>' : n.rel.evidence.status === 'undocumented' ? ' <em class="mm-flag">unconfirmed</em>' : '');
-    const lines: string[] = [];
-    let title: string;
-    let meta: string;
+    const flag = (n: Neighbor) =>
+      n.rel.evidence.status === 'disputed' ? ' <em class="mm-flag">disputed</em>' : n.rel.evidence.status === 'undocumented' ? ' <em class="mm-flag">unconfirmed</em>' : '';
+    const songRow = (n: Neighbor) => {
+      const t = this.graph.tracks.get(n.otherId);
+      if (!t) return '';
+      return `<li><button type="button" class="mm-guide__row" data-action="inspect" data-id="${h(t.id)}">
+        <img src="${coverUrl(t.cover, t.album?.name ?? t.title)}" alt="" />
+        <span><strong>${h(t.title)}</strong>${flag(n)}<em>${h(t.artistCredit)} · ${formatPartialDate(t.release)}</em></span></button></li>`;
+    };
+    const section = (num: number, title: string, rows: string[], empty: string, hint = '') =>
+      `<section class="mm-guide__step"><h3><span>${num}</span>${h(title)}</h3>${hint ? `<p class="mm-muted mm-small">${hint}</p>` : ''}${rows.filter(Boolean).length ? `<ul class="mm-guide__list">${rows.join('')}</ul>` : `<p class="mm-muted mm-small">${empty}</p>`}</section>`;
+
+    let html: string;
     if (node.kind === 'track') {
-      title = h(node.title);
+      const t = node;
       const saved = this.graph.savedAt(cur);
-      meta = `${h(node.artistCredit)} · <span class="mm-blurb__rel">Released ${formatPartialDate(node.release)}</span>${saved ? ` · <span class="mm-blurb__saved">Saved ${formatSaved(saved)}</span>` : ' · outside your collection'}`;
-      for (const n of nbrs.filter((x) => x.rel.type === 'samples' || x.rel.type === 'interpolates')) {
-        const other = this.graph.tracks.get(n.otherId);
-        const when = other?.release ? ` (${formatPartialDate(other.release)})` : '';
-        const verb = n.rel.type === 'samples' ? (n.outgoing ? 'Samples' : 'Sampled on') : n.outgoing ? 'Interpolates' : 'Interpolated on';
-        lines.push(`<p><strong>${verb}</strong> “${name(n.otherId)}”${when}${flag(n)}. ${h(n.rel.evidence.explanation)}</p>`);
-      }
-      const roles = new Map<string, string[]>();
-      for (const n of nbrs.filter((x) => x.rel.type === 'credit' && !x.outgoing)) {
-        const role = n.rel.role ?? 'credited';
-        roles.set(role, [...(roles.get(role) ?? []), nameOf(this.graph, n.otherId)]);
-      }
-      if (roles.size) lines.push(`<p><strong>Credits</strong> ${[...roles].map(([r, ps]) => `${h(r)}: ${ps.map(h).join(', ')}`).join(' · ')}.</p>`);
-      if (node.undocumented?.length) lines.push(`<p class="mm-muted">Not documented: ${node.undocumented.map(h).join(', ')}.</p>`);
-      if (!lines.length) lines.push('<p class="mm-muted">No samples, interpolations or detailed credits are recorded for this track yet.</p>');
+      const samples = nbrs.filter((n) => n.rel.type === 'samples' && n.outgoing);
+      const sampledOn = nbrs.filter((n) => n.rel.type === 'samples' && !n.outgoing);
+      const interp = nbrs.filter((n) => n.rel.type === 'interpolates');
+      const other = nbrs.filter((n) => n.rel.type === 'documented');
+      const people = nbrs.filter((n) => n.rel.type === 'credit' && !n.outgoing);
+      const byPerson = new Map<string, string[]>();
+      people.forEach((n) => byPerson.set(n.otherId, [...(byPerson.get(n.otherId) ?? []), (n.rel.role ?? 'credited').replace(/\s*\(.*?\)/g, '')]));
+      const peopleRows = [...byPerson].map(
+        ([pid, roles]) =>
+          `<li><button type="button" class="mm-guide__row" data-action="inspect" data-id="${h(pid)}"><span class="mm-guide__dot">${h(nameOf(this.graph, pid).slice(0, 1))}</span><span><strong>${h(nameOf(this.graph, pid))}</strong><em>${h([...new Set(roles)].join(' · '))}</em></span></button></li>`,
+      );
+      // Their other work: songs each person is credited on, besides this one.
+      const workRows = [...byPerson.keys()].slice(0, 6).map((pid) => {
+        const works = this.graph
+          .neighbors(pid)
+          .filter((n) => n.rel.type === 'credit' && n.outgoing && n.otherId !== cur && this.graph.tracks.has(n.otherId))
+          .slice(0, 6);
+        if (!works.length) return '';
+        return `<li class="mm-guide__work"><p>${h(nameOf(this.graph, pid))}</p><div>${works
+          .map((w) => {
+            const wt = this.graph.tracks.get(w.otherId)!;
+            return `<button type="button" data-action="go-via" data-via="${h(pid)}" data-id="${h(wt.id)}" title="${h(wt.title)} · ${h(w.rel.role ?? '')}"><img src="${coverUrl(wt.cover, wt.album?.name ?? wt.title)}" alt="${h(wt.title)}" /></button>`;
+          })
+          .join('')}</div></li>`;
+      });
+      const status = this.mbStatus.get(t.id);
+      html = `
+        <p class="mm-guide__eyebrow">${this.path.length > 1 ? `Step ${this.path.length} of your path` : 'The song'}</p>
+        <section class="mm-guide__step mm-guide__song"><h3><span>1</span>The song</h3>
+          <div class="mm-guide__head"><img src="${coverUrl(t.cover, t.album?.name ?? t.title)}" alt="" />
+            <div><p class="mm-guide__title">${h(t.title)}</p><p class="mm-muted">${h(t.artistCredit)}</p>
+            <p class="mm-small"><span class="mm-blurb__rel">Released ${formatPartialDate(t.release)}</span> · ${saved ? `<span class="mm-blurb__saved">Saved ${formatSaved(saved)}</span>` : 'not in your library'}</p></div></div>
+          <div class="mm-blurb__actions">
+            ${t.spotify ? `<a class="mm-link" href="${h(t.spotify.url)}" target="_blank" rel="noopener">Play on Spotify ↗</a>` : ''}
+            ${t.origin !== 'demo' ? `<button type="button" class="mm-link" data-action="mb-lookup" data-id="${h(t.id)}">${status === 'loading' ? 'Looking up…' : 'Look up samples &amp; credits again'}</button>` : ''}
+          </div>
+          ${status && status !== 'loading' ? `<p class="mm-muted mm-small">${h(status)}</p>` : status === 'loading' ? '<p class="mm-muted mm-small">Looking this song up on Genius and MusicBrainz…</p>' : ''}
+        </section>
+        ${section(2, 'Samples', samples.map(songRow), 'No samples recorded.', 'Recordings this song uses a piece of.')}
+        ${section(3, 'Sampled & interpolated', [...sampledOn, ...interp, ...other].map((n) => songRow(n).replace('<strong>', `<small>${h(n.rel.type === 'samples' ? 'samples this' : n.rel.type === 'interpolates' ? (n.outgoing ? 'this re-performs' : 're-performs this') : (n.rel.role ?? 'related'))}</small><strong>`)), 'No one is recorded sampling or re-performing it yet.', 'Where this song lives on in other music.')}
+        ${section(4, 'People who made it', peopleRows, 'No credits recorded yet.')}
+        ${section(5, "What they've made", workRows, 'No other work by these people in the map yet.', 'Click a cover to travel there through that person.')}
+        <p class="mm-blurb__src">Sources: ${[...new Set(nbrs.map((n) => n.rel.evidence.sourceLabel + (n.rel.evidence.fictional ? ' (fictional)' : '')))].map(h).join(' · ') || 'none yet'}</p>`;
     } else {
-      title = h(node.name);
-      meta = node.kind === 'group' ? 'Group' : 'Person';
       const works = nbrs.filter((n) => n.rel.type === 'credit' && n.outgoing);
-      if (works.length) lines.push(`<p><strong>Credited on</strong> ${works.slice(0, 8).map((n) => `“${name(n.otherId)}” (${h(n.rel.role ?? 'credit')})`).join(', ')}${works.length > 8 ? `, and ${works.length - 8} more` : ''}.</p>`);
       const groups = nbrs.filter((n) => n.rel.type === 'member_of');
-      if (groups.length) lines.push(`<p><strong>${node.kind === 'group' ? 'Members' : 'Member of'}</strong> ${groups.map((n) => name(n.otherId)).join(', ')}.</p>`);
-      lines.push('<p class="mm-muted">People are linked to the works they are credited on. Shared credits don\'t imply friendship or influence.</p>');
+      const collabs = new Map<string, number>();
+      works.forEach((w) =>
+        this.graph.neighbors(w.otherId).forEach((n) => {
+          if (n.rel.type === 'credit' && !n.outgoing && n.otherId !== cur) collabs.set(n.otherId, (collabs.get(n.otherId) ?? 0) + 1);
+        }),
+      );
+      html = `
+        <p class="mm-guide__eyebrow">Person</p>
+        <section class="mm-guide__step"><h3><span>1</span>${h(node.name)}</h3><p class="mm-muted mm-small">${node.kind === 'group' ? 'Group' : 'Person'}${groups.length ? ` · ${groups.map((g) => h(nameOf(this.graph, g.otherId))).join(', ')}` : ''}</p></section>
+        ${section(
+          2,
+          "What they've made",
+          works.map((w) => songRow(w).replace('<em>', `<em>${h((w.rel.role ?? '').replace(/\s*\(.*?\)/g, ''))} · `)),
+          'No credited work in the map yet.',
+        )}
+        ${section(
+          3,
+          'Who they make it with',
+          [...collabs]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 12)
+            .map(
+              ([pid, n]) =>
+                `<li><button type="button" class="mm-guide__row" data-action="inspect" data-id="${h(pid)}"><span class="mm-guide__dot">${h(nameOf(this.graph, pid).slice(0, 1))}</span><span><strong>${h(nameOf(this.graph, pid))}</strong><em>${n} shared credit${n === 1 ? '' : 's'}</em></span></button></li>`,
+            ),
+          'No shared credits recorded yet.',
+          'Shared credits only; they say nothing about friendship or influence.',
+        )}`;
     }
-    const sources = [...new Set(nbrs.map((n) => n.rel.evidence.sourceLabel + (n.rel.evidence.fictional ? ' (fictional)' : '')))];
-    const t = node.kind === 'track' ? node : null;
-    el.innerHTML = `
-      <p class="mm-blurb__eyebrow">${this.path.length > 1 ? 'You are here' : 'Blurb'}</p>
-      <h2 class="mm-blurb__title">${title}</h2>
-      <p class="mm-blurb__meta">${meta}</p>
-      <div class="mm-blurb__body">${lines.join('')}</div>
-      ${sources.length ? `<p class="mm-blurb__src">Sources: ${sources.map(h).join(' · ')}</p>` : ''}
-      <div class="mm-blurb__actions">
-        ${t?.spotify ? `<a class="mm-link" href="${h(t.spotify.url)}" target="_blank" rel="noopener">Play on Spotify ↗</a>` : ''}
-        ${t?.spotify ? `<button type="button" class="mm-link" data-action="mb-lookup" data-id="${h(t.id)}">${this.mbStatus.get(t.id) === 'loading' ? 'Looking up…' : 'Find samples &amp; credits (MusicBrainz)'}</button>` : ''}
-        <button type="button" class="mm-link" data-action="toggle-panel">${this.panelPinned ? 'Hide' : 'All'} connections &amp; journey</button>
-      </div>
-      ${t && this.mbStatus.get(t.id) && this.mbStatus.get(t.id) !== 'loading' ? `<p class="mm-muted mm-small">${h(this.mbStatus.get(t.id)!)}</p>` : ''}
-      <p class="mm-blurb__hint">Select a connected cover or person to read how it's linked.</p>`;
+    el.innerHTML = html;
   }
 
   private renderPathbar(): void {
@@ -2001,6 +2067,10 @@ class MusicMapApp {
         return this.renderPanel();
       case 'open-spotify':
         return this.openSpotifyDialog();
+      case 'reconnect-spotify':
+        // Sign in again so Spotify grants the playlist permission; the library re-imports on return.
+        spotify.disconnect();
+        return void spotify.beginLogin(true).catch((e: Error) => this.say(e.message));
       case 'close-data':
         this.showData = false;
         return this.renderPanel();
@@ -2082,6 +2152,13 @@ class MusicMapApp {
         this.canvas.setSelected(null);
         this.view = 'history';
         return this.selectOrigin(id, rect);
+      }
+      case 'go-via': {
+        // Travel to a person's other song: through the person, then to the song.
+        const via = el.dataset.via!;
+        if (this.currentId !== via && this.relsBetween(this.currentId!, via).length) this.follow(via);
+        if (this.relsBetween(this.currentId!, id).length) this.follow(id);
+        return;
       }
       case 'mb-lookup':
         return void this.lookupSources(id);
@@ -2244,6 +2321,7 @@ class MusicMapApp {
     } else {
       main = `
         <p class="mm-connected"><span class="mm-connect__dot"></span>Connected${spotify.profileName() ? ` as <strong>${h(spotify.profileName()!)}</strong>` : ''}</p>
+        ${spotify.missingScopes().length ? `<p class="mm-notice">This sign-in can't read your playlists yet. <button type="button" class="mm-link" data-sp="switch">Reconnect Spotify</button> to allow it.</p>` : ''}
         <p class="mm-muted mm-small">${hasLib ? `Library imported${imported ? ` ${formatSaved(imported, true)}` : ''}: ${this.graph.collection.size} saved songs, ${this.graph.playlists.size} playlists.` : 'Library not imported yet.'}${this.graph.playlistsNote ? ` ${h(this.graph.playlistsNote)}` : ''}</p>
         ${this.importStatus ? `<p class="mm-small" role="status">${h(this.importStatus)}</p>` : ''}
         <div class="mm-dialog__actions mm-dialog__actions--left">
