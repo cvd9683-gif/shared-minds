@@ -1,0 +1,7549 @@
+{
+  "meta": {
+    "name": "Fictional demo collection",
+    "fictional": true,
+    "description": "Invented tracks, people, saved dates and relationships for demonstrating the interface. None of it describes real music or anyone's real listening history."
+  },
+  "tracks": [
+    {
+      "id": "h_sundial",
+      "kind": "track",
+      "title": "Sundial Waltz",
+      "artistCredit": "Solenne Marchetti",
+      "release": {
+        "value": "1968",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_sundial"
+      },
+      "genres": [
+        "chamber",
+        "instrumental"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "producer"
+      ],
+      "album": {
+        "id": "al_h_sundial",
+        "name": "Sundial Waltz"
+      }
+    },
+    {
+      "id": "h_paper",
+      "kind": "track",
+      "title": "Paper Moons Over Ohio",
+      "artistCredit": "Amos Delacroix-Byrd",
+      "release": {
+        "value": "1971-09",
+        "precision": "month"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_paper"
+      },
+      "genres": [
+        "soul"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "producer"
+      ],
+      "album": {
+        "id": "al_h_paper",
+        "name": "Paper Moons Over Ohio"
+      }
+    },
+    {
+      "id": "h_lowtide",
+      "kind": "track",
+      "title": "Low Tide Signal",
+      "artistCredit": "The Harbor Lights",
+      "release": {
+        "value": "1974-06-03",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_lowtide"
+      },
+      "genres": [
+        "soul",
+        "funk"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "producer"
+      ],
+      "album": {
+        "id": "al_h_lowtide",
+        "name": "Low Tide Signal"
+      }
+    },
+    {
+      "id": "h_brass",
+      "kind": "track",
+      "title": "Brass for the Weary",
+      "artistCredit": "The Harbor Lights",
+      "release": null,
+      "releaseNote": "No release date appears in the demo liner notes.",
+      "cover": {
+        "kind": "generated",
+        "seed": "h_brass"
+      },
+      "genres": [
+        "soul"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "producer",
+        "writer"
+      ],
+      "album": {
+        "id": "al_h_brass",
+        "name": "Brass for the Weary"
+      }
+    },
+    {
+      "id": "h_copper",
+      "kind": "track",
+      "title": "Copper Rain",
+      "artistCredit": "Beatrix Oyelaran",
+      "release": {
+        "value": "1986",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_copper"
+      },
+      "genres": [
+        "ambient",
+        "harp"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_h_copper",
+        "name": "Copper Rain"
+      }
+    },
+    {
+      "id": "h_neon",
+      "kind": "track",
+      "title": "Neon Psalm",
+      "artistCredit": "Velvet Arcade",
+      "release": {
+        "value": "1993-03-15",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_neon"
+      },
+      "genres": [
+        "alternative",
+        "dream pop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_h_neon",
+        "name": "Neon Psalm"
+      }
+    },
+    {
+      "id": "h_dial",
+      "kind": "track",
+      "title": "Dial Tone Heart",
+      "artistCredit": "June Okafor-Lind",
+      "release": {
+        "value": "1999-05-20",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_dial"
+      },
+      "genres": [
+        "r&b"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_h_dial",
+        "name": "Dial Tone Heart"
+      }
+    },
+    {
+      "id": "h_ghost",
+      "kind": "track",
+      "title": "Ghost Frequencies",
+      "artistCredit": "Static Garden",
+      "release": {
+        "value": "2004-10-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "h_ghost"
+      },
+      "genres": [
+        "electronic"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_h_ghost",
+        "name": "Ghost Frequencies"
+      }
+    },
+    {
+      "id": "c_glass",
+      "kind": "track",
+      "title": "Glass Harbor",
+      "artistCredit": "Mara Quell",
+      "release": {
+        "value": "2019-02-08",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_glass"
+      },
+      "genres": [
+        "indie pop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_glass",
+        "name": "Glass Harbor"
+      }
+    },
+    {
+      "id": "c_nightbus",
+      "kind": "track",
+      "title": "Night Bus Hymn",
+      "artistCredit": "June Okafor-Lind feat. Dashiell Rook",
+      "release": {
+        "value": "2018-11-02",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_nightbus"
+      },
+      "genres": [
+        "r&b",
+        "hip hop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_nightbus",
+        "name": "Night Bus Hymn"
+      }
+    },
+    {
+      "id": "c_satellite",
+      "kind": "track",
+      "title": "Satellite Lullaby",
+      "artistCredit": "Static Garden",
+      "release": {
+        "value": "2019-09-27",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_satellite"
+      },
+      "genres": [
+        "electronic",
+        "ambient"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_satellite",
+        "name": "Satellite Lullaby"
+      }
+    },
+    {
+      "id": "c_orchard",
+      "kind": "track",
+      "title": "Orchard Static",
+      "artistCredit": "Lena Moravec",
+      "release": {
+        "value": "2020-03-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_orchard"
+      },
+      "genres": [
+        "electronic"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_orchard",
+        "name": "Orchard Static"
+      }
+    },
+    {
+      "id": "c_fever",
+      "kind": "track",
+      "title": "Fever Almanac",
+      "artistCredit": "Dashiell Rook",
+      "release": {
+        "value": "2020-06-19",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_fever"
+      },
+      "genres": [
+        "hip hop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_fever",
+        "name": "Fever Almanac"
+      }
+    },
+    {
+      "id": "c_undertow",
+      "kind": "track",
+      "title": "Undertow Choir",
+      "artistCredit": "Mara Quell",
+      "release": {
+        "value": "2020-10-09",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_undertow"
+      },
+      "genres": [
+        "indie pop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_undertow",
+        "name": "Undertow Choir"
+      }
+    },
+    {
+      "id": "c_loose",
+      "kind": "track",
+      "title": "Loose Tape No. 4",
+      "artistCredit": "Yuki Arden",
+      "release": null,
+      "releaseNote": "Self-released; the upload page shows no release date.",
+      "cover": {
+        "kind": "generated",
+        "seed": "c_loose"
+      },
+      "genres": [
+        "beat tape",
+        "instrumental"
+      ],
+      "origin": "demo",
+      "undocumented": [
+        "writer"
+      ],
+      "album": {
+        "id": "al_c_loose",
+        "name": "Loose Tape No. 4"
+      }
+    },
+    {
+      "id": "c_ceiling",
+      "kind": "track",
+      "title": "Ceiling Fan Gospel",
+      "artistCredit": "Calla Marsh",
+      "release": {
+        "value": "2021-04-30",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_ceiling"
+      },
+      "genres": [
+        "folk",
+        "gospel"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_ceiling",
+        "name": "Ceiling Fan Gospel"
+      }
+    },
+    {
+      "id": "c_mercury",
+      "kind": "track",
+      "title": "Mercury Porch",
+      "artistCredit": "Moth Choir",
+      "release": {
+        "value": "2021-08-20",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_mercury"
+      },
+      "genres": [
+        "indie rock"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_mercury",
+        "name": "Mercury Porch"
+      }
+    },
+    {
+      "id": "c_ferry",
+      "kind": "track",
+      "title": "Last Ferry to Nowhere",
+      "artistCredit": "Odin Vale feat. Mara Quell",
+      "release": {
+        "value": "2021-11-05",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_ferry"
+      },
+      "genres": [
+        "electronic",
+        "indie pop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_ferry",
+        "name": "Last Ferry to Nowhere"
+      }
+    },
+    {
+      "id": "c_quiet",
+      "kind": "track",
+      "title": "Quiet Machinery",
+      "artistCredit": "Static Garden",
+      "release": {
+        "value": "2022-02-18",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_quiet"
+      },
+      "genres": [
+        "electronic"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_quiet",
+        "name": "Quiet Machinery"
+      }
+    },
+    {
+      "id": "c_saltwater",
+      "kind": "track",
+      "title": "Saltwater Receipts",
+      "artistCredit": "Dashiell Rook & Calla Marsh",
+      "release": {
+        "value": "2022-05-06",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_saltwater"
+      },
+      "genres": [
+        "hip hop",
+        "folk"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_saltwater",
+        "name": "Saltwater Receipts"
+      }
+    },
+    {
+      "id": "c_hollow",
+      "kind": "track",
+      "title": "Hollow Radio",
+      "artistCredit": "Iris Vantongeren",
+      "release": {
+        "value": "2022-11-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_hollow"
+      },
+      "genres": [
+        "dream pop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_hollow",
+        "name": "Hollow Radio"
+      }
+    },
+    {
+      "id": "c_amber",
+      "kind": "track",
+      "title": "Amber Interval",
+      "artistCredit": "Beatrix Oyelaran & Lena Moravec",
+      "release": {
+        "value": "2023-03-03",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_amber"
+      },
+      "genres": [
+        "ambient",
+        "harp"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_amber",
+        "name": "Amber Interval"
+      }
+    },
+    {
+      "id": "c_signal",
+      "kind": "track",
+      "title": "Signal Fire (Low Tide Version)",
+      "artistCredit": "Mara Quell",
+      "release": {
+        "value": "2023-06-16",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_signal"
+      },
+      "genres": [
+        "indie pop",
+        "soul"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_signal",
+        "name": "Signal Fire (Low Tide Version)"
+      }
+    },
+    {
+      "id": "c_orbit",
+      "kind": "track",
+      "title": "Orbit of Small Things",
+      "artistCredit": "Moth Choir",
+      "release": {
+        "value": "2023-09-22",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_orbit"
+      },
+      "genres": [
+        "indie rock"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_orbit",
+        "name": "Orbit of Small Things"
+      }
+    },
+    {
+      "id": "c_ghostnote",
+      "kind": "track",
+      "title": "Ghost Note Parade",
+      "artistCredit": "Tomás Echeverri-Blum",
+      "release": {
+        "value": "2024",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_ghostnote"
+      },
+      "genres": [
+        "jazz",
+        "instrumental"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_ghostnote",
+        "name": "Ghost Note Parade"
+      }
+    },
+    {
+      "id": "c_borrowed",
+      "kind": "track",
+      "title": "Borrowed Light",
+      "artistCredit": "Calla Marsh",
+      "release": {
+        "value": "2024-04-12",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_borrowed"
+      },
+      "genres": [
+        "folk"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_borrowed",
+        "name": "Borrowed Light"
+      }
+    },
+    {
+      "id": "c_tidal",
+      "kind": "track",
+      "title": "Tidal Arithmetic",
+      "artistCredit": "Noor Halabi",
+      "release": {
+        "value": "2024-07-19",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_tidal"
+      },
+      "genres": [
+        "electronic"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_tidal",
+        "name": "Tidal Arithmetic"
+      }
+    },
+    {
+      "id": "c_porch",
+      "kind": "track",
+      "title": "Porchlight Standard",
+      "artistCredit": "June Okafor-Lind",
+      "release": {
+        "value": "2024-10-04",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_porch"
+      },
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_porch",
+        "name": "Porchlight Standard"
+      }
+    },
+    {
+      "id": "c_ferryback",
+      "kind": "track",
+      "title": "Ferry Back",
+      "artistCredit": "Mara Quell & Odin Vale",
+      "release": {
+        "value": "2025-02-14",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_ferryback"
+      },
+      "genres": [
+        "indie pop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_ferryback",
+        "name": "Ferry Back"
+      }
+    },
+    {
+      "id": "c_undertone",
+      "kind": "track",
+      "title": "Undertone",
+      "artistCredit": "Dashiell Rook",
+      "release": {
+        "value": "2025-05-30",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "c_undertone"
+      },
+      "genres": [
+        "hip hop"
+      ],
+      "origin": "demo",
+      "album": {
+        "id": "al_c_undertone",
+        "name": "Undertone"
+      }
+    },
+    {
+      "id": "f_t000",
+      "kind": "track",
+      "title": "Borrowed Ocean",
+      "artistCredit": "Bex Sterling",
+      "release": {
+        "value": "2019-01-20",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al000"
+      },
+      "album": {
+        "id": "f_al000",
+        "name": "Borrowed Ocean"
+      },
+      "genres": [
+        "alternative",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t001",
+      "kind": "track",
+      "title": "Silver Hymn",
+      "artistCredit": "Night Garden",
+      "release": {
+        "value": "2019-01-08",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al001"
+      },
+      "album": {
+        "id": "f_al001",
+        "name": "Borrowed Satellites"
+      },
+      "genres": [
+        "soul",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t002",
+      "kind": "track",
+      "title": "Slow Balcony",
+      "artistCredit": "Night Garden",
+      "release": {
+        "value": "2019-01-08",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al001"
+      },
+      "album": {
+        "id": "f_al001",
+        "name": "Borrowed Satellites"
+      },
+      "genres": [
+        "hip hop",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t003",
+      "kind": "track",
+      "title": "Midnight Summer",
+      "artistCredit": "Blue Hour Society",
+      "release": null,
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al002"
+      },
+      "album": {
+        "id": "f_al002",
+        "name": "Midnight Summer"
+      },
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "origin": "demo",
+      "releaseNote": "No release date in the demo data."
+    },
+    {
+      "id": "f_t004",
+      "kind": "track",
+      "title": "Silver Parade",
+      "artistCredit": "The Quiet Hours",
+      "release": {
+        "value": "2018-02-27",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al003"
+      },
+      "album": {
+        "id": "f_al003",
+        "name": "Wild River"
+      },
+      "genres": [
+        "indie pop",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t005",
+      "kind": "track",
+      "title": "Amber Fever",
+      "artistCredit": "The Quiet Hours",
+      "release": {
+        "value": "2018-02-27",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al003"
+      },
+      "album": {
+        "id": "f_al003",
+        "name": "Wild River"
+      },
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t006",
+      "kind": "track",
+      "title": "Neon Fever",
+      "artistCredit": "The Quiet Hours",
+      "release": {
+        "value": "2018-02-27",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al003"
+      },
+      "album": {
+        "id": "f_al003",
+        "name": "Wild River"
+      },
+      "genres": [
+        "dream pop",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t007",
+      "kind": "track",
+      "title": "Golden Motel",
+      "artistCredit": "Rue Dunmore",
+      "release": {
+        "value": "2018-02-06",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al004"
+      },
+      "album": {
+        "id": "f_al004",
+        "name": "Golden Motel"
+      },
+      "genres": [
+        "hip hop",
+        "alternative"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t008",
+      "kind": "track",
+      "title": "Midnight Light",
+      "artistCredit": "Nell Everhart",
+      "release": {
+        "value": "2018-04-05",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al005"
+      },
+      "album": {
+        "id": "f_al005",
+        "name": "Midnight Light"
+      },
+      "genres": [
+        "rock",
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t009",
+      "kind": "track",
+      "title": "Amber Weather",
+      "artistCredit": "Blue Hour Society",
+      "release": {
+        "value": "2020-03-14",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al006"
+      },
+      "album": {
+        "id": "f_al006",
+        "name": "Amber Weather"
+      },
+      "genres": [
+        "soul",
+        "hip hop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t010",
+      "kind": "track",
+      "title": "Tender Echo",
+      "artistCredit": "Echo Park Ghosts",
+      "release": {
+        "value": "2018-09-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al007"
+      },
+      "album": {
+        "id": "f_al007",
+        "name": "Wild Summer"
+      },
+      "genres": [
+        "alternative",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t011",
+      "kind": "track",
+      "title": "Velvet Signal",
+      "artistCredit": "Echo Park Ghosts",
+      "release": {
+        "value": "2018-09-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al007"
+      },
+      "album": {
+        "id": "f_al007",
+        "name": "Wild Summer"
+      },
+      "genres": [
+        "soul",
+        "ambient"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t012",
+      "kind": "track",
+      "title": "Paper Ocean",
+      "artistCredit": "Echo Park Ghosts",
+      "release": {
+        "value": "2018-09-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al007"
+      },
+      "album": {
+        "id": "f_al007",
+        "name": "Wild Summer"
+      },
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t013",
+      "kind": "track",
+      "title": "Wild Light",
+      "artistCredit": "Milo Bellweather",
+      "release": {
+        "value": "2020-01-12",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al008"
+      },
+      "album": {
+        "id": "f_al008",
+        "name": "Silver Letters"
+      },
+      "genres": [
+        "dream pop",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t014",
+      "kind": "track",
+      "title": "Cherry River",
+      "artistCredit": "Milo Bellweather",
+      "release": {
+        "value": "2020-01-12",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al008"
+      },
+      "album": {
+        "id": "f_al008",
+        "name": "Silver Letters"
+      },
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t015",
+      "kind": "track",
+      "title": "Lucid Heart",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2020-01-05",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al009"
+      },
+      "album": {
+        "id": "f_al009",
+        "name": "Cherry Weather"
+      },
+      "genres": [
+        "r&b",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t016",
+      "kind": "track",
+      "title": "Static Light",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2020-01-05",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al009"
+      },
+      "album": {
+        "id": "f_al009",
+        "name": "Cherry Weather"
+      },
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t017",
+      "kind": "track",
+      "title": "Electric Motel",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2020-01-05",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al009"
+      },
+      "album": {
+        "id": "f_al009",
+        "name": "Cherry Weather"
+      },
+      "genres": [
+        "electronic",
+        "alternative"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t018",
+      "kind": "track",
+      "title": "Late River",
+      "artistCredit": "Bex Holloway",
+      "release": {
+        "value": "2018-01-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al010"
+      },
+      "album": {
+        "id": "f_al010",
+        "name": "Velvet Engines"
+      },
+      "genres": [
+        "soul",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t019",
+      "kind": "track",
+      "title": "Borrowed Light",
+      "artistCredit": "Bex Holloway",
+      "release": {
+        "value": "2018-01-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al010"
+      },
+      "album": {
+        "id": "f_al010",
+        "name": "Velvet Engines"
+      },
+      "genres": [
+        "dream pop",
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t020",
+      "kind": "track",
+      "title": "Electric Letters",
+      "artistCredit": "Bex Holloway",
+      "release": {
+        "value": "2018-01-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al010"
+      },
+      "album": {
+        "id": "f_al010",
+        "name": "Velvet Engines"
+      },
+      "genres": [
+        "indie pop",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t021",
+      "kind": "track",
+      "title": "Silver Ocean",
+      "artistCredit": "The Quiet Hours",
+      "release": {
+        "value": "2010-04",
+        "precision": "month"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al011"
+      },
+      "album": {
+        "id": "f_al011",
+        "name": "Silver Ocean"
+      },
+      "genres": [
+        "rock",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t022",
+      "kind": "track",
+      "title": "Salt Echo",
+      "artistCredit": "Velvet Static",
+      "release": {
+        "value": "1980",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al012"
+      },
+      "album": {
+        "id": "f_al012",
+        "name": "Salt Echo"
+      },
+      "genres": [
+        "indie pop",
+        "hip hop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t023",
+      "kind": "track",
+      "title": "Borrowed Rooms",
+      "artistCredit": "Night Garden",
+      "release": {
+        "value": "2005",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al013"
+      },
+      "album": {
+        "id": "f_al013",
+        "name": "Golden Balcony"
+      },
+      "genres": [
+        "indie pop",
+        "rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t024",
+      "kind": "track",
+      "title": "Quiet Engines",
+      "artistCredit": "Night Garden",
+      "release": {
+        "value": "2005",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al013"
+      },
+      "album": {
+        "id": "f_al013",
+        "name": "Golden Balcony"
+      },
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t025",
+      "kind": "track",
+      "title": "Velvet Satellites",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2020-06-09",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al014"
+      },
+      "album": {
+        "id": "f_al014",
+        "name": "Velvet Satellites"
+      },
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t026",
+      "kind": "track",
+      "title": "Salt Weather",
+      "artistCredit": "Soft Machinery",
+      "release": {
+        "value": "2020-09-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al015"
+      },
+      "album": {
+        "id": "f_al015",
+        "name": "Static Rooms"
+      },
+      "genres": [
+        "hip hop",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t027",
+      "kind": "track",
+      "title": "Wild Ocean",
+      "artistCredit": "Soft Machinery",
+      "release": {
+        "value": "2020-09-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al015"
+      },
+      "album": {
+        "id": "f_al015",
+        "name": "Static Rooms"
+      },
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t028",
+      "kind": "track",
+      "title": "Quiet Engines",
+      "artistCredit": "Tin Cathedral",
+      "release": {
+        "value": "2021-05-02",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al016"
+      },
+      "album": {
+        "id": "f_al016",
+        "name": "Quiet Kisses"
+      },
+      "genres": [
+        "r&b",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t029",
+      "kind": "track",
+      "title": "Electric Balcony",
+      "artistCredit": "Tin Cathedral",
+      "release": {
+        "value": "2021-05-02",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al016"
+      },
+      "album": {
+        "id": "f_al016",
+        "name": "Quiet Kisses"
+      },
+      "genres": [
+        "pop",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t030",
+      "kind": "track",
+      "title": "Lucid Letters",
+      "artistCredit": "Echo Park Ghosts",
+      "release": {
+        "value": "2021-01-09",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al017"
+      },
+      "album": {
+        "id": "f_al017",
+        "name": "Lucid River"
+      },
+      "genres": [
+        "alternative",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t031",
+      "kind": "track",
+      "title": "Electric Signal",
+      "artistCredit": "Echo Park Ghosts",
+      "release": {
+        "value": "2021-01-09",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al017"
+      },
+      "album": {
+        "id": "f_al017",
+        "name": "Lucid River"
+      },
+      "genres": [
+        "electronic",
+        "rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t032",
+      "kind": "track",
+      "title": "Golden Light",
+      "artistCredit": "Nell Northcott",
+      "release": {
+        "value": "2021-01-24",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al018"
+      },
+      "album": {
+        "id": "f_al018",
+        "name": "Golden Light"
+      },
+      "genres": [
+        "rock",
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t033",
+      "kind": "track",
+      "title": "Static Echo",
+      "artistCredit": "The Lanterns",
+      "release": {
+        "value": "2021-06-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al019"
+      },
+      "album": {
+        "id": "f_al019",
+        "name": "Static Echo"
+      },
+      "genres": [
+        "soul",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t034",
+      "kind": "track",
+      "title": "Silver Ocean",
+      "artistCredit": "Honey Radar",
+      "release": {
+        "value": "2020-05-17",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al020"
+      },
+      "album": {
+        "id": "f_al020",
+        "name": "Neon Echo"
+      },
+      "genres": [
+        "folk",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t035",
+      "kind": "track",
+      "title": "Hollow Parade",
+      "artistCredit": "Honey Radar",
+      "release": {
+        "value": "2020-05-17",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al020"
+      },
+      "album": {
+        "id": "f_al020",
+        "name": "Neon Echo"
+      },
+      "genres": [
+        "rock",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t036",
+      "kind": "track",
+      "title": "Late Summer",
+      "artistCredit": "Nell Bellweather",
+      "release": {
+        "value": "2019-06-03",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al021"
+      },
+      "album": {
+        "id": "f_al021",
+        "name": "Lucid Engines"
+      },
+      "genres": [
+        "r&b",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t037",
+      "kind": "track",
+      "title": "Neon Signal",
+      "artistCredit": "Nell Bellweather",
+      "release": {
+        "value": "2019-06-03",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al021"
+      },
+      "album": {
+        "id": "f_al021",
+        "name": "Lucid Engines"
+      },
+      "genres": [
+        "electronic",
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t038",
+      "kind": "track",
+      "title": "Salt Heart",
+      "artistCredit": "Nell Northcott",
+      "release": {
+        "value": "2021-07-09",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al022"
+      },
+      "album": {
+        "id": "f_al022",
+        "name": "Salt Heart"
+      },
+      "genres": [
+        "pop",
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t039",
+      "kind": "track",
+      "title": "Hollow Letters",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2005-05",
+        "precision": "month"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al023"
+      },
+      "album": {
+        "id": "f_al023",
+        "name": "Hollow Letters"
+      },
+      "genres": [
+        "dream pop",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t040",
+      "kind": "track",
+      "title": "Paper Heart",
+      "artistCredit": "Hana Sterling",
+      "release": {
+        "value": "1991",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al024"
+      },
+      "album": {
+        "id": "f_al024",
+        "name": "Late Light"
+      },
+      "genres": [
+        "electronic",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t041",
+      "kind": "track",
+      "title": "Cherry Motel",
+      "artistCredit": "Hana Sterling",
+      "release": {
+        "value": "1991",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al024"
+      },
+      "album": {
+        "id": "f_al024",
+        "name": "Late Light"
+      },
+      "genres": [
+        "rock",
+        "alternative"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t042",
+      "kind": "track",
+      "title": "Cherry Kisses",
+      "artistCredit": "Hana Sterling",
+      "release": {
+        "value": "1991",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al024"
+      },
+      "album": {
+        "id": "f_al024",
+        "name": "Late Light"
+      },
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t043",
+      "kind": "track",
+      "title": "Golden Echo",
+      "artistCredit": "Bex Sterling",
+      "release": null,
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al025"
+      },
+      "album": {
+        "id": "f_al025",
+        "name": "Golden Echo"
+      },
+      "genres": [
+        "r&b",
+        "rock"
+      ],
+      "origin": "demo",
+      "releaseNote": "No release date in the demo data."
+    },
+    {
+      "id": "f_t044",
+      "kind": "track",
+      "title": "Static Satellites",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2020-07-28",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al026"
+      },
+      "album": {
+        "id": "f_al026",
+        "name": "Midnight Weather"
+      },
+      "genres": [
+        "indie pop",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t045",
+      "kind": "track",
+      "title": "Hollow Weather",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2020-07-28",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al026"
+      },
+      "album": {
+        "id": "f_al026",
+        "name": "Midnight Weather"
+      },
+      "genres": [
+        "soul",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t046",
+      "kind": "track",
+      "title": "Lucid Hands",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2020-07-28",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al026"
+      },
+      "album": {
+        "id": "f_al026",
+        "name": "Midnight Weather"
+      },
+      "genres": [
+        "soul",
+        "hip hop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t047",
+      "kind": "track",
+      "title": "Tender Signal",
+      "artistCredit": "Paper Satellites",
+      "release": {
+        "value": "2021-11-07",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al027"
+      },
+      "album": {
+        "id": "f_al027",
+        "name": "Tender Signal"
+      },
+      "genres": [
+        "folk",
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t048",
+      "kind": "track",
+      "title": "Amber Summer",
+      "artistCredit": "Velvet Static",
+      "release": {
+        "value": "2022-05-21",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al028"
+      },
+      "album": {
+        "id": "f_al028",
+        "name": "Amber Summer"
+      },
+      "genres": [
+        "hip hop",
+        "rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t049",
+      "kind": "track",
+      "title": "Golden Summer",
+      "artistCredit": "Low Orbit Club",
+      "release": {
+        "value": "2020-10-21",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al029"
+      },
+      "album": {
+        "id": "f_al029",
+        "name": "Electric River"
+      },
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t050",
+      "kind": "track",
+      "title": "Golden Engines",
+      "artistCredit": "Low Orbit Club",
+      "release": {
+        "value": "2020-10-21",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al029"
+      },
+      "album": {
+        "id": "f_al029",
+        "name": "Electric River"
+      },
+      "genres": [
+        "rock",
+        "ambient"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t051",
+      "kind": "track",
+      "title": "Northern Signal",
+      "artistCredit": "Low Orbit Club",
+      "release": {
+        "value": "2020-10-21",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al029"
+      },
+      "album": {
+        "id": "f_al029",
+        "name": "Electric River"
+      },
+      "genres": [
+        "soul",
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t052",
+      "kind": "track",
+      "title": "Northern River",
+      "artistCredit": "Honey Radar",
+      "release": {
+        "value": "2020-09-22",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al030"
+      },
+      "album": {
+        "id": "f_al030",
+        "name": "Lucid Summer"
+      },
+      "genres": [
+        "r&b",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t053",
+      "kind": "track",
+      "title": "Lucid Signal",
+      "artistCredit": "Honey Radar",
+      "release": {
+        "value": "2020-09-22",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al030"
+      },
+      "album": {
+        "id": "f_al030",
+        "name": "Lucid Summer"
+      },
+      "genres": [
+        "pop",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t054",
+      "kind": "track",
+      "title": "Late Motel",
+      "artistCredit": "Sage Bellweather",
+      "release": {
+        "value": "1988",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al031"
+      },
+      "album": {
+        "id": "f_al031",
+        "name": "Late Motel"
+      },
+      "genres": [
+        "dream pop",
+        "alternative"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t055",
+      "kind": "track",
+      "title": "Slow Summer",
+      "artistCredit": "Tin Cathedral",
+      "release": {
+        "value": "2020-04-03",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al032"
+      },
+      "album": {
+        "id": "f_al032",
+        "name": "Slow Summer"
+      },
+      "genres": [
+        "rock",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t056",
+      "kind": "track",
+      "title": "Neon River",
+      "artistCredit": "Colm Holloway",
+      "release": {
+        "value": "2022-01-23",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al033"
+      },
+      "album": {
+        "id": "f_al033",
+        "name": "Neon River"
+      },
+      "genres": [
+        "pop",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t057",
+      "kind": "track",
+      "title": "Salt Fever",
+      "artistCredit": "Night Garden",
+      "release": {
+        "value": "2010",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al034"
+      },
+      "album": {
+        "id": "f_al034",
+        "name": "Salt Fever"
+      },
+      "genres": [
+        "dream pop",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t058",
+      "kind": "track",
+      "title": "Silver Engines",
+      "artistCredit": "Night Garden",
+      "release": null,
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al035"
+      },
+      "album": {
+        "id": "f_al035",
+        "name": "Silver Engines"
+      },
+      "genres": [
+        "electronic",
+        "r&b"
+      ],
+      "origin": "demo",
+      "releaseNote": "No release date in the demo data."
+    },
+    {
+      "id": "f_t059",
+      "kind": "track",
+      "title": "Borrowed Motel",
+      "artistCredit": "Quin Galloway",
+      "release": {
+        "value": "2020",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al036"
+      },
+      "album": {
+        "id": "f_al036",
+        "name": "Static Parade"
+      },
+      "genres": [
+        "hip hop",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t060",
+      "kind": "track",
+      "title": "Cherry Fever",
+      "artistCredit": "Quin Galloway",
+      "release": {
+        "value": "2020",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al036"
+      },
+      "album": {
+        "id": "f_al036",
+        "name": "Static Parade"
+      },
+      "genres": [
+        "alternative",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t061",
+      "kind": "track",
+      "title": "Neon Satellites",
+      "artistCredit": "Rue Fairlight",
+      "release": {
+        "value": "2023-01-07",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al037"
+      },
+      "album": {
+        "id": "f_al037",
+        "name": "Quiet Hands"
+      },
+      "genres": [
+        "alternative",
+        "ambient"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t062",
+      "kind": "track",
+      "title": "Silver Light",
+      "artistCredit": "Rue Fairlight",
+      "release": {
+        "value": "2023-01-07",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al037"
+      },
+      "album": {
+        "id": "f_al037",
+        "name": "Quiet Hands"
+      },
+      "genres": [
+        "indie pop",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t063",
+      "kind": "track",
+      "title": "Slow Rooms",
+      "artistCredit": "Dara Larkspur",
+      "release": {
+        "value": "2023-01-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al038"
+      },
+      "album": {
+        "id": "f_al038",
+        "name": "Slow Rooms"
+      },
+      "genres": [
+        "alternative",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t064",
+      "kind": "track",
+      "title": "Midnight Fever",
+      "artistCredit": "Velvet Static",
+      "release": {
+        "value": "2023-01-24",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al039"
+      },
+      "album": {
+        "id": "f_al039",
+        "name": "Lucid Kisses"
+      },
+      "genres": [
+        "folk",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t065",
+      "kind": "track",
+      "title": "Paper Kisses",
+      "artistCredit": "Velvet Static",
+      "release": {
+        "value": "2023-01-24",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al039"
+      },
+      "album": {
+        "id": "f_al039",
+        "name": "Lucid Kisses"
+      },
+      "genres": [
+        "soul",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t066",
+      "kind": "track",
+      "title": "Slow Parade",
+      "artistCredit": "Velvet Static",
+      "release": {
+        "value": "2023-01-24",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al039"
+      },
+      "album": {
+        "id": "f_al039",
+        "name": "Lucid Kisses"
+      },
+      "genres": [
+        "alternative",
+        "rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t067",
+      "kind": "track",
+      "title": "Northern Satellites",
+      "artistCredit": "Velvet Static",
+      "release": {
+        "value": "2023-01-24",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al039"
+      },
+      "album": {
+        "id": "f_al039",
+        "name": "Lucid Kisses"
+      },
+      "genres": [
+        "r&b",
+        "hip hop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t068",
+      "kind": "track",
+      "title": "Salt Dreams",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2022-06-25",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al040"
+      },
+      "album": {
+        "id": "f_al040",
+        "name": "Static River"
+      },
+      "genres": [
+        "r&b",
+        "hip hop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t069",
+      "kind": "track",
+      "title": "Electric Kisses",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2022-06-25",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al040"
+      },
+      "album": {
+        "id": "f_al040",
+        "name": "Static River"
+      },
+      "genres": [
+        "folk",
+        "ambient"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t070",
+      "kind": "track",
+      "title": "Velvet Heart",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2022-06-25",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al040"
+      },
+      "album": {
+        "id": "f_al040",
+        "name": "Static River"
+      },
+      "genres": [
+        "alternative",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t071",
+      "kind": "track",
+      "title": "Late Hands",
+      "artistCredit": "Low Orbit Club",
+      "release": {
+        "value": "2006",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al041"
+      },
+      "album": {
+        "id": "f_al041",
+        "name": "Late Hands"
+      },
+      "genres": [
+        "rock",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t072",
+      "kind": "track",
+      "title": "Neon Rooms",
+      "artistCredit": "Sage Merriweather",
+      "release": {
+        "value": "2022-07-10",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al042"
+      },
+      "album": {
+        "id": "f_al042",
+        "name": "Northern Echo"
+      },
+      "genres": [
+        "dream pop",
+        "ambient"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t073",
+      "kind": "track",
+      "title": "Cherry Heart",
+      "artistCredit": "Sage Merriweather",
+      "release": {
+        "value": "2022-07-10",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al042"
+      },
+      "album": {
+        "id": "f_al042",
+        "name": "Northern Echo"
+      },
+      "genres": [
+        "dream pop",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t074",
+      "kind": "track",
+      "title": "Northern Rooms",
+      "artistCredit": "Bex Corrigan",
+      "release": {
+        "value": "2021-02-27",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al043"
+      },
+      "album": {
+        "id": "f_al043",
+        "name": "Northern Rooms"
+      },
+      "genres": [
+        "dream pop",
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t075",
+      "kind": "track",
+      "title": "Slow Rooms",
+      "artistCredit": "Colm Rainsford",
+      "release": {
+        "value": "2006-12",
+        "precision": "month"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al044"
+      },
+      "album": {
+        "id": "f_al044",
+        "name": "Northern Hymn"
+      },
+      "genres": [
+        "alternative",
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t076",
+      "kind": "track",
+      "title": "Quiet Signal",
+      "artistCredit": "Colm Rainsford",
+      "release": {
+        "value": "2006-12",
+        "precision": "month"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al044"
+      },
+      "album": {
+        "id": "f_al044",
+        "name": "Northern Hymn"
+      },
+      "genres": [
+        "alternative",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t077",
+      "kind": "track",
+      "title": "Neon Kisses",
+      "artistCredit": "Kei Everhart",
+      "release": {
+        "value": "2022-05-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al045"
+      },
+      "album": {
+        "id": "f_al045",
+        "name": "Neon Kisses"
+      },
+      "genres": [
+        "jazz",
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t078",
+      "kind": "track",
+      "title": "Paper Heart",
+      "artistCredit": "Bex Rainsford",
+      "release": {
+        "value": "1994",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al046"
+      },
+      "album": {
+        "id": "f_al046",
+        "name": "Neon Dreams"
+      },
+      "genres": [
+        "alternative",
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t079",
+      "kind": "track",
+      "title": "Late Motel",
+      "artistCredit": "Bex Rainsford",
+      "release": {
+        "value": "1994",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al046"
+      },
+      "album": {
+        "id": "f_al046",
+        "name": "Neon Dreams"
+      },
+      "genres": [
+        "dream pop",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t080",
+      "kind": "track",
+      "title": "Silver Letters",
+      "artistCredit": "Paper Satellites",
+      "release": {
+        "value": "2024-01-17",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al047"
+      },
+      "album": {
+        "id": "f_al047",
+        "name": "Tender Letters"
+      },
+      "genres": [
+        "electronic",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t081",
+      "kind": "track",
+      "title": "Salt Motel",
+      "artistCredit": "Paper Satellites",
+      "release": {
+        "value": "2024-01-17",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al047"
+      },
+      "album": {
+        "id": "f_al047",
+        "name": "Tender Letters"
+      },
+      "genres": [
+        "ambient",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t082",
+      "kind": "track",
+      "title": "Wild Weather",
+      "artistCredit": "Paper Satellites",
+      "release": {
+        "value": "2024-01-17",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al047"
+      },
+      "album": {
+        "id": "f_al047",
+        "name": "Tender Letters"
+      },
+      "genres": [
+        "rock",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t083",
+      "kind": "track",
+      "title": "Paper Summer",
+      "artistCredit": "Nell Bellweather",
+      "release": {
+        "value": "2023-03-14",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al048"
+      },
+      "album": {
+        "id": "f_al048",
+        "name": "Tender Summer"
+      },
+      "genres": [
+        "pop",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t084",
+      "kind": "track",
+      "title": "Quiet Signal",
+      "artistCredit": "Nell Bellweather",
+      "release": {
+        "value": "2023-03-14",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al048"
+      },
+      "album": {
+        "id": "f_al048",
+        "name": "Tender Summer"
+      },
+      "genres": [
+        "rock",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t085",
+      "kind": "track",
+      "title": "Salt Weather",
+      "artistCredit": "Night Garden",
+      "release": {
+        "value": "2023-06-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al049"
+      },
+      "album": {
+        "id": "f_al049",
+        "name": "Paper Satellites"
+      },
+      "genres": [
+        "r&b",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t086",
+      "kind": "track",
+      "title": "Midnight Ocean",
+      "artistCredit": "Night Garden",
+      "release": {
+        "value": "2023-06-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al049"
+      },
+      "album": {
+        "id": "f_al049",
+        "name": "Paper Satellites"
+      },
+      "genres": [
+        "soul",
+        "folk"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t087",
+      "kind": "track",
+      "title": "Midnight Signal",
+      "artistCredit": "Night Garden",
+      "release": {
+        "value": "2023-06-11",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al049"
+      },
+      "album": {
+        "id": "f_al049",
+        "name": "Paper Satellites"
+      },
+      "genres": [
+        "soul",
+        "jazz"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t088",
+      "kind": "track",
+      "title": "Neon Dreams",
+      "artistCredit": "Bex Sterling",
+      "release": {
+        "value": "2005",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al050"
+      },
+      "album": {
+        "id": "f_al050",
+        "name": "Electric Light"
+      },
+      "genres": [
+        "alternative",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t089",
+      "kind": "track",
+      "title": "Tender Summer",
+      "artistCredit": "Bex Sterling",
+      "release": {
+        "value": "2005",
+        "precision": "year"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al050"
+      },
+      "album": {
+        "id": "f_al050",
+        "name": "Electric Light"
+      },
+      "genres": [
+        "electronic",
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t090",
+      "kind": "track",
+      "title": "Electric Parade",
+      "artistCredit": "Paper Satellites",
+      "release": {
+        "value": "2023-01-09",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al051"
+      },
+      "album": {
+        "id": "f_al051",
+        "name": "Borrowed Parade"
+      },
+      "genres": [
+        "ambient",
+        "rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t091",
+      "kind": "track",
+      "title": "Silver Heart",
+      "artistCredit": "Paper Satellites",
+      "release": {
+        "value": "2023-01-09",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al051"
+      },
+      "album": {
+        "id": "f_al051",
+        "name": "Borrowed Parade"
+      },
+      "genres": [
+        "dream pop",
+        "alternative"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t092",
+      "kind": "track",
+      "title": "Slow Rooms",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2023-03-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al052"
+      },
+      "album": {
+        "id": "f_al052",
+        "name": "Midnight River"
+      },
+      "genres": [
+        "soul",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t093",
+      "kind": "track",
+      "title": "Borrowed Balcony",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2023-03-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al052"
+      },
+      "album": {
+        "id": "f_al052",
+        "name": "Midnight River"
+      },
+      "genres": [
+        "hip hop",
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t094",
+      "kind": "track",
+      "title": "Midnight Signal",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2023-03-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al052"
+      },
+      "album": {
+        "id": "f_al052",
+        "name": "Midnight River"
+      },
+      "genres": [
+        "jazz",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t095",
+      "kind": "track",
+      "title": "Hollow Dreams",
+      "artistCredit": "Eno Juniper",
+      "release": {
+        "value": "2023-03-01",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al052"
+      },
+      "album": {
+        "id": "f_al052",
+        "name": "Midnight River"
+      },
+      "genres": [
+        "r&b",
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t096",
+      "kind": "track",
+      "title": "Hollow Motel",
+      "artistCredit": "Soft Machinery",
+      "release": {
+        "value": "2023-10-22",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al053"
+      },
+      "album": {
+        "id": "f_al053",
+        "name": "Hollow Motel"
+      },
+      "genres": [
+        "rock",
+        "r&b"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t097",
+      "kind": "track",
+      "title": "Salt Motel",
+      "artistCredit": "Rue Dunmore",
+      "release": {
+        "value": "2022-05-07",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al054"
+      },
+      "album": {
+        "id": "f_al054",
+        "name": "Amber Parade"
+      },
+      "genres": [
+        "folk",
+        "ambient"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t098",
+      "kind": "track",
+      "title": "Velvet Hands",
+      "artistCredit": "Rue Dunmore",
+      "release": {
+        "value": "2022-05-07",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al054"
+      },
+      "album": {
+        "id": "f_al054",
+        "name": "Amber Parade"
+      },
+      "genres": [
+        "jazz",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t099",
+      "kind": "track",
+      "title": "Northern Ocean",
+      "artistCredit": "Rue Dunmore",
+      "release": {
+        "value": "2022-05-07",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al054"
+      },
+      "album": {
+        "id": "f_al054",
+        "name": "Amber Parade"
+      },
+      "genres": [
+        "indie pop",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t100",
+      "kind": "track",
+      "title": "Northern Fever",
+      "artistCredit": "Rue Dunmore",
+      "release": {
+        "value": "2022-05-07",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al054"
+      },
+      "album": {
+        "id": "f_al054",
+        "name": "Amber Parade"
+      },
+      "genres": [
+        "r&b",
+        "indie pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t101",
+      "kind": "track",
+      "title": "Static Weather",
+      "artistCredit": "Bex Sterling",
+      "release": {
+        "value": "2024-01-04",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al055"
+      },
+      "album": {
+        "id": "f_al055",
+        "name": "Static Weather"
+      },
+      "genres": [
+        "soul",
+        "electronic"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t102",
+      "kind": "track",
+      "title": "Electric Rooms",
+      "artistCredit": "Glasshouse Choir",
+      "release": {
+        "value": "2025-01-20",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al056"
+      },
+      "album": {
+        "id": "f_al056",
+        "name": "Electric Rooms"
+      },
+      "genres": [
+        "indie pop",
+        "soul"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t103",
+      "kind": "track",
+      "title": "Cherry Kisses",
+      "artistCredit": "Glasshouse Choir",
+      "release": {
+        "value": "2025-01-26",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al057"
+      },
+      "album": {
+        "id": "f_al057",
+        "name": "Hollow Balcony"
+      },
+      "genres": [
+        "alternative",
+        "rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t104",
+      "kind": "track",
+      "title": "Lucid Rooms",
+      "artistCredit": "Glasshouse Choir",
+      "release": {
+        "value": "2025-01-26",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al057"
+      },
+      "album": {
+        "id": "f_al057",
+        "name": "Hollow Balcony"
+      },
+      "genres": [
+        "hip hop",
+        "alternative"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t105",
+      "kind": "track",
+      "title": "Amber Light",
+      "artistCredit": "Nell Everhart",
+      "release": {
+        "value": "2024-01-10",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al058"
+      },
+      "album": {
+        "id": "f_al058",
+        "name": "Midnight Satellites"
+      },
+      "genres": [
+        "soul",
+        "rock"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t106",
+      "kind": "track",
+      "title": "Velvet Echo",
+      "artistCredit": "Nell Everhart",
+      "release": {
+        "value": "2024-01-10",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al058"
+      },
+      "album": {
+        "id": "f_al058",
+        "name": "Midnight Satellites"
+      },
+      "genres": [
+        "alternative",
+        "hip hop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t107",
+      "kind": "track",
+      "title": "Midnight Ocean",
+      "artistCredit": "Nell Everhart",
+      "release": {
+        "value": "2024-01-10",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al058"
+      },
+      "album": {
+        "id": "f_al058",
+        "name": "Midnight Satellites"
+      },
+      "genres": [
+        "soul",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t108",
+      "kind": "track",
+      "title": "Silver Hymn",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2025-01-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al059"
+      },
+      "album": {
+        "id": "f_al059",
+        "name": "Golden Heart"
+      },
+      "genres": [
+        "hip hop",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t109",
+      "kind": "track",
+      "title": "Borrowed Satellites",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2025-01-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al059"
+      },
+      "album": {
+        "id": "f_al059",
+        "name": "Golden Heart"
+      },
+      "genres": [
+        "r&b",
+        "pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t110",
+      "kind": "track",
+      "title": "Tender River",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2025-01-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al059"
+      },
+      "album": {
+        "id": "f_al059",
+        "name": "Golden Heart"
+      },
+      "genres": [
+        "indie pop",
+        "dream pop"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t111",
+      "kind": "track",
+      "title": "Electric Summer",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2025-01-13",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al059"
+      },
+      "album": {
+        "id": "f_al059",
+        "name": "Golden Heart"
+      },
+      "genres": [
+        "pop",
+        "ambient"
+      ],
+      "origin": "demo"
+    },
+    {
+      "id": "f_t112",
+      "kind": "track",
+      "title": "Northern Balcony",
+      "artistCredit": "Sage Dunmore",
+      "release": {
+        "value": "2025-01-19",
+        "precision": "day"
+      },
+      "cover": {
+        "kind": "generated",
+        "seed": "f_al060"
+      },
+      "album": {
+        "id": "f_al060",
+        "name": "Northern Balcony"
+      },
+      "genres": [
+        "hip hop",
+        "alternative"
+      ],
+      "origin": "demo"
+    }
+  ],
+  "people": [
+    {
+      "id": "p_mara",
+      "kind": "person",
+      "name": "Mara Quell",
+      "origin": "demo",
+      "description": "Singer-songwriter."
+    },
+    {
+      "id": "p_odin",
+      "kind": "person",
+      "name": "Odin Vale",
+      "origin": "demo",
+      "description": "Producer and occasional performer."
+    },
+    {
+      "id": "p_ines",
+      "kind": "person",
+      "name": "Ines Arroyo-Weil",
+      "origin": "demo",
+      "description": "Songwriter."
+    },
+    {
+      "id": "p_june",
+      "kind": "person",
+      "name": "June Okafor-Lind",
+      "origin": "demo",
+      "description": "Vocalist and songwriter."
+    },
+    {
+      "id": "p_dash",
+      "kind": "person",
+      "name": "Dashiell Rook",
+      "origin": "demo",
+      "description": "Rapper and songwriter."
+    },
+    {
+      "id": "p_noor",
+      "kind": "person",
+      "name": "Noor Halabi",
+      "origin": "demo",
+      "description": "Producer."
+    },
+    {
+      "id": "p_lena",
+      "kind": "person",
+      "name": "Lena Moravec",
+      "origin": "demo",
+      "description": "Keyboardist and composer."
+    },
+    {
+      "id": "p_amos",
+      "kind": "person",
+      "name": "Amos Delacroix-Byrd",
+      "origin": "demo",
+      "description": "Singer and songwriter."
+    },
+    {
+      "id": "p_kit",
+      "kind": "person",
+      "name": "Kit Harrow",
+      "origin": "demo",
+      "description": "Bassist and songwriter."
+    },
+    {
+      "id": "p_sol",
+      "kind": "person",
+      "name": "Solenne Marchetti",
+      "origin": "demo",
+      "description": "Composer."
+    },
+    {
+      "id": "p_bea",
+      "kind": "person",
+      "name": "Beatrix Oyelaran",
+      "origin": "demo",
+      "description": "Harpist and composer."
+    },
+    {
+      "id": "p_wes",
+      "kind": "person",
+      "name": "Wesley Tan-Morrow",
+      "origin": "demo",
+      "description": "Recording engineer."
+    },
+    {
+      "id": "p_rafe",
+      "kind": "person",
+      "name": "Rafe Castellan",
+      "origin": "demo",
+      "description": "Producer."
+    },
+    {
+      "id": "p_iris",
+      "kind": "person",
+      "name": "Iris Vantongeren",
+      "origin": "demo",
+      "description": "Vocalist and songwriter."
+    },
+    {
+      "id": "p_tomas",
+      "kind": "person",
+      "name": "Tomás Echeverri-Blum",
+      "origin": "demo",
+      "description": "Drummer."
+    },
+    {
+      "id": "p_yuki",
+      "kind": "person",
+      "name": "Yuki Arden",
+      "origin": "demo",
+      "description": "Producer."
+    },
+    {
+      "id": "p_calla",
+      "kind": "person",
+      "name": "Calla Marsh",
+      "origin": "demo",
+      "description": "Singer and songwriter."
+    },
+    {
+      "id": "g_harbor",
+      "kind": "group",
+      "name": "The Harbor Lights",
+      "origin": "demo",
+      "description": "Soul group."
+    },
+    {
+      "id": "g_velvet",
+      "kind": "group",
+      "name": "Velvet Arcade",
+      "origin": "demo",
+      "description": "Band."
+    },
+    {
+      "id": "g_static",
+      "kind": "group",
+      "name": "Static Garden",
+      "origin": "demo",
+      "description": "Electronic duo."
+    },
+    {
+      "id": "g_moth",
+      "kind": "group",
+      "name": "Moth Choir",
+      "origin": "demo",
+      "description": "Band."
+    },
+    {
+      "id": "f_a00",
+      "kind": "person",
+      "name": "Kei Everhart",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a01",
+      "kind": "person",
+      "name": "Milo Bellweather",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a02",
+      "kind": "person",
+      "name": "Colm Rainsford",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a03",
+      "kind": "person",
+      "name": "Dara Larkspur",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a04",
+      "kind": "person",
+      "name": "Sage Bellweather",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a05",
+      "kind": "person",
+      "name": "Quin Galloway",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a06",
+      "kind": "person",
+      "name": "Bex Corrigan",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a07",
+      "kind": "person",
+      "name": "Nell Northcott",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a08",
+      "kind": "person",
+      "name": "Colm Holloway",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a09",
+      "kind": "person",
+      "name": "Nell Bellweather",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a10",
+      "kind": "person",
+      "name": "Sage Dunmore",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a11",
+      "kind": "person",
+      "name": "Hana Sterling",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a12",
+      "kind": "person",
+      "name": "Bex Sterling",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a13",
+      "kind": "person",
+      "name": "Sage Merriweather",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a14",
+      "kind": "person",
+      "name": "Bex Holloway",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a15",
+      "kind": "person",
+      "name": "Bex Rainsford",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a16",
+      "kind": "person",
+      "name": "Eno Juniper",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a17",
+      "kind": "person",
+      "name": "Nell Everhart",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a18",
+      "kind": "person",
+      "name": "Rue Dunmore",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a19",
+      "kind": "person",
+      "name": "Sage Juniper",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a20",
+      "kind": "person",
+      "name": "Rue Fairlight",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a21",
+      "kind": "group",
+      "name": "Paper Satellites",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a22",
+      "kind": "group",
+      "name": "The Quiet Hours",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a23",
+      "kind": "group",
+      "name": "Glasshouse Choir",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a24",
+      "kind": "group",
+      "name": "Low Orbit Club",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a25",
+      "kind": "group",
+      "name": "Velvet Static",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a26",
+      "kind": "group",
+      "name": "Soft Machinery",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a27",
+      "kind": "group",
+      "name": "The Lanterns",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a28",
+      "kind": "group",
+      "name": "Honey Radar",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a29",
+      "kind": "group",
+      "name": "Night Garden",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a30",
+      "kind": "group",
+      "name": "Tin Cathedral",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a31",
+      "kind": "group",
+      "name": "Blue Hour Society",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    },
+    {
+      "id": "f_a32",
+      "kind": "group",
+      "name": "Echo Park Ghosts",
+      "origin": "demo",
+      "description": "Fictional artist (demo filler)."
+    }
+  ],
+  "collection": [
+    {
+      "trackId": "f_t008",
+      "savedAt": "2019-02-06T04:14:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t003",
+      "savedAt": "2019-02-25T17:36:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_glass",
+      "savedAt": "2019-04-12T21:14:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t005",
+      "savedAt": "2019-05-23T12:56:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t006",
+      "savedAt": "2019-06-06T19:07:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t002",
+      "savedAt": "2019-07-04T16:26:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_nightbus",
+      "savedAt": "2019-07-30T01:52:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t007",
+      "savedAt": "2019-08-13T17:17:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t000",
+      "savedAt": "2019-08-16T21:34:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t004",
+      "savedAt": "2019-08-23T21:04:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t001",
+      "savedAt": "2019-09-17T15:56:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_satellite",
+      "savedAt": "2019-11-05T08:03:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t012",
+      "savedAt": "2020-01-19T04:34:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t019",
+      "savedAt": "2020-02-08T03:14:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_orchard",
+      "savedAt": "2020-03-21T23:40:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t011",
+      "savedAt": "2020-04-15T05:07:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t018",
+      "savedAt": "2020-05-07T22:38:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t010",
+      "savedAt": "2020-07-04T15:40:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_fever",
+      "savedAt": "2020-08-02T17:22:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t021",
+      "savedAt": "2020-08-06T13:50:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t016",
+      "savedAt": "2020-08-12T07:34:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t020",
+      "savedAt": "2020-08-20T19:53:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t014",
+      "savedAt": "2020-09-03T04:06:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t013",
+      "savedAt": "2020-10-04T03:54:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t015",
+      "savedAt": "2020-11-10T20:55:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t009",
+      "savedAt": "2020-11-12T19:36:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t017",
+      "savedAt": "2020-11-26T06:51:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_undertow",
+      "savedAt": "2020-12-24T04:11:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_loose",
+      "savedAt": "2021-02-14T13:37:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t035",
+      "savedAt": "2021-03-27T13:54:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t034",
+      "savedAt": "2021-04-04T02:16:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_ceiling",
+      "savedAt": "2021-05-03T09:30:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t037",
+      "savedAt": "2021-05-03T19:54:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "h_lowtide",
+      "savedAt": "2021-06-11T22:05:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t032",
+      "savedAt": "2021-07-13T15:10:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t033",
+      "savedAt": "2021-07-24T11:01:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t027",
+      "savedAt": "2021-09-02T10:43:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_mercury",
+      "savedAt": "2021-09-02T18:48:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t025",
+      "savedAt": "2021-09-14T04:03:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t023",
+      "savedAt": "2021-09-18T04:01:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t026",
+      "savedAt": "2021-10-01T04:11:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t030",
+      "savedAt": "2021-10-05T13:07:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t028",
+      "savedAt": "2021-10-18T00:48:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_ferry",
+      "savedAt": "2021-11-19T00:26:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t029",
+      "savedAt": "2021-11-20T16:12:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t024",
+      "savedAt": "2021-12-05T13:55:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t022",
+      "savedAt": "2021-12-06T05:08:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t036",
+      "savedAt": "2021-12-06T13:57:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t031",
+      "savedAt": "2021-12-08T13:04:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t051",
+      "savedAt": "2022-01-02T04:40:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t040",
+      "savedAt": "2022-01-24T16:35:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t043",
+      "savedAt": "2022-01-27T04:00:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_quiet",
+      "savedAt": "2022-03-07T07:15:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t046",
+      "savedAt": "2022-04-02T09:13:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t047",
+      "savedAt": "2022-04-17T00:05:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t054",
+      "savedAt": "2022-04-24T20:29:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t052",
+      "savedAt": "2022-05-01T14:51:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t045",
+      "savedAt": "2022-05-15T00:16:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_saltwater",
+      "savedAt": "2022-06-01T19:59:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t042",
+      "savedAt": "2022-07-17T09:44:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t048",
+      "savedAt": "2022-08-03T18:33:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t041",
+      "savedAt": "2022-08-04T21:52:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t056",
+      "savedAt": "2022-08-22T15:18:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "h_dial",
+      "savedAt": "2022-09-09T02:44:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t050",
+      "savedAt": "2022-09-19T00:52:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t039",
+      "savedAt": "2022-09-25T06:18:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t038",
+      "savedAt": "2022-10-05T01:33:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t055",
+      "savedAt": "2022-10-05T10:16:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t044",
+      "savedAt": "2022-10-08T22:18:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t053",
+      "savedAt": "2022-11-17T02:47:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t049",
+      "savedAt": "2022-12-17T20:27:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t072",
+      "savedAt": "2023-01-14T22:48:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_hollow",
+      "savedAt": "2023-01-15T15:02:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t069",
+      "savedAt": "2023-02-11T07:23:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t073",
+      "savedAt": "2023-02-13T16:54:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_amber",
+      "savedAt": "2023-03-10T11:18:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t068",
+      "savedAt": "2023-03-18T06:15:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t057",
+      "savedAt": "2023-04-10T02:59:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t076",
+      "savedAt": "2023-05-17T18:12:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t071",
+      "savedAt": "2023-05-19T11:08:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_signal",
+      "savedAt": "2023-07-04T20:31:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t060",
+      "savedAt": "2023-07-10T23:09:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t065",
+      "savedAt": "2023-08-06T15:26:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t058",
+      "savedAt": "2023-08-09T12:13:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t059",
+      "savedAt": "2023-08-16T12:01:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t063",
+      "savedAt": "2023-08-25T11:50:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t061",
+      "savedAt": "2023-09-12T02:25:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t067",
+      "savedAt": "2023-10-18T21:25:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t062",
+      "savedAt": "2023-10-25T08:54:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_orbit",
+      "savedAt": "2023-10-30T06:49:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t075",
+      "savedAt": "2023-11-09T16:40:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t064",
+      "savedAt": "2023-11-25T04:41:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t077",
+      "savedAt": "2023-11-27T07:30:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t074",
+      "savedAt": "2023-12-23T20:54:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t066",
+      "savedAt": "2023-12-24T20:16:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t070",
+      "savedAt": "2023-12-28T13:24:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_ghostnote",
+      "savedAt": "2024-01-20T14:25:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t087",
+      "savedAt": "2024-01-23T15:12:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t085",
+      "savedAt": "2024-02-01T02:17:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t095",
+      "savedAt": "2024-02-03T08:39:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t098",
+      "savedAt": "2024-02-13T08:15:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t093",
+      "savedAt": "2024-02-17T06:25:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t097",
+      "savedAt": "2024-03-08T07:09:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t084",
+      "savedAt": "2024-03-11T06:11:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t083",
+      "savedAt": "2024-03-13T14:57:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t091",
+      "savedAt": "2024-04-04T15:45:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_borrowed",
+      "savedAt": "2024-04-13T10:10:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t078",
+      "savedAt": "2024-04-16T21:41:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t096",
+      "savedAt": "2024-04-24T17:54:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t088",
+      "savedAt": "2024-04-26T20:49:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t090",
+      "savedAt": "2024-05-01T23:48:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t100",
+      "savedAt": "2024-06-02T09:14:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t089",
+      "savedAt": "2024-08-03T01:16:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_tidal",
+      "savedAt": "2024-08-08T21:00:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t082",
+      "savedAt": "2024-08-16T13:58:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t086",
+      "savedAt": "2024-09-25T06:24:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t081",
+      "savedAt": "2024-09-25T09:06:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t080",
+      "savedAt": "2024-10-07T09:49:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t092",
+      "savedAt": "2024-10-08T10:55:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t094",
+      "savedAt": "2024-11-02T15:35:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t079",
+      "savedAt": "2024-11-14T11:14:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t099",
+      "savedAt": "2024-11-15T01:06:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_porch",
+      "savedAt": "2024-12-01T16:33:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t101",
+      "savedAt": "2024-12-20T22:39:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t107",
+      "savedAt": "2025-01-13T18:56:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t112",
+      "savedAt": "2025-02-02T12:33:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t110",
+      "savedAt": "2025-02-10T04:53:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t109",
+      "savedAt": "2025-02-17T05:59:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_ferryback",
+      "savedAt": "2025-02-20T12:12:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t103",
+      "savedAt": "2025-04-03T13:06:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t105",
+      "savedAt": "2025-04-14T00:55:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t108",
+      "savedAt": "2025-05-12T23:32:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t111",
+      "savedAt": "2025-05-21T12:05:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t106",
+      "savedAt": "2025-06-13T06:00:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t104",
+      "savedAt": "2025-06-18T02:41:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "c_undertone",
+      "savedAt": "2025-06-18T23:58:00Z",
+      "source": "demo"
+    },
+    {
+      "trackId": "f_t102",
+      "savedAt": "2025-06-21T06:52:00Z",
+      "source": "demo"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r001",
+      "type": "samples",
+      "from": "c_glass",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The opening drum break and horn stab of “Low Tide Signal” are looped under the first verse of “Glass Harbor”. The original recording itself is used."
+      }
+    },
+    {
+      "id": "r002",
+      "type": "interpolates",
+      "from": "c_signal",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "“Signal Fire” re-sings the chorus melody and lyric of “Low Tide Signal” with new instrumentation. No audio from the 1974 recording is used, so the link is to the composition."
+      }
+    },
+    {
+      "id": "r003",
+      "type": "interpolates",
+      "from": "c_nightbus",
+      "to": "h_paper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The hook of “Night Bus Hymn” re-performs the melody of the “Paper Moons Over Ohio” chorus with rewritten lyrics."
+      }
+    },
+    {
+      "id": "r004",
+      "type": "samples",
+      "from": "c_satellite",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "A slowed harp figure from “Copper Rain” runs through the whole of “Satellite Lullaby”."
+      }
+    },
+    {
+      "id": "r005",
+      "type": "samples",
+      "from": "c_fever",
+      "to": "h_neon",
+      "evidence": {
+        "status": "disputed",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "A two-bar keyboard phrase in “Fever Almanac” closely resembles the intro of “Neon Psalm”.",
+        "caveat": "The demo liner notes credit a sample, but the demo label catalog lists no clearance and the producer described the part as replayed. Treat as unconfirmed."
+      }
+    },
+    {
+      "id": "r006",
+      "type": "samples",
+      "from": "c_loose",
+      "to": "h_brass",
+      "evidence": {
+        "status": "undocumented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "A fan post says the horn loop in “Loose Tape No. 4” comes from “Brass for the Weary”.",
+        "caveat": "Only a fictional forum post names this sample. There are no liner notes or clearance records in the demo data."
+      }
+    },
+    {
+      "id": "r007",
+      "type": "interpolates",
+      "from": "c_ceiling",
+      "to": "h_sundial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The verse melody of “Ceiling Fan Gospel” is adapted from the main theme of “Sundial Waltz”, moved into 4/4."
+      }
+    },
+    {
+      "id": "r008",
+      "type": "samples",
+      "from": "c_quiet",
+      "to": "h_ghost",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Static Garden sample their own 2004 recording: a reversed vocal from “Ghost Frequencies” becomes the pad in “Quiet Machinery”."
+      }
+    },
+    {
+      "id": "r009",
+      "type": "samples",
+      "from": "c_saltwater",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The guitar intro of “Glass Harbor” is chopped into the beat of “Saltwater Receipts”. The sample passes through “Glass Harbor”, which itself samples “Low Tide Signal”."
+      }
+    },
+    {
+      "id": "r010",
+      "type": "samples",
+      "from": "c_borrowed",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "A single plucked harp chord from “Copper Rain” is pitched down and repeated in the bridge of “Borrowed Light”."
+      }
+    },
+    {
+      "id": "r011",
+      "type": "interpolates",
+      "from": "c_porch",
+      "to": "h_sundial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The piano introduction of “Porchlight Standard” quotes the first eight bars of the “Sundial Waltz” theme."
+      }
+    },
+    {
+      "id": "r012",
+      "type": "samples",
+      "from": "c_undertone",
+      "to": "h_dial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The vocal run at the end of “Dial Tone Heart” is sampled and looped as the hook of “Undertone”. June Okafor-Lind is also credited as a writer."
+      }
+    },
+    {
+      "id": "r013",
+      "type": "credit",
+      "from": "g_harbor",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Harbor Lights is credited as primary artist on “Low Tide Signal”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r014",
+      "type": "credit",
+      "from": "g_harbor",
+      "to": "h_brass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Harbor Lights is credited as primary artist on “Brass for the Weary”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r015",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "h_paper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd is credited as primary artist on “Paper Moons Over Ohio”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r016",
+      "type": "credit",
+      "from": "p_sol",
+      "to": "h_sundial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Solenne Marchetti is credited as primary artist on “Sundial Waltz”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r017",
+      "type": "credit",
+      "from": "p_bea",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Beatrix Oyelaran is credited as primary artist on “Copper Rain”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r018",
+      "type": "credit",
+      "from": "g_velvet",
+      "to": "h_neon",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Velvet Arcade is credited as primary artist on “Neon Psalm”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r019",
+      "type": "credit",
+      "from": "p_june",
+      "to": "h_dial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as primary artist on “Dial Tone Heart”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r020",
+      "type": "credit",
+      "from": "g_static",
+      "to": "h_ghost",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Static Garden is credited as primary artist on “Ghost Frequencies”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r021",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as primary artist on “Glass Harbor”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r022",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as primary artist on “Night Bus Hymn”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r023",
+      "type": "credit",
+      "from": "g_static",
+      "to": "c_satellite",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Static Garden is credited as primary artist on “Satellite Lullaby”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r024",
+      "type": "credit",
+      "from": "p_lena",
+      "to": "c_orchard",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Lena Moravec is credited as primary artist on “Orchard Static”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r025",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_fever",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as primary artist on “Fever Almanac”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r026",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_undertow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as primary artist on “Undertow Choir”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r027",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_loose",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as primary artist on “Loose Tape No. 4”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r028",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_ceiling",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as primary artist on “Ceiling Fan Gospel”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r029",
+      "type": "credit",
+      "from": "g_moth",
+      "to": "c_mercury",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Moth Choir is credited as primary artist on “Mercury Porch”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r030",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as primary artist on “Last Ferry to Nowhere”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r031",
+      "type": "credit",
+      "from": "g_static",
+      "to": "c_quiet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Static Garden is credited as primary artist on “Quiet Machinery”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r032",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as primary artist on “Saltwater Receipts”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r033",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as primary artist on “Saltwater Receipts”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r034",
+      "type": "credit",
+      "from": "p_iris",
+      "to": "c_hollow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Iris Vantongeren is credited as primary artist on “Hollow Radio”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r035",
+      "type": "credit",
+      "from": "p_bea",
+      "to": "c_amber",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Beatrix Oyelaran is credited as primary artist on “Amber Interval”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r036",
+      "type": "credit",
+      "from": "p_lena",
+      "to": "c_amber",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Lena Moravec is credited as primary artist on “Amber Interval”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r037",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as primary artist on “Signal Fire (Low Tide Version)”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r038",
+      "type": "credit",
+      "from": "g_moth",
+      "to": "c_orbit",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Moth Choir is credited as primary artist on “Orbit of Small Things”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r039",
+      "type": "credit",
+      "from": "p_tomas",
+      "to": "c_ghostnote",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is credited as primary artist on “Ghost Note Parade”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r040",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_borrowed",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as primary artist on “Borrowed Light”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r041",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_tidal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as primary artist on “Tidal Arithmetic”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r042",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_porch",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as primary artist on “Porchlight Standard”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r043",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_ferryback",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as primary artist on “Ferry Back”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r044",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferryback",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as primary artist on “Ferry Back”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r045",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_undertone",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as primary artist on “Undertone”."
+      },
+      "role": "primary artist"
+    },
+    {
+      "id": "r046",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as featured artist on “Night Bus Hymn”."
+      },
+      "role": "featured artist"
+    },
+    {
+      "id": "r047",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as featured artist on “Last Ferry to Nowhere”."
+      },
+      "role": "featured artist"
+    },
+    {
+      "id": "r048",
+      "type": "credit",
+      "from": "p_tomas",
+      "to": "c_mercury",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is credited as drums on “Mercury Porch”."
+      },
+      "role": "drums"
+    },
+    {
+      "id": "r049",
+      "type": "credit",
+      "from": "p_lena",
+      "to": "c_quiet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Lena Moravec is credited as keyboards on “Quiet Machinery”."
+      },
+      "role": "keyboards"
+    },
+    {
+      "id": "r050",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "h_neon",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Neon Psalm”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r051",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "h_dial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Dial Tone Heart”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r052",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "h_ghost",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Ghost Frequencies”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r053",
+      "type": "credit",
+      "from": "p_bea",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Beatrix Oyelaran is credited as producer on “Copper Rain”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r054",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Glass Harbor”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r055",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Night Bus Hymn”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r056",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_satellite",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Satellite Lullaby”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r057",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_orchard",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Orchard Static”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r058",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "c_fever",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Fever Almanac”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r059",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_undertow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Undertow Choir”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r060",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_loose",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Loose Tape No. 4”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r061",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_ceiling",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Ceiling Fan Gospel”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r062",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_mercury",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Mercury Porch”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r063",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Last Ferry to Nowhere”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r064",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_quiet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Quiet Machinery”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r065",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Saltwater Receipts”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r066",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "c_hollow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Hollow Radio”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r067",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_amber",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Amber Interval”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r068",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Signal Fire (Low Tide Version)”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r069",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_orbit",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Orbit of Small Things”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r070",
+      "type": "credit",
+      "from": "p_rafe",
+      "to": "c_ghostnote",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rafe Castellan is credited as producer on “Ghost Note Parade”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r071",
+      "type": "credit",
+      "from": "p_yuki",
+      "to": "c_borrowed",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is credited as producer on “Borrowed Light”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r072",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_tidal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Tidal Arithmetic”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r073",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_porch",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Porchlight Standard”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r074",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferryback",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as producer on “Ferry Back”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r075",
+      "type": "credit",
+      "from": "p_noor",
+      "to": "c_undertone",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is credited as producer on “Undertone”."
+      },
+      "role": "producer"
+    },
+    {
+      "id": "r076",
+      "type": "credit",
+      "from": "p_wes",
+      "to": "c_orchard",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Wesley Tan-Morrow is credited as recording engineer on “Orchard Static”."
+      },
+      "role": "recording engineer"
+    },
+    {
+      "id": "r077",
+      "type": "credit",
+      "from": "p_wes",
+      "to": "c_tidal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Wesley Tan-Morrow is credited as recording engineer on “Tidal Arithmetic”."
+      },
+      "role": "recording engineer"
+    },
+    {
+      "id": "r078",
+      "type": "credit",
+      "from": "p_sol",
+      "to": "h_sundial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Solenne Marchetti is credited as writer on “Sundial Waltz”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r079",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "h_paper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd is credited as writer on “Paper Moons Over Ohio”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r080",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd is credited as writer on “Low Tide Signal”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r081",
+      "type": "credit",
+      "from": "p_kit",
+      "to": "h_lowtide",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Kit Harrow is credited as writer on “Low Tide Signal”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r082",
+      "type": "credit",
+      "from": "p_bea",
+      "to": "h_copper",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Beatrix Oyelaran is credited as writer on “Copper Rain”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r083",
+      "type": "credit",
+      "from": "p_iris",
+      "to": "h_neon",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Iris Vantongeren is credited as writer on “Neon Psalm”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r084",
+      "type": "credit",
+      "from": "p_tomas",
+      "to": "h_neon",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is credited as writer on “Neon Psalm”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r085",
+      "type": "credit",
+      "from": "p_june",
+      "to": "h_dial",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as writer on “Dial Tone Heart”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r086",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Glass Harbor”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r087",
+      "type": "credit",
+      "from": "p_ines",
+      "to": "c_glass",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Ines Arroyo-Weil is credited as writer on “Glass Harbor”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r088",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_undertow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Undertow Choir”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r089",
+      "type": "credit",
+      "from": "p_ines",
+      "to": "c_undertow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Ines Arroyo-Weil is credited as writer on “Undertow Choir”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r090",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_fever",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as writer on “Fever Almanac”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r091",
+      "type": "credit",
+      "from": "p_iris",
+      "to": "c_hollow",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Iris Vantongeren is credited as writer on “Hollow Radio”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r092",
+      "type": "credit",
+      "from": "p_odin",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Odin Vale is credited as writer on “Last Ferry to Nowhere”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r093",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_ferry",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Last Ferry to Nowhere”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r094",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as writer on “Saltwater Receipts”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r095",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as writer on “Saltwater Receipts”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r096",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_saltwater",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Saltwater Receipts”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r097",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_borrowed",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as writer on “Borrowed Light”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r098",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_porch",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as writer on “Porchlight Standard”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r099",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_undertone",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as writer on “Undertone”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r100",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_undertone",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as writer on “Undertone”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r101",
+      "type": "credit",
+      "from": "p_june",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "June Okafor-Lind is credited as writer on “Night Bus Hymn”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r102",
+      "type": "credit",
+      "from": "p_dash",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dashiell Rook is credited as writer on “Night Bus Hymn”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r103",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "c_nightbus",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd receives a writing credit on “Night Bus Hymn” because it interpolates his composition “Paper Moons Over Ohio”."
+      },
+      "role": "writer (interpolated composition)"
+    },
+    {
+      "id": "r104",
+      "type": "credit",
+      "from": "p_mara",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Mara Quell is credited as writer on “Signal Fire (Low Tide Version)”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r105",
+      "type": "credit",
+      "from": "p_amos",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited as a writer because “Signal Fire” re-performs the “Low Tide Signal” composition he co-wrote."
+      },
+      "role": "writer (interpolated composition)"
+    },
+    {
+      "id": "r106",
+      "type": "credit",
+      "from": "p_kit",
+      "to": "c_signal",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited as a writer because “Signal Fire” re-performs the “Low Tide Signal” composition he co-wrote."
+      },
+      "role": "writer (interpolated composition)"
+    },
+    {
+      "id": "r107",
+      "type": "credit",
+      "from": "p_calla",
+      "to": "c_ceiling",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is credited as writer on “Ceiling Fan Gospel”."
+      },
+      "role": "writer"
+    },
+    {
+      "id": "r108",
+      "type": "credit",
+      "from": "p_sol",
+      "to": "c_ceiling",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Solenne Marchetti is credited as a composer because the verse melody adapts her “Sundial Waltz”."
+      },
+      "role": "composer (interpolated composition)"
+    },
+    {
+      "id": "r109",
+      "type": "credit",
+      "from": "p_sol",
+      "to": "c_porch",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited because the piano introduction quotes her “Sundial Waltz” theme."
+      },
+      "role": "composer (interpolated composition)"
+    },
+    {
+      "id": "r110",
+      "type": "member_of",
+      "from": "p_amos",
+      "to": "g_harbor",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Amos Delacroix-Byrd is listed as a member of The Harbor Lights (1969–1978)."
+      },
+      "role": "1969–1978"
+    },
+    {
+      "id": "r111",
+      "type": "member_of",
+      "from": "p_kit",
+      "to": "g_harbor",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Kit Harrow is listed as a member of The Harbor Lights (1969–1978)."
+      },
+      "role": "1969–1978"
+    },
+    {
+      "id": "r112",
+      "type": "member_of",
+      "from": "p_iris",
+      "to": "g_velvet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Iris Vantongeren is listed as a member of Velvet Arcade (1990–1997)."
+      },
+      "role": "1990–1997"
+    },
+    {
+      "id": "r113",
+      "type": "member_of",
+      "from": "p_tomas",
+      "to": "g_velvet",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is listed as a member of Velvet Arcade (1990–1997)."
+      },
+      "role": "1990–1997"
+    },
+    {
+      "id": "r114",
+      "type": "member_of",
+      "from": "p_noor",
+      "to": "g_static",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Noor Halabi is listed as a member of Static Garden (2002–present)."
+      },
+      "role": "2002–present"
+    },
+    {
+      "id": "r115",
+      "type": "member_of",
+      "from": "p_lena",
+      "to": "g_static",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Lena Moravec is listed as a member of Static Garden (2002–present)."
+      },
+      "role": "2002–present"
+    },
+    {
+      "id": "r116",
+      "type": "member_of",
+      "from": "p_calla",
+      "to": "g_moth",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Calla Marsh is listed as a member of Moth Choir (2020–present)."
+      },
+      "role": "2020–present"
+    },
+    {
+      "id": "r117",
+      "type": "member_of",
+      "from": "p_yuki",
+      "to": "g_moth",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Yuki Arden is listed as a member of Moth Choir (2020–present)."
+      },
+      "role": "2020–present"
+    },
+    {
+      "id": "r118",
+      "type": "member_of",
+      "from": "p_tomas",
+      "to": "g_moth",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tomás Echeverri-Blum is listed as a member of Moth Choir (2020–present)."
+      },
+      "role": "2020–present"
+    },
+    {
+      "id": "r119",
+      "type": "collaboration",
+      "from": "p_mara",
+      "to": "p_odin",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited together on “Glass Harbor”, “Undertow Choir”, “Last Ferry to Nowhere”, “Signal Fire (Low Tide Version)” and “Ferry Back”. This records shared credits only; it says nothing about their personal relationship."
+      },
+      "role": "5 shared credits"
+    },
+    {
+      "id": "r120",
+      "type": "collaboration",
+      "from": "p_dash",
+      "to": "p_rafe",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Credited together on “Fever Almanac” and “Saltwater Receipts”. Shared credits only."
+      },
+      "role": "2 shared credits"
+    },
+    {
+      "id": "rf001",
+      "type": "credit",
+      "from": "f_a12",
+      "to": "f_t000",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Sterling is credited as primary artist on “Borrowed Ocean”."
+      }
+    },
+    {
+      "id": "rf002",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t001",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Silver Hymn”."
+      }
+    },
+    {
+      "id": "rf003",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t002",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Slow Balcony”."
+      }
+    },
+    {
+      "id": "rf004",
+      "type": "credit",
+      "from": "f_a31",
+      "to": "f_t003",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Blue Hour Society is credited as primary artist on “Midnight Summer”."
+      }
+    },
+    {
+      "id": "rf005",
+      "type": "credit",
+      "from": "f_a22",
+      "to": "f_t004",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Quiet Hours is credited as primary artist on “Silver Parade”."
+      }
+    },
+    {
+      "id": "rf006",
+      "type": "credit",
+      "from": "f_a22",
+      "to": "f_t005",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Quiet Hours is credited as primary artist on “Amber Fever”."
+      }
+    },
+    {
+      "id": "rf007",
+      "type": "credit",
+      "from": "f_a22",
+      "to": "f_t006",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Quiet Hours is credited as primary artist on “Neon Fever”."
+      }
+    },
+    {
+      "id": "rf008",
+      "type": "credit",
+      "from": "f_a18",
+      "to": "f_t007",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rue Dunmore is credited as primary artist on “Golden Motel”."
+      }
+    },
+    {
+      "id": "rf009",
+      "type": "credit",
+      "from": "f_a17",
+      "to": "f_t008",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Everhart is credited as primary artist on “Midnight Light”."
+      }
+    },
+    {
+      "id": "rf010",
+      "type": "credit",
+      "from": "f_a31",
+      "to": "f_t009",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Blue Hour Society is credited as primary artist on “Amber Weather”."
+      }
+    },
+    {
+      "id": "rf011",
+      "type": "credit",
+      "from": "f_a32",
+      "to": "f_t010",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Echo Park Ghosts is credited as primary artist on “Tender Echo”."
+      }
+    },
+    {
+      "id": "rf012",
+      "type": "credit",
+      "from": "f_a32",
+      "to": "f_t011",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Echo Park Ghosts is credited as primary artist on “Velvet Signal”."
+      }
+    },
+    {
+      "id": "rf013",
+      "type": "credit",
+      "from": "f_a32",
+      "to": "f_t012",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Echo Park Ghosts is credited as primary artist on “Paper Ocean”."
+      }
+    },
+    {
+      "id": "rf014",
+      "type": "credit",
+      "from": "f_a01",
+      "to": "f_t013",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Milo Bellweather is credited as primary artist on “Wild Light”."
+      }
+    },
+    {
+      "id": "rf015",
+      "type": "credit",
+      "from": "f_a01",
+      "to": "f_t014",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Milo Bellweather is credited as primary artist on “Cherry River”."
+      }
+    },
+    {
+      "id": "rf016",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t015",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Lucid Heart”."
+      }
+    },
+    {
+      "id": "rf017",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t016",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Static Light”."
+      }
+    },
+    {
+      "id": "rf018",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t017",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Electric Motel”."
+      }
+    },
+    {
+      "id": "rf019",
+      "type": "credit",
+      "from": "f_a14",
+      "to": "f_t018",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Holloway is credited as primary artist on “Late River”."
+      }
+    },
+    {
+      "id": "rf020",
+      "type": "credit",
+      "from": "f_a14",
+      "to": "f_t019",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Holloway is credited as primary artist on “Borrowed Light”."
+      }
+    },
+    {
+      "id": "rf021",
+      "type": "credit",
+      "from": "f_a14",
+      "to": "f_t020",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Holloway is credited as primary artist on “Electric Letters”."
+      }
+    },
+    {
+      "id": "rf022",
+      "type": "credit",
+      "from": "f_a22",
+      "to": "f_t021",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Quiet Hours is credited as primary artist on “Silver Ocean”."
+      }
+    },
+    {
+      "id": "rf023",
+      "type": "credit",
+      "from": "f_a25",
+      "to": "f_t022",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Velvet Static is credited as primary artist on “Salt Echo”."
+      }
+    },
+    {
+      "id": "rf024",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t023",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Borrowed Rooms”."
+      }
+    },
+    {
+      "id": "rf025",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t024",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Quiet Engines”."
+      }
+    },
+    {
+      "id": "rf026",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t025",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Velvet Satellites”."
+      }
+    },
+    {
+      "id": "rf027",
+      "type": "credit",
+      "from": "f_a26",
+      "to": "f_t026",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Soft Machinery is credited as primary artist on “Salt Weather”."
+      }
+    },
+    {
+      "id": "rf028",
+      "type": "credit",
+      "from": "f_a26",
+      "to": "f_t027",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Soft Machinery is credited as primary artist on “Wild Ocean”."
+      }
+    },
+    {
+      "id": "rf029",
+      "type": "credit",
+      "from": "f_a30",
+      "to": "f_t028",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tin Cathedral is credited as primary artist on “Quiet Engines”."
+      }
+    },
+    {
+      "id": "rf030",
+      "type": "credit",
+      "from": "f_a30",
+      "to": "f_t029",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tin Cathedral is credited as primary artist on “Electric Balcony”."
+      }
+    },
+    {
+      "id": "rf031",
+      "type": "credit",
+      "from": "f_a32",
+      "to": "f_t030",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Echo Park Ghosts is credited as primary artist on “Lucid Letters”."
+      }
+    },
+    {
+      "id": "rf032",
+      "type": "credit",
+      "from": "f_a32",
+      "to": "f_t031",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Echo Park Ghosts is credited as primary artist on “Electric Signal”."
+      }
+    },
+    {
+      "id": "rf033",
+      "type": "credit",
+      "from": "f_a07",
+      "to": "f_t032",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Northcott is credited as primary artist on “Golden Light”."
+      }
+    },
+    {
+      "id": "rf034",
+      "type": "credit",
+      "from": "f_a27",
+      "to": "f_t033",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "The Lanterns is credited as primary artist on “Static Echo”."
+      }
+    },
+    {
+      "id": "rf035",
+      "type": "credit",
+      "from": "f_a28",
+      "to": "f_t034",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Honey Radar is credited as primary artist on “Silver Ocean”."
+      }
+    },
+    {
+      "id": "rf036",
+      "type": "credit",
+      "from": "f_a28",
+      "to": "f_t035",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Honey Radar is credited as primary artist on “Hollow Parade”."
+      }
+    },
+    {
+      "id": "rf037",
+      "type": "credit",
+      "from": "f_a09",
+      "to": "f_t036",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Bellweather is credited as primary artist on “Late Summer”."
+      }
+    },
+    {
+      "id": "rf038",
+      "type": "credit",
+      "from": "f_a09",
+      "to": "f_t037",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Bellweather is credited as primary artist on “Neon Signal”."
+      }
+    },
+    {
+      "id": "rf039",
+      "type": "credit",
+      "from": "f_a07",
+      "to": "f_t038",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Northcott is credited as primary artist on “Salt Heart”."
+      }
+    },
+    {
+      "id": "rf040",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t039",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Hollow Letters”."
+      }
+    },
+    {
+      "id": "rf041",
+      "type": "credit",
+      "from": "f_a11",
+      "to": "f_t040",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Hana Sterling is credited as primary artist on “Paper Heart”."
+      }
+    },
+    {
+      "id": "rf042",
+      "type": "credit",
+      "from": "f_a11",
+      "to": "f_t041",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Hana Sterling is credited as primary artist on “Cherry Motel”."
+      }
+    },
+    {
+      "id": "rf043",
+      "type": "credit",
+      "from": "f_a11",
+      "to": "f_t042",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Hana Sterling is credited as primary artist on “Cherry Kisses”."
+      }
+    },
+    {
+      "id": "rf044",
+      "type": "credit",
+      "from": "f_a12",
+      "to": "f_t043",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Sterling is credited as primary artist on “Golden Echo”."
+      }
+    },
+    {
+      "id": "rf045",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t044",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Static Satellites”."
+      }
+    },
+    {
+      "id": "rf046",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t045",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Hollow Weather”."
+      }
+    },
+    {
+      "id": "rf047",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t046",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Lucid Hands”."
+      }
+    },
+    {
+      "id": "rf048",
+      "type": "credit",
+      "from": "f_a21",
+      "to": "f_t047",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Paper Satellites is credited as primary artist on “Tender Signal”."
+      }
+    },
+    {
+      "id": "rf049",
+      "type": "credit",
+      "from": "f_a25",
+      "to": "f_t048",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Velvet Static is credited as primary artist on “Amber Summer”."
+      }
+    },
+    {
+      "id": "rf050",
+      "type": "credit",
+      "from": "f_a24",
+      "to": "f_t049",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Low Orbit Club is credited as primary artist on “Golden Summer”."
+      }
+    },
+    {
+      "id": "rf051",
+      "type": "credit",
+      "from": "f_a24",
+      "to": "f_t050",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Low Orbit Club is credited as primary artist on “Golden Engines”."
+      }
+    },
+    {
+      "id": "rf052",
+      "type": "credit",
+      "from": "f_a24",
+      "to": "f_t051",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Low Orbit Club is credited as primary artist on “Northern Signal”."
+      }
+    },
+    {
+      "id": "rf053",
+      "type": "credit",
+      "from": "f_a28",
+      "to": "f_t052",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Honey Radar is credited as primary artist on “Northern River”."
+      }
+    },
+    {
+      "id": "rf054",
+      "type": "credit",
+      "from": "f_a28",
+      "to": "f_t053",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Honey Radar is credited as primary artist on “Lucid Signal”."
+      }
+    },
+    {
+      "id": "rf055",
+      "type": "credit",
+      "from": "f_a04",
+      "to": "f_t054",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Bellweather is credited as primary artist on “Late Motel”."
+      }
+    },
+    {
+      "id": "rf056",
+      "type": "credit",
+      "from": "f_a30",
+      "to": "f_t055",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Tin Cathedral is credited as primary artist on “Slow Summer”."
+      }
+    },
+    {
+      "id": "rf057",
+      "type": "credit",
+      "from": "f_a08",
+      "to": "f_t056",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Colm Holloway is credited as primary artist on “Neon River”."
+      }
+    },
+    {
+      "id": "rf058",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t057",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Salt Fever”."
+      }
+    },
+    {
+      "id": "rf059",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t058",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Silver Engines”."
+      }
+    },
+    {
+      "id": "rf060",
+      "type": "credit",
+      "from": "f_a05",
+      "to": "f_t059",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Quin Galloway is credited as primary artist on “Borrowed Motel”."
+      }
+    },
+    {
+      "id": "rf061",
+      "type": "credit",
+      "from": "f_a05",
+      "to": "f_t060",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Quin Galloway is credited as primary artist on “Cherry Fever”."
+      }
+    },
+    {
+      "id": "rf062",
+      "type": "credit",
+      "from": "f_a20",
+      "to": "f_t061",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rue Fairlight is credited as primary artist on “Neon Satellites”."
+      }
+    },
+    {
+      "id": "rf063",
+      "type": "credit",
+      "from": "f_a20",
+      "to": "f_t062",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rue Fairlight is credited as primary artist on “Silver Light”."
+      }
+    },
+    {
+      "id": "rf064",
+      "type": "credit",
+      "from": "f_a03",
+      "to": "f_t063",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Dara Larkspur is credited as primary artist on “Slow Rooms”."
+      }
+    },
+    {
+      "id": "rf065",
+      "type": "credit",
+      "from": "f_a25",
+      "to": "f_t064",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Velvet Static is credited as primary artist on “Midnight Fever”."
+      }
+    },
+    {
+      "id": "rf066",
+      "type": "credit",
+      "from": "f_a25",
+      "to": "f_t065",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Velvet Static is credited as primary artist on “Paper Kisses”."
+      }
+    },
+    {
+      "id": "rf067",
+      "type": "credit",
+      "from": "f_a25",
+      "to": "f_t066",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Velvet Static is credited as primary artist on “Slow Parade”."
+      }
+    },
+    {
+      "id": "rf068",
+      "type": "credit",
+      "from": "f_a25",
+      "to": "f_t067",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Velvet Static is credited as primary artist on “Northern Satellites”."
+      }
+    },
+    {
+      "id": "rf069",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t068",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Salt Dreams”."
+      }
+    },
+    {
+      "id": "rf070",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t069",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Electric Kisses”."
+      }
+    },
+    {
+      "id": "rf071",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t070",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Velvet Heart”."
+      }
+    },
+    {
+      "id": "rf072",
+      "type": "credit",
+      "from": "f_a24",
+      "to": "f_t071",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Low Orbit Club is credited as primary artist on “Late Hands”."
+      }
+    },
+    {
+      "id": "rf073",
+      "type": "credit",
+      "from": "f_a13",
+      "to": "f_t072",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Merriweather is credited as primary artist on “Neon Rooms”."
+      }
+    },
+    {
+      "id": "rf074",
+      "type": "credit",
+      "from": "f_a13",
+      "to": "f_t073",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Merriweather is credited as primary artist on “Cherry Heart”."
+      }
+    },
+    {
+      "id": "rf075",
+      "type": "credit",
+      "from": "f_a06",
+      "to": "f_t074",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Corrigan is credited as primary artist on “Northern Rooms”."
+      }
+    },
+    {
+      "id": "rf076",
+      "type": "credit",
+      "from": "f_a02",
+      "to": "f_t075",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Colm Rainsford is credited as primary artist on “Slow Rooms”."
+      }
+    },
+    {
+      "id": "rf077",
+      "type": "credit",
+      "from": "f_a02",
+      "to": "f_t076",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Colm Rainsford is credited as primary artist on “Quiet Signal”."
+      }
+    },
+    {
+      "id": "rf078",
+      "type": "credit",
+      "from": "f_a00",
+      "to": "f_t077",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Kei Everhart is credited as primary artist on “Neon Kisses”."
+      }
+    },
+    {
+      "id": "rf079",
+      "type": "credit",
+      "from": "f_a15",
+      "to": "f_t078",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Rainsford is credited as primary artist on “Paper Heart”."
+      }
+    },
+    {
+      "id": "rf080",
+      "type": "credit",
+      "from": "f_a15",
+      "to": "f_t079",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Rainsford is credited as primary artist on “Late Motel”."
+      }
+    },
+    {
+      "id": "rf081",
+      "type": "credit",
+      "from": "f_a21",
+      "to": "f_t080",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Paper Satellites is credited as primary artist on “Silver Letters”."
+      }
+    },
+    {
+      "id": "rf082",
+      "type": "credit",
+      "from": "f_a21",
+      "to": "f_t081",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Paper Satellites is credited as primary artist on “Salt Motel”."
+      }
+    },
+    {
+      "id": "rf083",
+      "type": "credit",
+      "from": "f_a21",
+      "to": "f_t082",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Paper Satellites is credited as primary artist on “Wild Weather”."
+      }
+    },
+    {
+      "id": "rf084",
+      "type": "credit",
+      "from": "f_a09",
+      "to": "f_t083",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Bellweather is credited as primary artist on “Paper Summer”."
+      }
+    },
+    {
+      "id": "rf085",
+      "type": "credit",
+      "from": "f_a09",
+      "to": "f_t084",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Bellweather is credited as primary artist on “Quiet Signal”."
+      }
+    },
+    {
+      "id": "rf086",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t085",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Salt Weather”."
+      }
+    },
+    {
+      "id": "rf087",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t086",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Midnight Ocean”."
+      }
+    },
+    {
+      "id": "rf088",
+      "type": "credit",
+      "from": "f_a29",
+      "to": "f_t087",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Night Garden is credited as primary artist on “Midnight Signal”."
+      }
+    },
+    {
+      "id": "rf089",
+      "type": "credit",
+      "from": "f_a12",
+      "to": "f_t088",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Sterling is credited as primary artist on “Neon Dreams”."
+      }
+    },
+    {
+      "id": "rf090",
+      "type": "credit",
+      "from": "f_a12",
+      "to": "f_t089",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Sterling is credited as primary artist on “Tender Summer”."
+      }
+    },
+    {
+      "id": "rf091",
+      "type": "credit",
+      "from": "f_a21",
+      "to": "f_t090",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Paper Satellites is credited as primary artist on “Electric Parade”."
+      }
+    },
+    {
+      "id": "rf092",
+      "type": "credit",
+      "from": "f_a21",
+      "to": "f_t091",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Paper Satellites is credited as primary artist on “Silver Heart”."
+      }
+    },
+    {
+      "id": "rf093",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t092",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Slow Rooms”."
+      }
+    },
+    {
+      "id": "rf094",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t093",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Borrowed Balcony”."
+      }
+    },
+    {
+      "id": "rf095",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t094",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Midnight Signal”."
+      }
+    },
+    {
+      "id": "rf096",
+      "type": "credit",
+      "from": "f_a16",
+      "to": "f_t095",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Eno Juniper is credited as primary artist on “Hollow Dreams”."
+      }
+    },
+    {
+      "id": "rf097",
+      "type": "credit",
+      "from": "f_a26",
+      "to": "f_t096",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Soft Machinery is credited as primary artist on “Hollow Motel”."
+      }
+    },
+    {
+      "id": "rf098",
+      "type": "credit",
+      "from": "f_a18",
+      "to": "f_t097",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rue Dunmore is credited as primary artist on “Salt Motel”."
+      }
+    },
+    {
+      "id": "rf099",
+      "type": "credit",
+      "from": "f_a18",
+      "to": "f_t098",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rue Dunmore is credited as primary artist on “Velvet Hands”."
+      }
+    },
+    {
+      "id": "rf100",
+      "type": "credit",
+      "from": "f_a18",
+      "to": "f_t099",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rue Dunmore is credited as primary artist on “Northern Ocean”."
+      }
+    },
+    {
+      "id": "rf101",
+      "type": "credit",
+      "from": "f_a18",
+      "to": "f_t100",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Rue Dunmore is credited as primary artist on “Northern Fever”."
+      }
+    },
+    {
+      "id": "rf102",
+      "type": "credit",
+      "from": "f_a12",
+      "to": "f_t101",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Bex Sterling is credited as primary artist on “Static Weather”."
+      }
+    },
+    {
+      "id": "rf103",
+      "type": "credit",
+      "from": "f_a23",
+      "to": "f_t102",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Glasshouse Choir is credited as primary artist on “Electric Rooms”."
+      }
+    },
+    {
+      "id": "rf104",
+      "type": "credit",
+      "from": "f_a23",
+      "to": "f_t103",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Glasshouse Choir is credited as primary artist on “Cherry Kisses”."
+      }
+    },
+    {
+      "id": "rf105",
+      "type": "credit",
+      "from": "f_a23",
+      "to": "f_t104",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Glasshouse Choir is credited as primary artist on “Lucid Rooms”."
+      }
+    },
+    {
+      "id": "rf106",
+      "type": "credit",
+      "from": "f_a17",
+      "to": "f_t105",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Everhart is credited as primary artist on “Amber Light”."
+      }
+    },
+    {
+      "id": "rf107",
+      "type": "credit",
+      "from": "f_a17",
+      "to": "f_t106",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Everhart is credited as primary artist on “Velvet Echo”."
+      }
+    },
+    {
+      "id": "rf108",
+      "type": "credit",
+      "from": "f_a17",
+      "to": "f_t107",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Nell Everhart is credited as primary artist on “Midnight Ocean”."
+      }
+    },
+    {
+      "id": "rf109",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t108",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Silver Hymn”."
+      }
+    },
+    {
+      "id": "rf110",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t109",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Borrowed Satellites”."
+      }
+    },
+    {
+      "id": "rf111",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t110",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Tender River”."
+      }
+    },
+    {
+      "id": "rf112",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t111",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Electric Summer”."
+      }
+    },
+    {
+      "id": "rf113",
+      "type": "credit",
+      "from": "f_a10",
+      "to": "f_t112",
+      "role": "primary artist",
+      "evidence": {
+        "status": "documented",
+        "fictional": true,
+        "sourceLabel": "Fictional demo liner notes",
+        "explanation": "Sage Dunmore is credited as primary artist on “Northern Balcony”."
+      }
+    }
+  ],
+  "playlists": [
+    {
+      "id": "pl0",
+      "name": "late night drives",
+      "trackIds": [
+        "c_ceiling",
+        "f_t025",
+        "h_dial",
+        "f_t051",
+        "f_t001",
+        "f_t004",
+        "f_t065",
+        "f_t034",
+        "f_t095",
+        "f_t081",
+        "f_t076",
+        "f_t078",
+        "f_t096",
+        "c_glass",
+        "h_lowtide"
+      ]
+    },
+    {
+      "id": "pl1",
+      "name": "senior year",
+      "trackIds": [
+        "f_t066",
+        "f_t082",
+        "c_ferryback",
+        "f_t089",
+        "f_t024",
+        "f_t002",
+        "f_t008",
+        "f_t112",
+        "f_t094",
+        "f_t048",
+        "f_t080",
+        "f_t099",
+        "f_t097",
+        "c_undertow",
+        "c_glass"
+      ]
+    },
+    {
+      "id": "pl2",
+      "name": "rainy walks",
+      "trackIds": [
+        "f_t037",
+        "f_t064",
+        "f_t090",
+        "f_t074",
+        "f_t013",
+        "c_tidal",
+        "f_t103",
+        "f_t105",
+        "f_t001"
+      ]
+    },
+    {
+      "id": "pl3",
+      "name": "gym (don't judge)",
+      "trackIds": [
+        "h_lowtide",
+        "f_t020",
+        "c_signal",
+        "f_t105",
+        "f_t016",
+        "f_t019",
+        "f_t103",
+        "c_ghostnote"
+      ]
+    },
+    {
+      "id": "pl4",
+      "name": "sunday mornings",
+      "trackIds": [
+        "f_t032",
+        "c_nightbus",
+        "f_t018",
+        "c_loose",
+        "f_t051",
+        "h_lowtide",
+        "f_t112",
+        "f_t069",
+        "f_t028",
+        "f_t052",
+        "c_orbit",
+        "f_t050",
+        "f_t026",
+        "f_t065",
+        "f_t049",
+        "f_t081",
+        "f_t027",
+        "f_t039",
+        "c_signal"
+      ]
+    },
+    {
+      "id": "pl5",
+      "name": "songs for mara",
+      "trackIds": [
+        "c_porch",
+        "f_t046",
+        "f_t055",
+        "f_t103",
+        "f_t048",
+        "f_t060",
+        "f_t070",
+        "f_t004",
+        "f_t040",
+        "f_t022",
+        "f_t084",
+        "f_t030",
+        "f_t072",
+        "f_t058",
+        "c_ghostnote",
+        "c_ferry"
+      ]
+    },
+    {
+      "id": "pl6",
+      "name": "study hall",
+      "trackIds": [
+        "f_t055",
+        "f_t035",
+        "c_undertone",
+        "f_t012",
+        "f_t077",
+        "f_t086",
+        "f_t106",
+        "f_t017",
+        "f_t050",
+        "f_t098",
+        "f_t070",
+        "c_ghostnote",
+        "f_t066",
+        "c_mercury",
+        "f_t059",
+        "f_t016",
+        "c_tidal",
+        "c_saltwater",
+        "f_t024",
+        "c_amber"
+      ]
+    },
+    {
+      "id": "pl7",
+      "name": "summer 2023",
+      "trackIds": [
+        "f_t111",
+        "f_t050",
+        "f_t071",
+        "c_signal",
+        "f_t008",
+        "f_t000",
+        "f_t052",
+        "f_t025",
+        "f_t073",
+        "f_t090",
+        "c_borrowed",
+        "f_t108",
+        "f_t074",
+        "f_t012",
+        "h_lowtide",
+        "f_t112",
+        "c_saltwater",
+        "c_satellite",
+        "f_t002",
+        "f_t019",
+        "f_t075"
+      ]
+    }
+  ]
+}

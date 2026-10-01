@@ -31,3 +31,28 @@ scale so one can be read against the other.
 
 The dancer really answers — a language model reads your rhythm and dances back. A few turns
 each, since it runs on a class budget.
+
+---
+
+## Week 3 — Do You See What I Mean?
+
+Pictionary, except you paint with your face. You get a simple prompt and 90 seconds; your
+webcam watches your head and face, and those movements steer the brush. Afterwards your face
+and your painting replay side by side, in sync — the machine measured every expression, but
+did it ever understand what you were trying to draw?
+
+**[Paint with your face](https://cvd9683-gif.github.io/do-you-see-what-i-mean/)**
+· [Source](https://github.com/cvd9683-gif/do-you-see-what-i-mean)
+
+---
+
+## Week 4 — Music Map
+
+A song has a history before it becomes part of yours. Move through tracks by the date they
+were saved, then open one into a map of the recordings, samples, interpolations and people
+connected to it. Each route is recorded as a journey — JSON saved under your name to
+localStorage, or Firebase once configured — so you can return to the original track, listen
+again, and note what you hear now. Connects to Spotify for your saved tracks and search.
+
+**[Open the map](week-4-music-map/site/)**
+· [Source and setup](week-4-music-map/)

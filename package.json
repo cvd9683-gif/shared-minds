@@ -1,0 +1,6 @@
+{
+  "name": "shared-minds",
+  "private": true,
+  "type": "module",
+  "description": "Class site: static pages, plus api/genius.js (a Vercel function used by Music Map)."
+}
