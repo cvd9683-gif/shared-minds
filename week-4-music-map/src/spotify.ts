@@ -3,6 +3,7 @@
 // search. Spotify supplies track artists, album release dates and cover art; it
 // does not supply samples, interpolations or detailed credits.
 
+import { siteConfig } from './config';
 import type { Dataset, PartialDate, Person, Playlist, Relationship, Track } from './types';
 
 const CLIENT_ID_KEY = 'musicMap:spotifyClientId';
@@ -28,8 +29,14 @@ export function missingScopes(): string[] {
   return SCOPES.filter((s) => !granted.has(s));
 }
 
+/** A visitor's own Spotify app comes first, then the developer's .env, then the site's shared app. */
 export function spotifyClientId(): string | null {
-  return import.meta.env.VITE_SPOTIFY_CLIENT_ID || localStorage.getItem(CLIENT_ID_KEY);
+  return localStorage.getItem(CLIENT_ID_KEY) || import.meta.env.VITE_SPOTIFY_CLIENT_ID || siteConfig().spotifyClientId || null;
+}
+
+/** True when connecting goes through the site owner's shared Spotify app. */
+export function usingSharedApp(): boolean {
+  return !localStorage.getItem(CLIENT_ID_KEY) && !import.meta.env.VITE_SPOTIFY_CLIENT_ID && !!siteConfig().spotifyClientId;
 }
 
 export function saveSpotifyClientId(id: string): void {
@@ -38,7 +45,8 @@ export function saveSpotifyClientId(id: string): void {
 }
 
 export function redirectUri(): string {
-  return location.origin + location.pathname;
+  // ".../site/" and ".../site/index.html" are the same page; Spotify needs one exact URI.
+  return location.origin + location.pathname.replace(/index\.html$/, '');
 }
 
 function readToken(): Token | null {
@@ -188,7 +196,7 @@ async function api<T>(path: string, retried = false): Promise<T> {
   if (!res.ok) {
     const hint =
       res.status === 403
-        ? ' In Development Mode, the app owner must add your Spotify account under User Management.'
+        ? ' Spotify only lets accounts the app owner has added (User Management) use this app. Ask for access, or connect with your own Spotify app.'
         : '';
     throw new SpotifyError(`Spotify request failed (${res.status}).${hint}`, res.status);
   }

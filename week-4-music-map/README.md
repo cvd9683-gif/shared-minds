@@ -93,16 +93,38 @@ and tighten them when Firebase Auth replaces `prompt()`.
 Copy `.env.example` to `.env.local`, or paste the values into **Saving to… →
 Connections** in the app (they're stored in this browser).
 
+**Making it work for everyone (hosted site)**
+
+The hosted site reads `site/config.json` (source: `public/config.json`), which you can
+edit on GitHub without rebuilding:
+
+- `spotifyClientId`: your Spotify app's Client ID. Visitors then just press *Connect*.
+- `geniusProxy`: the URL of the Genius proxy (see `genius-proxy/README.md`), so every
+  visitor gets samples and credits without a token.
+- `liveUrl`: the hosted address. Previews (such as a claude.ai artifact) run the app
+  inside a frame, where Spotify's sign-in refuses to load, so the app links here instead.
+
+Spotify limits who can use a Development Mode app: only accounts you add under
+*User Management* can sign in through it, and Spotify grants wider access only to
+registered organisations. Anyone else can connect with their own free Spotify app.
+The Connect dialog walks them through it and shows the exact Redirect URI.
+
 **Spotify**
 
 1. Create an app at <https://developer.spotify.com/dashboard> and choose Web API.
-2. Add the Redirect URI `http://127.0.0.1:5173/` (and the deployed `…/week-4-music-map/site/` address). Spotify no longer
+2. Add the Redirect URIs `http://127.0.0.1:5173/` and
+   `https://cvd9683-gif.github.io/shared-minds/week-4-music-map/site/`. Spotify no longer
    accepts `localhost`, which is why the dev server binds to `127.0.0.1`.
-3. Put the Client ID in `VITE_SPOTIFY_CLIENT_ID`, or paste it in the app (**⋯ → Set up Spotify**).
-   The app asks only for read access: saved tracks (`user-library-read`) and your
-   playlists (`playlist-read-private`, `playlist-read-collaborative`).
-4. In Development Mode, add each classmate's Spotify account under *User
-   Management*, or their requests will be refused (403).
+3. Put the Client ID in `config.json` (everyone), `VITE_SPOTIFY_CLIENT_ID` (local dev), or
+   paste it in the app. The app asks only for read access: saved tracks
+   (`user-library-read`) and your playlists (`playlist-read-private`, `playlist-read-collaborative`).
+4. Add each classmate's Spotify account under *User Management*, or Spotify refuses
+   their requests (403).
+
+**Genius**
+
+Locally, put `GENIUS_TOKEN=…` in `.env.local`; the dev server adds it to Genius requests
+and it never ends up in the built site. For the hosted site, deploy `genius-proxy/`.
 
 **Firebase**
 

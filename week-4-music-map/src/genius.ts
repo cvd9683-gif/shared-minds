@@ -2,15 +2,26 @@
 // Genius documents what a song samples, what samples it, interpolations, covers,
 // remixes and live versions, plus producer, writer and other credits. Nothing is
 // inferred: each relationship links back to the Genius page it came from.
-// The token is read-only and stays in this browser. When the browser can't reach
-// the API directly (CORS), the local dev server proxies it at /genius-api.
+// Requests go, in order of preference, through: a token saved in this browser
+// (direct, or via the dev server's /genius-api when CORS blocks it); the site's
+// Genius proxy from config.json (so every visitor gets Genius without a token);
+// or the dev server, when GENIUS_TOKEN is set in .env.local.
 
+import { siteConfig } from './config';
 import type { Dataset, PartialDate, Person, Relationship, Track } from './types';
 
 const TOKEN_KEY = 'musicMap:geniusToken';
 
 export function geniusToken(): string | null {
-  return import.meta.env.VITE_GENIUS_TOKEN || localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY) || import.meta.env.VITE_GENIUS_TOKEN || null;
+}
+
+/** Where Genius comes from right now, or null when it isn't available. */
+export function geniusSource(): 'token' | 'site' | 'dev' | null {
+  if (geniusToken()) return 'token';
+  if (siteConfig().geniusProxy) return 'site';
+  if (import.meta.env.DEV && __GENIUS_DEV__) return 'dev';
+  return null;
 }
 
 export function saveGeniusToken(token: string): void {
@@ -19,16 +30,25 @@ export function saveGeniusToken(token: string): void {
 }
 
 async function genius<T>(path: string): Promise<T> {
+  const source = geniusSource();
   const token = geniusToken();
-  if (!token) throw new Error('Add a Genius access token first.');
-  const sep = path.includes('?') ? '&' : '?';
-  // A token in the query (not a header) keeps this a simple request with no CORS preflight.
-  const url = `${path}${sep}access_token=${encodeURIComponent(token)}`;
   let res: Response;
-  try {
-    res = await fetch(`https://api.genius.com${url}`);
-  } catch {
-    res = await fetch(`/genius-api${url}`);
+  if (source === 'token' && token) {
+    const sep = path.includes('?') ? '&' : '?';
+    // A token in the query (not a header) keeps this a simple request with no CORS preflight.
+    const url = `${path}${sep}access_token=${encodeURIComponent(token)}`;
+    try {
+      res = await fetch(`https://api.genius.com${url}`);
+    } catch {
+      if (!import.meta.env.DEV && siteConfig().geniusProxy) res = await fetch(`${siteConfig().geniusProxy}?path=${encodeURIComponent(path)}`);
+      else res = await fetch(`/genius-api${url}`);
+    }
+  } else if (source === 'site') {
+    res = await fetch(`${siteConfig().geniusProxy}?path=${encodeURIComponent(path)}`);
+  } else if (source === 'dev') {
+    res = await fetch(`/genius-api${path}`);
+  } else {
+    throw new Error('Genius isn’t set up.');
   }
   if (!res.ok) throw new Error(`Genius request failed (${res.status}).`);
   return (await res.json()).response as T;

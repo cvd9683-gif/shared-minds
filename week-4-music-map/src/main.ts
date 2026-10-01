@@ -22,7 +22,8 @@ import {
 } from './graph';
 import { JourneyRecorder, describeScene, pathAfter, type PathStep, type SaveStatus } from './journey';
 import { artistGenres, enrichFromMusicBrainz } from './musicbrainz';
-import { enrichFromGenius, geniusToken, saveGeniusToken } from './genius';
+import { enrichFromGenius, geniusSource, geniusToken, saveGeniusToken } from './genius';
+import { isFramed, loadConfig, siteConfig } from './config';
 import { NetworkView, type Scene, type SceneEdge, type SceneNode } from './network';
 import * as spotify from './spotify';
 import {
@@ -152,6 +153,7 @@ class MusicMapApp {
 
   async init(): Promise<void> {
     document.getElementById('build-ver')!.textContent = `Version ${__BUILD__}`;
+    await loadConfig();
     const login = await spotify
       .completeLoginFromUrl()
       .catch((e: Error) => ({ completed: false, error: e.message }));
@@ -2070,7 +2072,7 @@ class MusicMapApp {
       case 'reconnect-spotify':
         // Sign in again so Spotify grants the playlist permission; the library re-imports on return.
         spotify.disconnect();
-        return void spotify.beginLogin(true).catch((e: Error) => this.say(e.message));
+        return void this.login(true);
       case 'close-data':
         this.showData = false;
         return this.renderPanel();
@@ -2081,7 +2083,7 @@ class MusicMapApp {
       case 'import':
         return void this.importLibrary();
       case 'connect':
-        return void spotify.beginLogin().catch((e: Error) => this.say(e.message));
+        return void this.login();
       case 'disconnect':
         spotify.disconnect();
         this.renderChrome();
@@ -2229,7 +2231,7 @@ class MusicMapApp {
       people: this.graph.neighbors(id).map((n) => this.graph.people.get(n.otherId)).filter((p) => !!p),
     });
     const notes: string[] = [];
-    if (geniusToken()) {
+    if (geniusSource()) {
       try {
         const res = await enrichFromGenius(t, known());
         this.addData(res.data);
@@ -2245,7 +2247,7 @@ class MusicMapApp {
     } catch (err) {
       notes.push(`MusicBrainz unreachable (${(err as Error).message})`);
     }
-    if (!geniusToken()) notes.push('Add a Genius token (Spotify & sources) for samples, covers and remixes.');
+    if (!geniusSource()) notes.push('Genius isn’t set up, so samples, covers and remixes may be missing.');
     this.mbStatus.set(id, notes.join(' '));
     const done = new Set<string>(JSON.parse(localStorage.getItem(ENRICHED_KEY) ?? '[]'));
     done.add(id);
@@ -2279,6 +2281,15 @@ class MusicMapApp {
     btn.setAttribute('aria-label', connected ? 'Spotify connected: manage' : 'Connect Spotify');
   }
 
+  /** Goes to Spotify's sign-in, except inside a preview frame, where Spotify refuses to load. */
+  private async login(chooseAccount = false): Promise<void> {
+    if (isFramed()) {
+      if (chooseAccount) spotify.disconnect();
+      return this.openSpotifyDialog();
+    }
+    return spotify.beginLogin(chooseAccount).catch((e: Error) => this.say(e.message));
+  }
+
   private openSpotifyDialog(): void {
     const dialog = document.getElementById('spotify-dialog') as HTMLDialogElement;
     this.renderSpotifyDialog();
@@ -2292,12 +2303,12 @@ class MusicMapApp {
     const hasLib = !!localStorage.getItem(LIBRARY_KEY);
     const imported = localStorage.getItem(IMPORTED_KEY);
     const redirect = spotify.redirectUri();
-    let main: string;
-    if (!clientId || editId) {
-      main = `
+    const cfg = siteConfig();
+    const owner = cfg.owner || 'the site owner';
+    const ownAppSteps = `
         <ol class="mm-steps">
           <li>
-            <p><strong>Create a Spotify app</strong> at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> and tick <em>Web API</em>.</p>
+            <p><strong>Create a Spotify app</strong> at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a>: any name and description, tick <em>Web API</em>.</p>
           </li>
           <li>
             <p><strong>Add this Redirect URI</strong> to the app:</p>
@@ -2306,11 +2317,27 @@ class MusicMapApp {
           <li>
             <p><strong>Paste the app's Client ID</strong></p>
             <form class="mm-inline-form"><label class="sr-only" for="sp-client">Client ID</label>
-              <input id="sp-client" autocomplete="off" spellcheck="false" value="${h(clientId ?? '')}" placeholder="Client ID" />
+              <input id="sp-client" autocomplete="off" spellcheck="false" value="${h(spotify.usingSharedApp() ? '' : clientId ?? '')}" placeholder="Client ID" />
               <button type="submit" class="mm-btn mm-btn--spotify">Save &amp; connect</button></form>
           </li>
         </ol>
-        <p class="mm-muted mm-small">Spotify asks for Premium on development apps, and each listener has to be added under the app's <em>User Management</em>.</p>`;
+        <p class="mm-muted mm-small">Your own app works for your account straight away. Spotify asks for Premium on new apps.</p>
+        ${cfg.spotifyClientId && !spotify.usingSharedApp() ? '<button type="button" class="mm-link" data-sp="use-shared">Go back to the shared app</button>' : ''}`;
+    let main: string;
+    if (isFramed() && !connected) {
+      // Spotify's sign-in page refuses to load inside another page, which shows as "content is blocked".
+      main = `
+        <p>Spotify won't open its sign-in inside a preview window. Open Music Map in its own tab to connect.</p>
+        ${cfg.liveUrl ? `<div class="mm-dialog__actions mm-dialog__actions--left"><a class="mm-btn mm-btn--spotify" href="${h(cfg.liveUrl)}" target="_blank" rel="noopener">Open Music Map</a></div>` : ''}`;
+    } else if (!clientId || editId) {
+      main = ownAppSteps;
+    } else if (!connected && spotify.usingSharedApp()) {
+      main = `
+        <p>Spotify will ask you to approve read-only access to your saved songs and the playlists you made.</p>
+        <div class="mm-dialog__actions mm-dialog__actions--left">
+          <button type="button" class="mm-btn mm-btn--spotify" data-sp="connect">Connect Spotify</button>
+        </div>
+        <p class="mm-muted mm-small">Spotify only lets accounts that ${h(owner)} has added sign in through this app. If it turns you away, send ${h(owner)} the email address on your Spotify account, or <button type="button" class="mm-link" data-sp="edit-id">use your own Spotify app</button> (about 2 minutes).</p>`;
     } else if (!connected) {
       main = `
         <p>Ready to connect. Spotify will ask you to approve read-only access to your saved songs and the playlists you made.</p>
@@ -2331,19 +2358,24 @@ class MusicMapApp {
         <div class="mm-dialog__actions mm-dialog__actions--left">
           <button type="button" class="mm-link" data-sp="switch">Use a different Spotify account</button>
           <button type="button" class="mm-link" data-sp="disconnect">Disconnect</button>
-          <button type="button" class="mm-link" data-sp="edit-id">Change Client ID</button>
+          ${spotify.usingSharedApp() ? '' : '<button type="button" class="mm-link" data-sp="edit-id">Change Client ID</button>'}
         </div>`;
     }
     const token = geniusToken();
+    const gSource = geniusSource();
     body.innerHTML = `
       <div class="mm-dialog__head"><h2 id="spotify-title">Spotify</h2><button type="button" class="mm-callout__close" data-sp="close" aria-label="Close">×</button></div>
       ${main}
       <hr />
       <h3 class="mm-dialog__sub">Song history sources</h3>
-      <p class="mm-muted mm-small"><strong>Genius</strong> adds what songs sample, what sampled them, interpolations, covers, remixes and producer/writer credits. Get a free <em>Client Access Token</em> at <a href="https://genius.com/api-clients" target="_blank" rel="noopener">genius.com/api-clients</a>. It stays in this browser. <strong>MusicBrainz</strong> is used automatically.</p>
+      ${
+        gSource === 'site' || gSource === 'dev'
+          ? '<p class="mm-muted mm-small"><span class="mm-connect__dot"></span><strong>Genius</strong> is on: samples, interpolations, covers, remixes and credits. <strong>MusicBrainz</strong> is used too.</p>'
+          : `<p class="mm-muted mm-small"><strong>Genius</strong> adds what songs sample, what sampled them, interpolations, covers, remixes and producer/writer credits. Get a free <em>Client Access Token</em> at <a href="https://genius.com/api-clients" target="_blank" rel="noopener">genius.com/api-clients</a>. It stays in this browser. <strong>MusicBrainz</strong> is used automatically.</p>
       <div class="mm-inline-form"><label class="sr-only" for="genius-token">Genius access token</label>
         <input id="genius-token" type="password" autocomplete="off" spellcheck="false" value="${h(token ?? '')}" placeholder="Genius Client Access Token" />
-        <button type="button" class="mm-btn" data-sp="save-genius">${token ? 'Update' : 'Save'}</button></div>`;
+        <button type="button" class="mm-btn" data-sp="save-genius">${token ? 'Update' : 'Save'}</button></div>`
+      }`;
   }
 
   private async handleSpotifyAction(action: string): Promise<void> {
@@ -2360,13 +2392,13 @@ class MusicMapApp {
         if (!id) return;
         spotify.saveSpotifyClientId(id);
         spotify.disconnect();
-        return spotify.beginLogin().catch((e: Error) => this.say(e.message));
+        return this.login();
       }
       case 'connect':
-        return spotify.beginLogin().catch((e: Error) => this.say(e.message));
+        return this.login();
       case 'switch':
         spotify.disconnect();
-        return spotify.beginLogin(true).catch((e: Error) => this.say(e.message));
+        return this.login(true);
       case 'disconnect':
         spotify.disconnect();
         this.useDataset('demo');
@@ -2374,6 +2406,10 @@ class MusicMapApp {
         return;
       case 'edit-id':
         return this.renderSpotifyDialog(true);
+      case 'use-shared':
+        spotify.saveSpotifyClientId('');
+        spotify.disconnect();
+        return this.renderSpotifyDialog();
       case 'import':
         await this.importLibrary();
         return this.renderSpotifyDialog();
