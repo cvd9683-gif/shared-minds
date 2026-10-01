@@ -31,7 +31,7 @@ export function saveGeniusToken(token: string): void {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
-async function genius<T>(path: string): Promise<T> {
+export async function genius<T>(path: string): Promise<T> {
   const source = geniusSource();
   const token = geniusToken();
   let res: Response;

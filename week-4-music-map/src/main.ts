@@ -24,6 +24,7 @@ import { JourneyRecorder, describeScene, pathAfter, type PathStep, type SaveStat
 import { artistGenres, enrichFromMusicBrainz } from './musicbrainz';
 import { enrichFromGenius, geniusSource, geniusToken, saveGeniusToken } from './genius';
 import { isFramed, loadConfig, siteConfig } from './config';
+import { cachedProfile, lifeLine, loadProfile, type ArtistProfile } from './artist';
 import { NetworkView, type Scene, type SceneEdge, type SceneNode } from './network';
 import * as spotify from './spotify';
 import {
@@ -34,7 +35,7 @@ import {
   saveFirebaseSettings,
   type Store,
 } from './store';
-import type { Dataset, Journey, Node, Relationship, Thought, Track, ViewMode, YearData } from './types';
+import type { Dataset, Journey, Node, Person, Relationship, Thought, Track, ViewMode, YearData } from './types';
 
 const DATASET_KEY = 'musicMap:dataset';
 const LIBRARY_KEY = 'musicMap:spotifyLibrary';
@@ -1458,9 +1459,11 @@ class MusicMapApp {
 
   /**
    * The guide panel on the right of the Historical Timeline. Before a song is open
-   * it explains how to read the map; with a song open it walks through that song in
-   * numbered steps (the song, what it samples, where it's been sampled or
-   * re-performed, who made it, what else they made). Every entry is clickable.
+   * it explains how to read the map. With a song open it tells that song's story
+   * in order: what it samples, where it lives on, who made it, what else they made.
+   * With an artist open it tells their own history: where and when they began, the
+   * groups they belong to, their records over time and a short biography, then
+   * where they appear in your map. Every name and cover is a way further in.
    */
   private renderBlurb(): void {
     const el = document.getElementById('blurb')!;
@@ -1472,16 +1475,19 @@ class MusicMapApp {
       return;
     }
     el.hidden = false;
+    const scroll = el.dataset.for === (cur ?? '') ? el.scrollTop : 0;
+    el.dataset.for = cur ?? '';
     if (!cur) {
       el.innerHTML = `
-        <p class="mm-guide__eyebrow">How to read this map</p>
-        <ol class="mm-guide__steps">
-          <li><strong>Choose what the map is organised by</strong> (Artist, Album, Song or Genre, top left). Each cover is something in your library; bigger covers are ones you saved more of.</li>
-          <li><strong>Click an album</strong>, then pick one of its songs.</li>
-          <li><strong>Read the song's story</strong> here: what it samples, where it's been sampled or re-performed, and the people who made it.</li>
-          <li><strong>Follow any link</strong> to travel through the history, then return to your song.</li>
+        <p class="mm-sheet__kicker">How to read this map</p>
+        <h2 class="mm-sheet__title">Where your music comes from</h2>
+        <ol class="mm-story mm-story--intro">
+          <li class="mm-story__step"><header><span class="mm-story__num">01</span><h3>Choose a shape</h3></header><p>Map your library by artist, album, song or genre (top left). Bigger covers are albums you saved more of.</p></li>
+          <li class="mm-story__step"><header><span class="mm-story__num">02</span><h3>Open an album</h3></header><p>Click a cover, then pick one of its songs.</p></li>
+          <li class="mm-story__step"><header><span class="mm-story__num">03</span><h3>Read its story</h3></header><p>This panel follows the song back: what it samples, who sampled it, who made it.</p></li>
+          <li class="mm-story__step"><header><span class="mm-story__num">04</span><h3>Keep going</h3></header><p>Click any artist for their own history, or any song to travel there. Your path is kept at the top.</p></li>
         </ol>
-        <p class="mm-muted mm-small">Arrows point from a song to the song it borrows from. Solid = sample (the original recording), dashed = interpolation (the melody re-performed).</p>`;
+        <p class="mm-sheet__legend"><span class="mm-sheet__line"></span>sample: the original recording is used <span class="mm-sheet__line is-dashed"></span>interpolation: the melody is re-performed</p>`;
       return;
     }
     if (this.inspected) {
@@ -1489,99 +1495,255 @@ class MusicMapApp {
       return;
     }
     const node = this.graph.node(cur)!;
-    const nbrs = this.graph.neighbors(cur).filter((n) => this.visible(n.otherId));
-    const flag = (n: Neighbor) =>
-      n.rel.evidence.status === 'disputed' ? ' <em class="mm-flag">disputed</em>' : n.rel.evidence.status === 'undocumented' ? ' <em class="mm-flag">unconfirmed</em>' : '';
-    const songRow = (n: Neighbor) => {
-      const t = this.graph.tracks.get(n.otherId);
-      if (!t) return '';
-      return `<li><button type="button" class="mm-guide__row" data-action="inspect" data-id="${h(t.id)}">
-        <img src="${coverUrl(t.cover, t.album?.name ?? t.title)}" alt="" />
-        <span><strong>${h(t.title)}</strong>${flag(n)}<em>${h(t.artistCredit)} · ${formatPartialDate(t.release)}</em></span></button></li>`;
-    };
-    const section = (num: number, title: string, rows: string[], empty: string, hint = '') =>
-      `<section class="mm-guide__step"><h3><span>${num}</span>${h(title)}</h3>${hint ? `<p class="mm-muted mm-small">${hint}</p>` : ''}${rows.filter(Boolean).length ? `<ul class="mm-guide__list">${rows.join('')}</ul>` : `<p class="mm-muted mm-small">${empty}</p>`}</section>`;
+    el.innerHTML = node.kind === 'track' ? this.songSheet(node) : this.personSheet(node);
+    el.scrollTop = scroll;
+  }
 
-    let html: string;
-    if (node.kind === 'track') {
-      const t = node;
-      const saved = this.graph.savedAt(cur);
-      const samples = nbrs.filter((n) => n.rel.type === 'samples' && n.outgoing);
-      const sampledOn = nbrs.filter((n) => n.rel.type === 'samples' && !n.outgoing);
-      const interp = nbrs.filter((n) => n.rel.type === 'interpolates');
-      const other = nbrs.filter((n) => n.rel.type === 'documented');
-      const people = nbrs.filter((n) => n.rel.type === 'credit' && !n.outgoing);
-      const byPerson = new Map<string, string[]>();
-      people.forEach((n) => byPerson.set(n.otherId, [...(byPerson.get(n.otherId) ?? []), (n.rel.role ?? 'credited').replace(/\s*\(.*?\)/g, '')]));
-      const peopleRows = [...byPerson].map(
-        ([pid, roles]) =>
-          `<li><button type="button" class="mm-guide__row" data-action="inspect" data-id="${h(pid)}"><span class="mm-guide__dot">${h(nameOf(this.graph, pid).slice(0, 1))}</span><span><strong>${h(nameOf(this.graph, pid))}</strong><em>${h([...new Set(roles)].join(' · '))}</em></span></button></li>`,
-      );
-      // Their other work: songs each person is credited on, besides this one.
-      const workRows = [...byPerson.keys()].slice(0, 6).map((pid) => {
-        const works = this.graph
-          .neighbors(pid)
-          .filter((n) => n.rel.type === 'credit' && n.outgoing && n.otherId !== cur && this.graph.tracks.has(n.otherId))
-          .slice(0, 6);
-        if (!works.length) return '';
-        return `<li class="mm-guide__work"><p>${h(nameOf(this.graph, pid))}</p><div>${works
-          .map((w) => {
-            const wt = this.graph.tracks.get(w.otherId)!;
-            return `<button type="button" data-action="go-via" data-via="${h(pid)}" data-id="${h(wt.id)}" title="${h(wt.title)} · ${h(w.rel.role ?? '')}"><img src="${coverUrl(wt.cover, wt.album?.name ?? wt.title)}" alt="${h(wt.title)}" /></button>`;
-          })
-          .join('')}</div></li>`;
-      });
-      const status = this.mbStatus.get(t.id);
-      html = `
-        <p class="mm-guide__eyebrow">${this.path.length > 1 ? `Step ${this.path.length} of your path` : 'The song'}</p>
-        <section class="mm-guide__step mm-guide__song"><h3><span>1</span>The song</h3>
-          <div class="mm-guide__head"><img src="${coverUrl(t.cover, t.album?.name ?? t.title)}" alt="" />
-            <div><p class="mm-guide__title">${h(t.title)}</p><p class="mm-muted">${h(t.artistCredit)}</p>
-            <p class="mm-small"><span class="mm-blurb__rel">Released ${formatPartialDate(t.release)}</span> · ${saved ? `<span class="mm-blurb__saved">Saved ${formatSaved(saved)}</span>` : 'not in your library'}</p></div></div>
-          <div class="mm-blurb__actions">
-            ${t.spotify ? `<a class="mm-link" href="${h(t.spotify.url)}" target="_blank" rel="noopener">Play on Spotify ↗</a>` : ''}
-            ${t.origin !== 'demo' ? `<button type="button" class="mm-link" data-action="mb-lookup" data-id="${h(t.id)}">${status === 'loading' ? 'Looking up…' : 'Look up samples &amp; credits again'}</button>` : ''}
-          </div>
-          ${status && status !== 'loading' ? `<p class="mm-muted mm-small">${h(status)}</p>` : status === 'loading' ? '<p class="mm-muted mm-small">Looking this song up on Genius and MusicBrainz…</p>' : ''}
-        </section>
-        ${section(2, 'Samples', samples.map(songRow), 'No samples recorded.', 'Recordings this song uses a piece of.')}
-        ${section(3, 'Sampled & interpolated', [...sampledOn, ...interp, ...other].map((n) => songRow(n).replace('<strong>', `<small>${h(n.rel.type === 'samples' ? 'samples this' : n.rel.type === 'interpolates' ? (n.outgoing ? 'this re-performs' : 're-performs this') : (n.rel.role ?? 'related'))}</small><strong>`)), 'No one is recorded sampling or re-performing it yet.', 'Where this song lives on in other music.')}
-        ${section(4, 'People who made it', peopleRows, 'No credits recorded yet.')}
-        ${section(5, "What they've made", workRows, 'No other work by these people in the map yet.', 'Click a cover to travel there through that person.')}
-        <p class="mm-blurb__src">Sources: ${[...new Set(nbrs.map((n) => n.rel.evidence.sourceLabel + (n.rel.evidence.fictional ? ' (fictional)' : '')))].map(h).join(' · ') || 'none yet'}</p>`;
+  /** A numbered step in the panel's story. Rows are pre-rendered list items. */
+  private storyStep(num: number, title: string, rows: string[], empty: string, hint = ''): string {
+    const filled = rows.filter(Boolean);
+    return `<li class="mm-story__step${filled.length ? '' : ' is-empty'}">
+      <header><span class="mm-story__num">${String(num).padStart(2, '0')}</span><h3>${h(title)}</h3>${filled.length ? `<span class="mm-story__count">${filled.length}</span>` : ''}</header>
+      ${hint && filled.length ? `<p class="mm-story__hint">${hint}</p>` : ''}
+      ${filled.length ? `<ul class="mm-guide__list">${filled.join('')}</ul>` : `<p class="mm-story__hint">${empty}</p>`}
+    </li>`;
+  }
+
+  private songRow(n: Neighbor, label = ''): string {
+    const t = this.graph.tracks.get(n.otherId);
+    if (!t) return '';
+    const flag =
+      n.rel.evidence.status === 'disputed' ? ' <em class="mm-flag">disputed</em>' : n.rel.evidence.status === 'undocumented' ? ' <em class="mm-flag">unconfirmed</em>' : '';
+    return `<li><button type="button" class="mm-guide__row" data-action="open" data-id="${h(t.id)}">
+      <img src="${coverUrl(t.cover, t.album?.name ?? t.title)}" alt="" />
+      <span>${label ? `<small>${h(label)}</small>` : ''}<strong>${h(t.title)}</strong>${flag}<em>${h(t.artistCredit)} · ${formatPartialDate(t.release)}</em></span></button></li>`;
+  }
+
+  private personRow(pid: string, detail: string): string {
+    const p = this.graph.people.get(pid);
+    const name = nameOf(this.graph, pid);
+    const img = p ? cachedProfile(p.name)?.image : undefined;
+    return `<li><button type="button" class="mm-guide__row" data-action="open" data-id="${h(pid)}">${
+      img ? `<img class="is-round" src="${h(img)}" alt="" />` : `<span class="mm-guide__dot">${h(initials(name))}</span>`
+    }<span><strong>${h(name)}</strong><em>${h(detail)}</em></span><span class="mm-guide__go" aria-hidden="true">→</span></button></li>`;
+  }
+
+  private songSheet(t: Track): string {
+    const cur = t.id;
+    const nbrs = this.graph.neighbors(cur).filter((n) => this.visible(n.otherId));
+    const saved = this.graph.savedAt(cur);
+    const samples = nbrs.filter((n) => n.rel.type === 'samples' && n.outgoing);
+    const sampledOn = nbrs.filter((n) => n.rel.type === 'samples' && !n.outgoing);
+    const interp = nbrs.filter((n) => n.rel.type === 'interpolates');
+    const other = nbrs.filter((n) => n.rel.type === 'documented');
+    const people = nbrs.filter((n) => n.rel.type === 'credit' && !n.outgoing);
+    const byPerson = new Map<string, string[]>();
+    people.forEach((n) => byPerson.set(n.otherId, [...(byPerson.get(n.otherId) ?? []), (n.rel.role ?? 'credited').replace(/\s*\(.*?\)/g, '')]));
+    // The performing artists, as names you can open.
+    const artists = [...byPerson].filter(([, roles]) => roles.some((r) => /artist|featured/.test(r))).map(([pid]) => pid);
+    const by = artists.length
+      ? artists.map((pid) => `<button type="button" class="mm-sheet__artist" data-action="open" data-id="${h(pid)}">${h(nameOf(this.graph, pid))}</button>`).join(', ')
+      : h(t.artistCredit);
+    const workRows = [...byPerson.keys()].slice(0, 6).map((pid) => {
+      const works = this.graph
+        .neighbors(pid)
+        .filter((n) => n.rel.type === 'credit' && n.outgoing && n.otherId !== cur && this.graph.tracks.has(n.otherId))
+        .slice(0, 8);
+      if (!works.length) return '';
+      return `<li class="mm-guide__work"><button type="button" class="mm-guide__who" data-action="open" data-id="${h(pid)}">${h(nameOf(this.graph, pid))} →</button><div>${works
+        .map((w) => {
+          const wt = this.graph.tracks.get(w.otherId)!;
+          return `<button type="button" data-action="go-via" data-via="${h(pid)}" data-id="${h(wt.id)}" title="${h(wt.title)} · ${h(w.rel.role ?? '')}"><img src="${coverUrl(wt.cover, wt.album?.name ?? wt.title)}" alt="${h(wt.title)}" /></button>`;
+        })
+        .join('')}</div></li>`;
+    });
+    const status = this.mbStatus.get(cur);
+    const relLabel = (n: Neighbor) =>
+      n.rel.type === 'samples' ? 'samples this' : n.rel.type === 'interpolates' ? (n.outgoing ? 'this re-performs' : 're-performs this') : (n.rel.role ?? 'related');
+    const sources = [...new Set(nbrs.map((n) => n.rel.evidence.sourceLabel + (n.rel.evidence.fictional ? ' (fictional)' : '')))];
+    return `
+      <header class="mm-sheet__hero">
+        <img class="mm-sheet__cover" src="${coverUrl(t.cover, t.album?.name ?? t.title)}" alt="" />
+        <div>
+          <p class="mm-sheet__kicker">${this.path.length > 1 ? `Song · step ${this.path.length} of your path` : 'Song'}</p>
+          <h2 class="mm-sheet__title">${h(t.title)}</h2>
+          <p class="mm-sheet__by">${by}</p>
+          <p class="mm-sheet__dates"><span class="is-release">Released ${formatPartialDate(t.release)}</span>${saved ? `<span class="is-saved">Saved ${formatSaved(saved)}</span>` : ''}</p>
+        </div>
+      </header>
+      <div class="mm-sheet__actions">
+        ${t.spotify ? `<a class="mm-sheet__btn" href="${h(t.spotify.url)}" target="_blank" rel="noopener">Play on Spotify ↗</a>` : ''}
+        ${t.origin !== 'demo' ? `<button type="button" class="mm-sheet__btn is-quiet" data-action="mb-lookup" data-id="${h(t.id)}">${status === 'loading' ? 'Looking up…' : 'Look up again'}</button>` : ''}
+      </div>
+      ${status === 'loading' ? '<p class="mm-sheet__status">Looking this song up on Genius and MusicBrainz…</p>' : status ? `<p class="mm-sheet__status">${h(status)}</p>` : ''}
+      <ol class="mm-story">
+        ${this.storyStep(1, 'What it samples', samples.map((n) => this.songRow(n)), 'No samples recorded.', 'Recordings this song uses a piece of.')}
+        ${this.storyStep(2, 'Where it lives on', [...sampledOn, ...interp, ...other].map((n) => this.songRow(n, relLabel(n))), 'No one is recorded sampling or re-performing it yet.', 'Songs that sample it, re-perform it, cover or remix it.')}
+        ${this.storyStep(3, 'Who made it', [...byPerson].map(([pid, roles]) => this.personRow(pid, [...new Set(roles)].join(' · '))), 'No credits recorded yet.', 'Open anyone for their own history.')}
+        ${this.storyStep(4, "What else they've made", workRows, 'No other work by these people in the map yet.', 'Click a cover to travel there through that person.')}
+      </ol>
+      <p class="mm-sheet__src">Sources: ${sources.map(h).join(' · ') || 'none yet'}</p>`;
+  }
+
+  private personSheet(p: Person): string {
+    const cur = p.id;
+    const nbrs = this.graph.neighbors(cur).filter((n) => this.visible(n.otherId));
+    const works = nbrs.filter((n) => n.rel.type === 'credit' && n.outgoing);
+    const collabs = new Map<string, number>();
+    works.forEach((w) =>
+      this.graph.neighbors(w.otherId).forEach((n) => {
+        if (n.rel.type === 'credit' && !n.outgoing && n.otherId !== cur) collabs.set(n.otherId, (collabs.get(n.otherId) ?? 0) + 1);
+      }),
+    );
+    const demo = p.origin === 'demo';
+    const prof = demo ? null : (cachedProfile(p.name) ?? null);
+    if (!demo && !prof) void this.fetchProfile(p);
+    const group = p.kind === 'group' || prof?.type === 'Group';
+    const life = prof ? lifeLine(prof) : [];
+    const avatar = prof?.image
+      ? `<img class="mm-sheet__avatar" src="${h(prof.image)}" alt="" />`
+      : `<span class="mm-sheet__avatar is-initials">${h(initials(p.name))}</span>`;
+
+    let story = '';
+    let n = 1;
+    if (demo) {
+      story += `<li class="mm-story__step"><header><span class="mm-story__num">0${n++}</span><h3>Their history</h3></header><p class="mm-story__hint">A fictional artist from the demo collection, so there is no real history to look up. Connect Spotify to explore real artists.</p></li>`;
+    } else if (!prof) {
+      story += `<li class="mm-story__step"><header><span class="mm-story__num">0${n++}</span><h3>Their history</h3></header><p class="mm-sheet__status">Looking ${h(p.name)} up on MusicBrainz, Wikipedia and Genius…</p></li>`;
     } else {
-      const works = nbrs.filter((n) => n.rel.type === 'credit' && n.outgoing);
-      const groups = nbrs.filter((n) => n.rel.type === 'member_of');
-      const collabs = new Map<string, number>();
-      works.forEach((w) =>
-        this.graph.neighbors(w.otherId).forEach((n) => {
-          if (n.rel.type === 'credit' && !n.outgoing && n.otherId !== cur) collabs.set(n.otherId, (collabs.get(n.otherId) ?? 0) + 1);
-        }),
-      );
-      html = `
-        <p class="mm-guide__eyebrow">Person</p>
-        <section class="mm-guide__step"><h3><span>1</span>${h(node.name)}</h3><p class="mm-muted mm-small">${node.kind === 'group' ? 'Group' : 'Person'}${groups.length ? ` · ${groups.map((g) => h(nameOf(this.graph, g.otherId))).join(', ')}` : ''}</p></section>
-        ${section(
-          2,
-          "What they've made",
-          works.map((w) => songRow(w).replace('<em>', `<em>${h((w.rel.role ?? '').replace(/\s*\(.*?\)/g, ''))} · `)),
-          'No credited work in the map yet.',
-        )}
-        ${section(
-          3,
-          'Who they make it with',
-          [...collabs]
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 12)
-            .map(
-              ([pid, n]) =>
-                `<li><button type="button" class="mm-guide__row" data-action="inspect" data-id="${h(pid)}"><span class="mm-guide__dot">${h(nameOf(this.graph, pid).slice(0, 1))}</span><span><strong>${h(nameOf(this.graph, pid))}</strong><em>${n} shared credit${n === 1 ? '' : 's'}</em></span></button></li>`,
-            ),
-          'No shared credits recorded yet.',
-          'Shared credits only; they say nothing about friendship or influence.',
-        )}`;
+      if (prof.bio) {
+        story += `<li class="mm-story__step"><header><span class="mm-story__num">0${n++}</span><h3>Their story</h3></header>
+          <p class="mm-sheet__bio">${h(prof.bio.text)}</p>
+          <a class="mm-sheet__more" href="${h(prof.bio.url)}" target="_blank" rel="noopener">Read more on ${h(prof.bio.source)} ↗</a></li>`;
+      }
+      if (prof.members.length || prof.memberOf.length) {
+        const years = (l: { begin?: string; end?: string }) => (l.begin || l.end ? `${l.begin?.slice(0, 4) ?? '?'}–${l.end?.slice(0, 4) ?? ''}` : '');
+        const chip = (l: { name: string; mbid: string; begin?: string; end?: string }) => {
+          const id = this.personIdFor(l.name, l.mbid);
+          return `<li><button type="button" class="mm-chip" data-action="open" data-id="${h(id)}">${h(l.name)}${years(l) ? ` <em>${years(l)}</em>` : ''}</button></li>`;
+        };
+        story += `<li class="mm-story__step"><header><span class="mm-story__num">0${n++}</span><h3>${prof.members.length ? 'Members' : 'Member of'}</h3><span class="mm-story__count">${prof.members.length || prof.memberOf.length}</span></header>
+          <ul class="mm-chips">${(prof.members.length ? prof.members : prof.memberOf).map(chip).join('')}</ul>
+          ${prof.members.length && prof.memberOf.length ? `<p class="mm-story__hint">Also part of</p><ul class="mm-chips">${prof.memberOf.map(chip).join('')}</ul>` : ''}</li>`;
+      }
+      if (prof.records.length) {
+        const saved = new Set(
+          works
+            .map((w) => this.graph.tracks.get(w.otherId))
+            .filter((t) => t && this.graph.savedAt(t.id))
+            .map((t) => (t!.album?.name ?? '').toLowerCase()),
+        );
+        const row = (r: (typeof prof.records)[number]) =>
+          `<li${saved.has(r.title.toLowerCase()) ? ' class="is-saved"' : ''}><span class="mm-records__year">${h(r.date?.slice(0, 4) ?? '—')}</span><button type="button" data-action="search-record" data-q="${h(`${r.title} ${p.name}`)}">${h(r.title)}</button><em>${h(r.type)}</em></li>`;
+        const first = prof.records.slice(0, 10).map(row).join('');
+        const rest = prof.records.slice(10).map(row).join('');
+        story += `<li class="mm-story__step"><header><span class="mm-story__num">0${n++}</span><h3>Records over time</h3><span class="mm-story__count">${prof.records.length}</span></header>
+          <p class="mm-story__hint">Albums and EPs, oldest first. <span class="mm-records__key"></span> one you've saved from. Click to find it on Spotify.</p>
+          <ol class="mm-records">${first}</ol>
+          ${rest ? `<details class="mm-records__more"><summary>Show all ${prof.records.length}</summary><ol class="mm-records">${rest}</ol></details>` : ''}</li>`;
+      }
+      if (!prof.found) {
+        story += `<li class="mm-story__step"><header><span class="mm-story__num">0${n++}</span><h3>Their history</h3></header><p class="mm-story__hint">MusicBrainz and Genius have no confident match for “${h(p.name)}”, so nothing is shown rather than a guess.</p></li>`;
+      }
     }
-    el.innerHTML = html;
+    // One row per song, with every role they had on it.
+    const roleOf = (w: Neighbor) => (w.rel.role ?? 'credited').replace(/\s*\(.*?\)/g, '');
+    const songs = new Map<string, { n: Neighbor; roles: string[] }>();
+    works.forEach((w) => {
+      const e = songs.get(w.otherId);
+      if (e) e.roles.push(roleOf(w));
+      else songs.set(w.otherId, { n: w, roles: [roleOf(w)] });
+    });
+    const topRoles = [...works.reduce((m, w) => m.set(roleOf(w), (m.get(roleOf(w)) ?? 0) + 1), new Map<string, number>())]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([r]) => r);
+    story += this.storyStep(
+      n++,
+      'In your map',
+      [...songs.values()].map(({ n: w, roles }) => this.songRow(w, [...new Set(roles)].join(' · '))),
+      'No credited songs in the map yet.',
+      'Songs you can travel to from here.',
+    );
+    story += this.storyStep(
+      n++,
+      'Who they make music with',
+      [...collabs]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 12)
+        .map(([pid, c]) => this.personRow(pid, `${c} shared credit${c === 1 ? '' : 's'}`)),
+      'No shared credits recorded yet.',
+      'Shared credits only; they say nothing about friendship or influence.',
+    );
+    const links = prof ? [...(prof.mbUrl ? [{ label: 'MusicBrainz', url: prof.mbUrl }] : []), ...prof.links.filter((l) => l.label !== 'Wikidata')] : [];
+    return `
+      <header class="mm-sheet__hero is-person">
+        ${avatar}
+        <div>
+          <p class="mm-sheet__kicker">${group ? 'Group' : 'Person'}${topRoles.length ? ` · ${h(topRoles.join(' · '))}` : ''}</p>
+          <h2 class="mm-sheet__title">${h(p.name)}</h2>
+          ${prof?.disambiguation ? `<p class="mm-sheet__by">${h(prof.disambiguation)}</p>` : ''}
+          ${life.length ? `<p class="mm-sheet__dates">${life.map((l) => `<span>${h(l)}</span>`).join('')}</p>` : ''}
+          ${prof?.genres.length ? `<ul class="mm-sheet__tags">${prof.genres.map((g) => `<li>${h(g)}</li>`).join('')}</ul>` : ''}
+        </div>
+      </header>
+      <ol class="mm-story">${story}</ol>
+      ${links.length ? `<p class="mm-sheet__src">Sources: ${links.map((l) => `<a href="${h(l.url)}" target="_blank" rel="noopener">${h(l.label)}</a>`).join(' · ')}</p>` : ''}`;
+  }
+
+  /** Loads an artist's history, adds their band memberships to the map, then refreshes the panel. */
+  private async fetchProfile(p: Person): Promise<void> {
+    const geniusId = p.id.startsWith('gena:') ? p.id.slice(5) : undefined;
+    let prof: ArtistProfile;
+    try {
+      prof = await loadProfile(p.name, { mbid: p.musicbrainzId, geniusId });
+    } catch {
+      return;
+    }
+    // New band links change the web itself; otherwise only the panel needs redrawing.
+    if (this.addMemberships(p, prof)) this.render();
+    else this.renderBlurb();
+  }
+
+  /** The graph id for an artist named by MusicBrainz: an existing person with that name, or a new node. */
+  private personIdFor(name: string, mbid: string): string {
+    const key = name.toLowerCase();
+    for (const p of this.graph.people.values()) if (p.musicbrainzId === mbid || p.name.toLowerCase() === key) return p.id;
+    return `mba:${mbid}`;
+  }
+
+  /** Band memberships from MusicBrainz become sourced "member of" links, so you can travel along them. */
+  private addMemberships(p: Person, prof: ArtistProfile): boolean {
+    if (!prof.mbid || (!prof.members.length && !prof.memberOf.length)) return false;
+    const people: Person[] = [];
+    const rels: Relationship[] = [];
+    const add = (member: string, group: string, l: { name: string; begin?: string; end?: string }, memberName: string, groupName: string) => {
+      const years = l.begin || l.end ? ` (${l.begin?.slice(0, 4) ?? '?'}–${l.end?.slice(0, 4) ?? ''})` : '';
+      rels.push({
+        id: `mbm:${member}:${group}`,
+        type: 'member_of',
+        from: member,
+        to: group,
+        role: years ? `member${years}` : 'member',
+        evidence: {
+          status: 'documented',
+          fictional: false,
+          sourceLabel: 'MusicBrainz',
+          sourceUrl: prof.mbUrl,
+          explanation: `MusicBrainz lists ${memberName} as a member of ${groupName}${years}.`,
+        },
+      });
+    };
+    const node = (l: { name: string; mbid: string }, kind: Person['kind']) => {
+      const id = this.personIdFor(l.name, l.mbid);
+      if (!this.graph.people.has(id)) people.push({ id, kind, name: l.name, origin: 'spotify', musicbrainzId: l.mbid });
+      return id;
+    };
+    prof.members.forEach((l) => add(node(l, 'person'), p.id, l, l.name, p.name));
+    prof.memberOf.forEach((l) => add(p.id, node(l, 'group'), l, p.name, l.name));
+    const fresh = rels.filter((r) => !this.graph.rels.has(r.id));
+    if (fresh.length) this.addData({ people, relationships: fresh });
+    return fresh.length > 0;
   }
 
   private renderPathbar(): void {
@@ -2037,6 +2199,20 @@ class MusicMapApp {
     switch (action) {
       case 'inspect':
         return this.activateNode(id);
+      case 'open':
+        // From the guide panel: go straight there (its history opens in the panel).
+        if (this.currentId && this.currentId !== id) {
+          if (this.relsBetween(this.currentId, id).length) return this.follow(id);
+          // Two steps away (e.g. a collaborator): travel through the song you share.
+          const bridge = this.neighborsOf(this.currentId).find((n) => this.relsBetween(n.otherId, id).length);
+          if (bridge) {
+            this.follow(bridge.otherId);
+            return this.follow(id);
+          }
+        }
+        return this.activateNode(id);
+      case 'search-record':
+        return this.runSearch(el.dataset.q ?? '', 'album');
       case 'uninspect':
         return this.inspect(null);
       case 'follow':
@@ -2541,6 +2717,11 @@ class MusicMapApp {
     this.announcer.textContent = '';
     requestAnimationFrame(() => (this.announcer.textContent = message));
   }
+}
+
+function initials(name: string): string {
+  const words = name.replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).filter(Boolean);
+  return (words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? '?').slice(0, 2)).toUpperCase();
 }
 
 new MusicMapApp().init().catch((err) => {

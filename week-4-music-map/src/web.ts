@@ -508,7 +508,10 @@ export class LibraryWeb {
     for (const n of order) {
       if (!onScreen(n.sx, n.sy)) continue;
       const s = n.ss;
-      ctx.globalAlpha = (faded(n) ? 0.14 : 1) * (n.item.outside ? 0.85 : 1);
+      // A filter fades non-matches strongly (you asked for them to step back); hovering only
+      // softens the rest, so the whole library stays readable while one album is in focus.
+      const fade = this.match && !this.match.has(n) ? 0.12 : related.size > 0 && !related.has(n) ? 0.5 : 1;
+      ctx.globalAlpha = fade * (n.item.outside ? 0.85 : 1);
       if (n === this.hoverItem) {
         ctx.shadowColor = 'rgba(0,0,0,0.3)';
         ctx.shadowBlur = 20;
