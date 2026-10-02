@@ -193,14 +193,29 @@ export class TimelineCanvas {
       const sizes = sec.items.map((it) => Math.min(small ? 84 : 124, Math.round((small ? 36 : 46) + (small ? 18 : 26) * (Math.sqrt(it.trackIds.length) - 1))));
       const area = sizes.reduce((a, sz) => a + (sz + GAP) * (sz + GAP), 0);
       // Roughly how wide the year needs to be at a loose packing density.
-      const span = Math.max(sizes[0] ?? 60, area / (2 * half * 0.62));
+      const span = Math.max(sizes[0] ?? 60, area / (2 * half * (sizes.length > 60 ? 0.5 : 0.62)));
       const start = x + PAD;
       const phase = seeded(sec.key)() * Math.PI * 2;
-      const placed: { x: number; y: number; s: number }[] = [];
-      const free = (cx: number, cy: number, sz: number) =>
-        cx - sz / 2 >= start &&
-        Math.abs(cy - y0) + sz / 2 <= half &&
-        placed.every((p) => Math.abs(p.x - cx) * 2 >= p.s + sz + GAP * 2 || Math.abs(p.y - cy) * 2 >= p.s + sz + GAP * 2);
+      // A coarse grid of placed covers, so each fit test only checks its neighbours.
+      const CELL = (small ? 84 : 124) + GAP * 2;
+      const grid = new Map<number, { x: number; y: number; s: number }[]>();
+      const cellKey = (gx: number, gy: number) => gx * 4096 + gy;
+      const place = (p: { x: number; y: number; s: number }) => {
+        const k = cellKey(Math.floor(p.x / CELL), Math.floor(p.y / CELL));
+        const list = grid.get(k);
+        if (list) list.push(p);
+        else grid.set(k, [p]);
+      };
+      const free = (cx: number, cy: number, sz: number) => {
+        if (cx - sz / 2 < start || Math.abs(cy - y0) + sz / 2 > half) return false;
+        const gx = Math.floor(cx / CELL);
+        const gy = Math.floor(cy / CELL);
+        for (let ix = gx - 1; ix <= gx + 1; ix++)
+          for (let iy = gy - 1; iy <= gy + 1; iy++)
+            for (const p of grid.get(cellKey(ix, iy)) ?? [])
+              if (Math.abs(p.x - cx) * 2 < p.s + sz + GAP * 2 && Math.abs(p.y - cy) * 2 < p.s + sz + GAP * 2) return false;
+        return true;
+      };
       let maxX = start;
       sec.items.forEach((item, i) => {
         const rs = sizes[i];
@@ -221,9 +236,9 @@ export class TimelineCanvas {
             break;
           }
           ang += 0.62;
-          r += 0.9;
+          r += 1.3;
         }
-        placed.push({ x: px, y: py, s: rs });
+        place({ x: px, y: py, s: rs });
         maxX = Math.max(maxX, px + rs / 2);
         const tile: Tile = {
           item,
@@ -306,7 +321,7 @@ export class TimelineCanvas {
       this.cb.onSelect(item.id, section.data.key, b.getBoundingClientRect());
     });
     b.addEventListener('pointerenter', () => {
-      if (!this.pinned) this.showZoom(section.data.key);
+      this.queueZoom(section.data.key);
       this.hot(item.id, true);
       this.cb.onHover(item.id, b);
     });
@@ -420,18 +435,34 @@ export class TimelineCanvas {
     this.kick();
   }
 
-  /** After you stop moving, the nearest year settles into the centre. */
+  /** After you stop moving, the panel shows the year in the middle. The canvas stays where you left it. */
   private settleSoon(): void {
     clearTimeout(this.idle);
     this.idle = window.setTimeout(() => {
       if (this.pinned || this.dragging) return;
-      const key = this.centerKey();
-      const sec = key ? this.find(key) : undefined;
-      if (!sec) return;
-      // Long years don't jump to their middle; they just come fully into view.
-      if (sec.w * this.goal.k < this.width * 0.9) this.centerOn(sec.x + sec.w / 2);
-      if (!this.ptr.inside || this.touch) this.showZoom(key);
+      if (!this.ptr.inside || this.touch) this.showZoom(this.centerKey());
     }, 260);
+  }
+
+  /**
+   * The panel only switches years once the pointer rests on one, so passing over
+   * other years on the way up to the panel doesn't change what it shows.
+   */
+  private dwell = 0;
+  private dwellKey: string | null = null;
+  private queueZoom(key: string): void {
+    if (this.pinned || key === this.zoomKey) {
+      clearTimeout(this.dwell);
+      this.dwellKey = null;
+      return;
+    }
+    if (key === this.dwellKey) return;
+    this.dwellKey = key;
+    clearTimeout(this.dwell);
+    this.dwell = window.setTimeout(() => {
+      this.dwellKey = null;
+      if (!this.pinned && this.ptr.inside) this.showZoom(key);
+    }, 420);
   }
 
   // ---- Frame: camera, lens, springs --------------------------------------------------
@@ -637,7 +668,9 @@ export class TimelineCanvas {
     this.bindZoomItems(sec.data.key);
     this.tiles.forEach((t) => t.el.classList.toggle('is-selected', t.item.id === id));
     this.placeZoom();
-    this.centerOn(tile.rx);
+    // Clicking an album never moves the canvas; only bring it into view if it's off screen (e.g. picked from search).
+    const sx = tile.rx * this.cam.k + this.cam.tx;
+    if (sx < 60 || sx > this.width - 60) this.centerOn(tile.rx);
   }
 
   // ---- Public selection API (used by the app) ------------------------------------
@@ -722,19 +755,29 @@ export class TimelineCanvas {
     this.root.addEventListener('pointermove', (e) => {
       if (e.pointerType === 'touch') return;
       const p = this.local(e);
+      // Over the year panel: hold it still so you can use it.
+      if (this.zoom.contains(e.target as Node)) {
+        clearTimeout(this.dwell);
+        this.dwellKey = null;
+        return;
+      }
       this.ptr = { ...p, inside: true };
       if (!this.pinned && !this.dragging) {
         this.lens.ts = 1;
         const sec = this.sectionAt((p.x - this.cam.tx) / this.cam.k);
-        if (sec) this.showZoom(sec.data.key);
+        if (sec) this.queueZoom(sec.data.key);
       }
       this.kick();
     });
     this.root.addEventListener('pointerleave', (e) => {
       if (e.pointerType === 'touch') return;
       this.ptr.inside = false;
+      clearTimeout(this.dwell);
+      this.dwellKey = null;
       if (!this.pinned) this.lens.ts = 0;
-      this.settleSoon();
+      // Moving onto the year panel keeps it as it is; leaving the canvas elsewhere shows the middle year.
+      const to = e.relatedTarget as Node | null;
+      if (!(to && (this.zoom.contains(to) || this.lines.contains(to)))) this.settleSoon();
       this.kick();
     });
     this.root.addEventListener('click', (e) => {

@@ -293,7 +293,7 @@ function mergeParts(parts: Partial<Dataset>[]): Partial<Dataset> {
 
 /** Imports saved tracks with their saved dates. */
 export async function importSavedTracks(
-  max = 300,
+  max = 10000,
   onProgress?: (n: number, total: number) => void,
 ): Promise<Partial<Dataset>> {
   const parts: Partial<Dataset>[] = [];
