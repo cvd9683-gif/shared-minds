@@ -8,6 +8,7 @@
 // at the top centre, joined to its year by two lines.
 
 import { coverUrl, seeded } from './covers';
+import { look } from './looks';
 import type { Track } from './types';
 
 /** One tile: an album (or single), holding every saved song from it in that section. */
@@ -64,6 +65,8 @@ interface Tile {
   vy: number;
   vs: number;
   lastZ: number;
+  /** -1…1: which way this cover leans when a look places covers by hand. */
+  lean: number;
 }
 
 interface Section {
@@ -258,6 +261,7 @@ export class TimelineCanvas {
           vy: 0,
           vs: 0,
           lastZ: -1,
+          lean: rand() * 2 - 1,
         };
         const n = item.trackIds.length;
         const b = tile.el;
@@ -515,8 +519,9 @@ export class TimelineCanvas {
         const dx = t.rx - l.x;
         const dy = t.ry - l.y;
         const f = Math.exp(-(dx * dx + dy * dy) / (2 * R * R)) * l.s;
-        tx = l.x + dx * (1 + 0.95 * f);
-        ty = l.y + dy * (1 + 0.95 * f);
+        const push = look().lens;
+        tx = l.x + dx * (1 + push * f);
+        ty = l.y + dy * (1 + push * f);
         ts = t.rs * (1 + 1.05 * f);
         z = t.z + Math.round(f * 200);
       }
@@ -528,9 +533,11 @@ export class TimelineCanvas {
         t.vx = t.vy = t.vs = 0;
       } else {
         // Springs with a touch of overshoot: the line breathes rather than snaps.
-        t.vx = (t.vx + (tx - t.x) * 0.16) * 0.74;
-        t.vy = (t.vy + (ty - t.y) * 0.16) * 0.74;
-        t.vs = (t.vs + (ts - t.s) * 0.16) * 0.74;
+        // Each look has its own spring: soft and weighty, or quick and exact.
+        const { k: sk, d: sd } = look().spring;
+        t.vx = (t.vx + (tx - t.x) * sk) * sd;
+        t.vy = (t.vy + (ty - t.y) * sk) * sd;
+        t.vs = (t.vs + (ts - t.s) * sk) * sd;
         t.x += t.vx;
         t.y += t.vy;
         t.s += t.vs;
@@ -552,7 +559,10 @@ export class TimelineCanvas {
       t.el.style.height = `${t.rs}px`;
     }
     const k = t.s / t.rs;
-    t.el.style.transform = `translate(${t.x - t.rs / 2}px, ${t.y - t.rs / 2}px) scale(${k.toFixed(4)})`;
+    // Hand-placed covers lean a little, and straighten as the lens picks them up.
+    const tilt = look().tilt;
+    const lean = tilt ? t.lean * tilt * Math.max(0, 1 - (k - 1) * 2.5) : 0;
+    t.el.style.transform = `translate(${t.x - t.rs / 2}px, ${t.y - t.rs / 2}px) scale(${k.toFixed(4)})${lean ? ` rotate(${lean.toFixed(2)}deg)` : ''}`;
     if (z !== t.lastZ) {
       t.el.style.zIndex = `${z}`;
       t.lastZ = z;
@@ -695,6 +705,12 @@ export class TimelineCanvas {
 
   get calloutEl(): HTMLElement {
     return this.info;
+  }
+
+  /** Redraws every cover after the look changes (lean and springs). */
+  restyle(): void {
+    this.tiles.forEach((t) => this.writeTile(t));
+    this.kick();
   }
 
   /** The year panel lives outside the canvas, so the app listens to it directly. */

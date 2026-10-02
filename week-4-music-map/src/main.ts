@@ -24,6 +24,7 @@ import { JourneyRecorder, describeScene, pathAfter, type PathStep, type SaveStat
 import { artistGenres, enrichFromMusicBrainz } from './musicbrainz';
 import { enrichFromGenius, geniusSource, geniusToken, saveGeniusToken } from './genius';
 import { isFramed, loadConfig, siteConfig } from './config';
+import { applyLook, initLook, onLook, renderLookPicker, setLook, type LookId } from './looks';
 import { extendLibrary, getLibrary, hasLibrary, loadLibrary, saveLibrary } from './library';
 import { cachedProfile, lifeLine, loadProfile, type ArtistProfile } from './artist';
 import { NetworkView, type Scene, type SceneEdge, type SceneNode } from './network';
@@ -154,6 +155,7 @@ class MusicMapApp {
 
   async init(): Promise<void> {
     document.getElementById('build-ver')!.textContent = `Version ${__BUILD__}`;
+    initLook();
     await Promise.all([loadConfig(), loadLibrary()]);
     const login = await spotify
       .completeLoginFromUrl()
@@ -560,6 +562,18 @@ class MusicMapApp {
   // ---- UI wiring ----------------------------------------------------------------
 
   private bindUi(): void {
+    // Notebook looks: a switcher on the Personal Timeline while one is being chosen.
+    const looksEl = document.getElementById('looks')!;
+    renderLookPicker(looksEl);
+    looksEl.addEventListener('click', (e) => {
+      const id = (e.target as HTMLElement).closest<HTMLElement>('[data-look]')?.dataset.look;
+      if (id) setLook(id as LookId);
+    });
+    onLook(() => {
+      renderLookPicker(looksEl);
+      applyLook(this.view === 'timeline');
+      this.canvas.restyle();
+    });
     document.querySelectorAll<HTMLButtonElement>('.mm-view').forEach((b) =>
       b.addEventListener('click', () => this.setView(b.dataset.view as ViewMode)),
     );
@@ -1417,6 +1431,8 @@ class MusicMapApp {
     if (selected || !history) this.closeAlbumPicker();
     this.renderYear();
     this.renderBlurb();
+    applyLook(this.view === 'timeline');
+    document.getElementById('looks')!.hidden = this.view !== 'timeline' || year;
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
     (document.getElementById('zoomctl') as HTMLElement).hidden = year;
     this.renderStageNote();
