@@ -186,69 +186,78 @@ export class TimelineCanvas {
         x += GAP_W;
       }
       const section: Section = { data: sec, x, w: 0, tiles: [] };
-      // Stack albums into columns centred on the axis: no overlaps, every cover visible.
+      // Albums settle into loose clumps around the axis, in saved order from left to
+      // right: a wandering drift rather than a grid, but no cover ever hides another.
       const GAP = small ? 4 : 6;
-      const colH = this.colH;
+      const half = this.colH / 2;
       const sizes = sec.items.map((it) => Math.min(small ? 84 : 124, Math.round((small ? 36 : 46) + (small ? 18 : 26) * (Math.sqrt(it.trackIds.length) - 1))));
-      let cursor = x + PAD;
-      let col: number[] = [];
-      const flush = () => {
-        if (!col.length) return;
-        const w = Math.max(...col.map((i) => sizes[i]));
-        const total = col.reduce((t, i) => t + sizes[i], 0) + GAP * (col.length - 1);
-        let y = y0 - total / 2;
-        for (const i of col) {
-          const item = sec.items[i];
-          const rs = sizes[i];
-          const rand = seeded(item.id);
-          const rx = cursor + w / 2 + (rand() - 0.5) * Math.max(0, w - rs);
-          const ry = y + rs / 2;
-          y += rs + GAP;
-          const tile: Tile = {
-            item,
-            section,
-            el: document.createElement('button'),
-            rx,
-            ry,
-            rs,
-            sx: 0,
-            sy: 0,
-            scale: 1,
-            z: 10 + Math.round(rs / 10),
-            x: rx,
-            y: ry,
-            s: rs,
-            vx: 0,
-            vy: 0,
-            vs: 0,
-            lastZ: -1,
-          };
-          const n = item.trackIds.length;
-          const b = tile.el;
-          b.type = 'button';
-          b.className = `mm-cov${item.outside ? ' is-outside' : ''}`;
-          b.dataset.id = item.id;
-          b.setAttribute('aria-label', `${item.title} by ${item.artist}. ${item.dateText}.`);
-          b.innerHTML = `<img alt="" src="${coverUrl(item.track.cover, item.title)}" loading="lazy" draggable="false" />${n > 1 ? `<span class="mm-cov__count">${n}</span>` : ''}`;
-          this.bindTile(tile);
-          this.world.appendChild(b);
-          this.writeTile(tile);
-          section.tiles.push(tile);
-          this.tiles.push(tile);
+      const area = sizes.reduce((a, sz) => a + (sz + GAP) * (sz + GAP), 0);
+      // Roughly how wide the year needs to be at a loose packing density.
+      const span = Math.max(sizes[0] ?? 60, area / (2 * half * 0.62));
+      const start = x + PAD;
+      const phase = seeded(sec.key)() * Math.PI * 2;
+      const placed: { x: number; y: number; s: number }[] = [];
+      const free = (cx: number, cy: number, sz: number) =>
+        cx - sz / 2 >= start &&
+        Math.abs(cy - y0) + sz / 2 <= half &&
+        placed.every((p) => Math.abs(p.x - cx) * 2 >= p.s + sz + GAP * 2 || Math.abs(p.y - cy) * 2 >= p.s + sz + GAP * 2);
+      let maxX = start;
+      sec.items.forEach((item, i) => {
+        const rs = sizes[i];
+        const rand = seeded(item.id);
+        const t = sec.items.length > 1 ? i / (sec.items.length - 1) : 0.5;
+        // The drift: a slow wave through the year, so albums gather into clumps above and below the line.
+        const ax = start + rs / 2 + t * Math.max(0, span - rs);
+        const ay = y0 + Math.sin(phase + t * 5.2) * (half - rs / 2) * 0.55 + (rand() - 0.5) * half * 0.3;
+        // Fallback if the spiral finds no room: start a new clump just to the right.
+        let px = maxX + GAP + rs / 2;
+        let py = y0 + (rand() - 0.5) * (half - rs / 2);
+        for (let step = 0, ang = rand() * Math.PI * 2, r = 0; step < 4000; step++) {
+          const cx = ax + Math.cos(ang) * r;
+          const cy = ay + Math.sin(ang) * r * 0.8;
+          if (free(cx, cy, rs)) {
+            px = cx;
+            py = cy;
+            break;
+          }
+          ang += 0.62;
+          r += 0.9;
         }
-        cursor += w + GAP;
-        col = [];
-      };
-      let h = 0;
-      sec.items.forEach((_, i) => {
-        if (col.length && h + GAP + sizes[i] > colH) {
-          flush();
-          h = 0;
-        }
-        h += (col.length ? GAP : 0) + sizes[i];
-        col.push(i);
+        placed.push({ x: px, y: py, s: rs });
+        maxX = Math.max(maxX, px + rs / 2);
+        const tile: Tile = {
+          item,
+          section,
+          el: document.createElement('button'),
+          rx: px,
+          ry: py,
+          rs,
+          sx: 0,
+          sy: 0,
+          scale: 1,
+          z: 10 + Math.round(rs / 10),
+          x: px,
+          y: py,
+          s: rs,
+          vx: 0,
+          vy: 0,
+          vs: 0,
+          lastZ: -1,
+        };
+        const n = item.trackIds.length;
+        const b = tile.el;
+        b.type = 'button';
+        b.className = `mm-cov${item.outside ? ' is-outside' : ''}`;
+        b.dataset.id = item.id;
+        b.setAttribute('aria-label', `${item.title} by ${item.artist}. ${item.dateText}.`);
+        b.innerHTML = `<img alt="" src="${coverUrl(item.track.cover, item.title)}" loading="lazy" draggable="false" />${n > 1 ? `<span class="mm-cov__count">${n}</span>` : ''}`;
+        this.bindTile(tile);
+        this.world.appendChild(b);
+        this.writeTile(tile);
+        section.tiles.push(tile);
+        this.tiles.push(tile);
       });
-      flush();
+      const cursor = maxX + GAP;
       section.w = Math.max(small ? 140 : 180, cursor - x + PAD - GAP);
 
       const el = document.createElement('section');
@@ -526,10 +535,8 @@ export class TimelineCanvas {
     const narrow = this.width < 600;
     const width = narrow ? this.width - 24 : pinned ? Math.min(this.width - 32, 960) : Math.min(520, Math.max(320, this.width * 0.36));
     const height = narrow ? (pinned ? 280 : 140) : Math.max(140, Math.min(pinned ? 340 : 210, this.height * (pinned ? 0.42 : 0.22)));
-    // Centred above the year it describes (kept on screen).
-    const sec = this.zoomKey ? this.find(this.zoomKey) : undefined;
-    const cx = sec ? (sec.x + sec.w / 2) * this.cam.k + this.cam.tx : this.width / 2;
-    const left = narrow ? 12 : Math.max(16, Math.min(this.width - width - 16, cx - width / 2));
+    // Fixed in the middle of the screen; only its lines follow the year as the canvas moves.
+    const left = narrow ? 12 : Math.round((this.width - width) / 2);
     return { top: 12, height, width, left };
   }
 
@@ -591,8 +598,6 @@ export class TimelineCanvas {
       this.lines.innerHTML = '';
       return;
     }
-    const zb = this.zoomBox();
-    this.zoom.style.left = `${zb.left}px`;
     const { k, tx, ty } = this.cam;
     const box = this.zoomBox();
     const b = box.top + box.height;

@@ -10,7 +10,7 @@ import type { Dataset, Person, Relationship, Track } from './types';
 const MB = 'https://musicbrainz.org/ws/2';
 let lastRequest = 0;
 
-async function mb<T>(path: string): Promise<T> {
+export async function mb<T>(path: string): Promise<T> {
   const wait = lastRequest + 1100 - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastRequest = Date.now();

@@ -1,6 +1,6 @@
 {
-  "spotifyClientId": "",
+  "spotifyClientId": "108b7955e4504ae189d691edcb15c826",
   "geniusProxy": "/api/genius",
-  "liveUrl": "",
+  "liveUrl": "https://shared-minds-two.vercel.app/week-4-music-map/site/",
   "owner": "Cathy"
 }
