@@ -24,9 +24,8 @@ import { JourneyRecorder, describeScene, pathAfter, type PathStep, type SaveStat
 import { artistGenres, enrichFromMusicBrainz } from './musicbrainz';
 import { enrichFromGenius, geniusSource, geniusToken, saveGeniusToken } from './genius';
 import { isFramed, loadConfig, siteConfig } from './config';
-import { applyLook, initLook, onLook, renderLookPicker, setLook, type LookId } from './looks';
 import { extendLibrary, getLibrary, hasLibrary, loadLibrary, saveLibrary } from './library';
-import { cachedProfile, lifeLine, loadProfile, type ArtistProfile } from './artist';
+import { cachedProfile, lifeLine, loadProfile, wikiSongSummary, type ArtistProfile } from './artist';
 import { NetworkView, type Scene, type SceneEdge, type SceneNode } from './network';
 import * as spotify from './spotify';
 import {
@@ -72,7 +71,7 @@ class MusicMapApp {
   private inspected: { id: string; relIds: string[] } | null = null;
   private expanded = new Set<string>();
   /** The historical web shows second-degree connections by default ("zoom out" of the web). */
-  private wider = true;
+  private wider = false;
   private reflecting = false;
   private showData = false;
   private search: SearchState | null = null;
@@ -156,7 +155,6 @@ class MusicMapApp {
 
   async init(): Promise<void> {
     document.getElementById('build-ver')!.textContent = `Version ${__BUILD__}`;
-    initLook();
     await Promise.all([loadConfig(), loadLibrary()]);
     const login = await spotify
       .completeLoginFromUrl()
@@ -601,18 +599,6 @@ class MusicMapApp {
   // ---- UI wiring ----------------------------------------------------------------
 
   private bindUi(): void {
-    // Notebook looks: a switcher on the Personal Timeline while one is being chosen.
-    const looksEl = document.getElementById('looks')!;
-    renderLookPicker(looksEl);
-    looksEl.addEventListener('click', (e) => {
-      const id = (e.target as HTMLElement).closest<HTMLElement>('[data-look]')?.dataset.look;
-      if (id) setLook(id as LookId);
-    });
-    onLook(() => {
-      renderLookPicker(looksEl);
-      applyLook(this.view === 'timeline');
-      this.canvas.restyle();
-    });
     document.querySelectorAll<HTMLButtonElement>('.mm-view').forEach((b) =>
       b.addEventListener('click', () => this.setView(b.dataset.view as ViewMode)),
     );
@@ -1385,8 +1371,8 @@ class MusicMapApp {
       }
     }
 
-    // Historical view (sketch): people branch on to a few of their other works.
-    if (this.view === 'history') {
+    // The wider web: people branch on to a few of their other works.
+    if (this.view === 'history' && this.wider) {
       let count = 0;
       for (const n of shown) {
         if (!this.graph.people.has(n.otherId)) continue;
@@ -1476,8 +1462,6 @@ class MusicMapApp {
     if (selected || !history) this.closeAlbumPicker();
     this.renderYear();
     this.renderBlurb();
-    applyLook(this.view === 'timeline');
-    document.getElementById('looks')!.hidden = this.view !== 'timeline' || year;
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
     (document.getElementById('zoomctl') as HTMLElement).hidden = year;
     this.renderStageNote();
@@ -1527,7 +1511,6 @@ class MusicMapApp {
     el.dataset.for = cur ?? '';
     if (!cur) {
       el.innerHTML = `
-        <p class="mm-sheet__kicker">How to read this map</p>
         <h2 class="mm-sheet__title">Where your music comes from</h2>
         <ol class="mm-story mm-story--intro">
           <li class="mm-story__step"><header><span class="mm-story__num">01</span><h3>Choose a shape</h3></header><p>Map your library by artist, album, song or genre (top left). Bigger covers are albums you saved more of.</p></li>
@@ -1613,10 +1596,9 @@ class MusicMapApp {
       <header class="mm-sheet__hero">
         <img class="mm-sheet__cover" src="${coverUrl(t.cover, t.album?.name ?? t.title)}" alt="" />
         <div>
-          <p class="mm-sheet__kicker">${this.path.length > 1 ? `Song · step ${this.path.length} of your path` : 'Song'}</p>
           <h2 class="mm-sheet__title">${h(t.title)}</h2>
           <p class="mm-sheet__by">${by}</p>
-          <p class="mm-sheet__dates"><span class="is-release">Released ${formatPartialDate(t.release)}</span>${saved ? `<span class="is-saved">Saved ${formatSaved(saved)}</span>` : ''}</p>
+          <p class="mm-sheet__dates"><span class="is-release">Released ${formatPartialDate(t.release)}</span>${saved ? `<span class="is-saved">Saved ${formatSaved(saved)}</span>` : ''}${this.path.length > 1 ? `<span>Step ${this.path.length} of your path</span>` : ''}</p>
         </div>
       </header>
       <div class="mm-sheet__actions">
@@ -1624,6 +1606,7 @@ class MusicMapApp {
         ${t.origin !== 'demo' ? `<button type="button" class="mm-sheet__btn is-quiet" data-action="mb-lookup" data-id="${h(t.id)}">${status === 'loading' ? 'Looking up…' : 'Look up again'}</button>` : ''}
       </div>
       ${status === 'loading' ? '<p class="mm-sheet__status">Looking this song up on Genius and MusicBrainz…</p>' : status ? `<p class="mm-sheet__status">${h(status)}</p>` : ''}
+      ${t.about ? `<section class="mm-sheet__about"><p class="mm-sheet__bio">${h(t.about.text.length > 700 ? `${t.about.text.slice(0, 700).replace(/\s+\S*$/, '')}…` : t.about.text)}</p><a class="mm-sheet__more" href="${h(t.about.url)}" target="_blank" rel="noopener">Read more on ${h(t.about.source)} ↗</a></section>` : ''}
       <ol class="mm-story">
         ${this.storyStep(1, 'What it samples', samples.map((n) => this.songRow(n)), 'No samples recorded.', 'Recordings this song uses a piece of.')}
         ${this.storyStep(2, 'Where it lives on', [...sampledOn, ...interp, ...other].map((n) => this.songRow(n, relLabel(n))), 'No one is recorded sampling or re-performing it yet.', 'Songs that sample it, re-perform it, cover or remix it.')}
@@ -1728,10 +1711,9 @@ class MusicMapApp {
       <header class="mm-sheet__hero is-person">
         ${avatar}
         <div>
-          <p class="mm-sheet__kicker">${group ? 'Group' : 'Person'}${topRoles.length ? ` · ${h(topRoles.join(' · '))}` : ''}</p>
           <h2 class="mm-sheet__title">${h(p.name)}</h2>
           ${prof?.disambiguation ? `<p class="mm-sheet__by">${h(prof.disambiguation)}</p>` : ''}
-          ${life.length ? `<p class="mm-sheet__dates">${life.map((l) => `<span>${h(l)}</span>`).join('')}</p>` : ''}
+          <p class="mm-sheet__dates"><span>${group ? 'Group' : 'Person'}</span>${topRoles.map((r) => `<span>${h(r)}</span>`).join('')}${life.map((l) => `<span class="is-release">${h(l)}</span>`).join('')}</p>
           ${prof?.genres.length ? `<ul class="mm-sheet__tags">${prof.genres.map((g) => `<li>${h(g)}</li>`).join('')}</ul>` : ''}
         </div>
       </header>
@@ -2465,6 +2447,11 @@ class MusicMapApp {
       } catch (err) {
         notes.push(`Genius: ${(err as Error).message}`);
       }
+    }
+    // The song's story: Genius's "About" above, else its Wikipedia article.
+    if (!this.graph.tracks.get(id)?.about) {
+      const about = await wikiSongSummary(t.title, t.artistCredit).catch(() => null);
+      if (about) this.addData({ tracks: [{ ...this.graph.tracks.get(id)!, about }] });
     }
     try {
       const res = await enrichFromMusicBrainz(t, known().people);

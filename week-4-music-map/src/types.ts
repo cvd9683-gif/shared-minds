@@ -38,6 +38,8 @@ export interface Track {
   musicbrainzId?: string;
   /** A page about this recording on its source (e.g. Genius). */
   externalUrl?: string;
+  /** The song's story, as its source tells it (Genius "About", or Wikipedia). */
+  about?: { text: string; source: string; url: string };
 }
 
 export interface Person {
