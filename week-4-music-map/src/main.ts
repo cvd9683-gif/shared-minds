@@ -39,6 +39,7 @@ import {
 } from './store';
 import type { Dataset, Journey, Node, Person, Relationship, Thought, Track, ViewMode, YearData } from './types';
 
+const PLAYLISTS_READ_KEY = 'musicMap:playlistsRead';
 const DATASET_KEY = 'musicMap:dataset';
 const HOWTO_KEY = 'musicMap:howtoSeen';
 const IMPORTED_KEY = 'musicMap:importedAt';
@@ -181,9 +182,42 @@ class MusicMapApp {
     if (login.completed) {
       void spotify.loadProfileName().then(() => this.renderChrome());
       void this.importLibrary();
-    } else if (!localStorage.getItem(HOWTO_KEY)) {
-      this.showHowto(true);
+    } else {
+      if (!localStorage.getItem(HOWTO_KEY)) this.showHowto(true);
+      void this.refreshPlaylists();
     }
+  }
+
+  /**
+   * Re-reads your playlists in the background when they're missing or more than
+   * half a day old, so a library imported before playlists worked still gets them.
+   */
+  private playlistsLoading = false;
+  private async refreshPlaylists(force = false): Promise<void> {
+    if (this.playlistsLoading || this.datasetKind !== 'spotify' || !spotify.isConnected() || spotify.missingScopes().length) return;
+    const last = Number(localStorage.getItem(PLAYLISTS_READ_KEY) ?? 0);
+    if (!force && this.graph.playlists.size && Date.now() - last < 12 * 3600 * 1000) return;
+    this.playlistsLoading = true;
+    this.refreshCallout();
+    try {
+      const { playlists, note } = await spotify.importPlaylists();
+      if (note.startsWith("Playlists couldn't")) {
+        this.graph.playlistsNote = note;
+      } else {
+        this.graph.setPlaylists(playlists, note);
+        const lib = getLibrary();
+        if (lib) saveLibrary({ ...lib, playlists, playlistsNote: note });
+        localStorage.setItem(PLAYLISTS_READ_KEY, `${Date.now()}`);
+      }
+    } finally {
+      this.playlistsLoading = false;
+      this.refreshCallout();
+    }
+  }
+
+  /** Redraws the open album's details (after playlists arrive, for example). */
+  private refreshCallout(): void {
+    if (this.picked) this.canvas.updateCallout(this.calloutHtml());
   }
 
   // ---- Data -------------------------------------------------------------------
@@ -221,7 +255,7 @@ class MusicMapApp {
   }
 
   /** Songs from the same album in a section become one tile. */
-  private groupItems(secKey: string, entries: { track: Track; dateText: string; outside: boolean }[]): CanvasItem[] {
+  private groupItems(secKey: string, entries: { track: Track; dateText: string; outside: boolean; month?: number }[]): CanvasItem[] {
     const byAlbum = new Map<string, typeof entries>();
     for (const e of entries) {
       const k = this.albumKey(e.track);
@@ -239,6 +273,7 @@ class MusicMapApp {
         artist: t.artistCredit,
         dateText: list.length > 1 ? `${list.length} songs saved from this album` : list[0].dateText,
         outside: list.every((e) => e.outside),
+        month: list[0].month,
       };
     });
   }
@@ -246,10 +281,14 @@ class MusicMapApp {
   /** Personal Timeline: one section per year saved, captioned by the explorer. */
   private savedSections(): CanvasSection[] {
     this.groups.clear();
-    const byYear = new Map<string, { track: Track; dateText: string; outside: boolean }[]>();
+    const byYear = new Map<string, { track: Track; dateText: string; outside: boolean; month: number }[]>();
     for (const { entry, track } of this.graph.savedTracks(this.hidden)) {
-      const year = `${new Date(entry.savedAt).getFullYear()}`;
-      byYear.set(year, [...(byYear.get(year) ?? []), { track, dateText: `Saved ${formatSaved(entry.savedAt)}`, outside: false }]);
+      const d = new Date(entry.savedAt);
+      const year = `${d.getFullYear()}`;
+      const list = byYear.get(year);
+      const e = { track, dateText: `Saved ${formatSaved(entry.savedAt)}`, outside: false, month: d.getMonth() };
+      if (list) list.push(e);
+      else byYear.set(year, [e]);
     }
     return [...byYear].map(([year, entries]) => ({
       key: year,
@@ -1164,12 +1203,18 @@ class MusicMapApp {
       playlistHtml = `<ul class="mm-chips">${playlists
         .map((p) => (p.url ? `<li><a href="${h(p.url)}" target="_blank" rel="noopener">${h(p.name)}</a></li>` : `<li><span>${h(p.name)}</span></li>`))
         .join('')}</ul>${demo ? '<p class="mm-muted mm-small">Fictional demo playlists.</p>' : ''}`;
-    } else if (this.datasetKind === 'spotify' && (this.graph.playlistsNote === 'reconnect' || spotify.missingScopes().length || !this.graph.playlists.size)) {
-      playlistHtml = `<p class="mm-muted mm-small">Your playlists aren't loaded yet: Spotify needs one more permission.</p>
+    } else if (this.datasetKind === 'spotify' && this.playlistsLoading) {
+      playlistHtml = '<p class="mm-muted mm-small">Reading your playlists from Spotify…</p>';
+    } else if (this.datasetKind === 'spotify' && (this.graph.playlistsNote === 'reconnect' || spotify.missingScopes().length)) {
+      playlistHtml = `<p class="mm-muted mm-small">Spotify needs one more permission to read your playlists.</p>
         <button type="button" class="mm-btn mm-btn--small mm-btn--spotify" data-action="reconnect-spotify">Reconnect Spotify</button>`;
-    } else if (this.datasetKind === 'spotify' && this.graph.playlistsNote) {
-      playlistHtml = `<p class="mm-muted mm-small">Not in any of your ${this.graph.playlists.size} playlists. ${h(this.graph.playlistsNote)}</p>`;
-    } else if (this.datasetKind === 'spotify' || demo) {
+    } else if (this.datasetKind === 'spotify' && !this.graph.playlists.size) {
+      playlistHtml = `<p class="mm-muted mm-small">${h(this.graph.playlistsNote || 'Your playlists haven’t been read yet.')}</p>
+        <button type="button" class="mm-btn mm-btn--small" data-action="reload-playlists">Read my playlists</button>`;
+    } else if (this.datasetKind === 'spotify') {
+      playlistHtml = `<p class="mm-muted mm-small">Not in any of the ${this.graph.playlists.size} playlists you made.</p>
+        <button type="button" class="mm-link mm-small" data-action="reload-playlists">Read them again</button>`;
+    } else if (demo) {
       playlistHtml = '<p class="mm-muted mm-small">Not in any playlist you made.</p>';
     } else {
       playlistHtml = '<p class="mm-muted mm-small">Connect Spotify to see your playlists.</p>';
@@ -2248,6 +2293,8 @@ class MusicMapApp {
         return this.renderPanel();
       case 'open-spotify':
         return this.openSpotifyDialog();
+      case 'reload-playlists':
+        return void this.refreshPlaylists(true);
       case 'reconnect-spotify':
         // Sign in again so Spotify grants the playlist permission; the library re-imports on return.
         spotify.disconnect();

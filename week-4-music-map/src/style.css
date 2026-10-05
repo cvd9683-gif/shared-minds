@@ -3611,3 +3611,16 @@ html[data-look] input::placeholder {
     bottom: 64px;
   }
 }
+
+/* Month labels beside each cluster of albums */
+.mm-month {
+  position: absolute;
+  z-index: 5;
+  font: 500 10px/14px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sec-accent);
+  opacity: 0.75;
+  white-space: nowrap;
+  pointer-events: none;
+}
