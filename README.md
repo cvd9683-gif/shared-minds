@@ -56,3 +56,14 @@ again, and note what you hear now. Connects to Spotify for your saved tracks and
 
 **[Open the map](week-4-music-map/site/)**
 · [Source and setup](week-4-music-map/)
+
+---
+
+## Week 5 — My Dancing Trees
+
+A habit tracker where every habit you keep grows a singing plant on your own island. The
+plants stand together like a choir, each kind singing one part, and friends sail between
+islands to leave each other plants. Finish a habit for a week and you grow something rarer.
+
+**[Grow your island](week-5-my-dancing-trees/)**
+· [Source and write-up](week-5-my-dancing-trees/)
