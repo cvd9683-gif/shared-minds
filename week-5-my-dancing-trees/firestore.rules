@@ -1,0 +1,51 @@
+rules_version = '2';
+// My Dancing Trees. Paste into Firebase console → Firestore Database → Rules → Publish.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function me(uid) { return signedIn() && request.auth.uid == uid; }
+    // someone is a friend of `owner` when owner's friends list contains them
+    function friendOf(owner) { return signedIn() && exists(/databases/$(db)/documents/users/$(owner)/friends/$(request.auth.uid)); }
+
+    match /users/{uid} {
+      // name, colour and ecosystem only
+      allow read: if signedIn();
+      allow write: if me(uid);
+
+      // everything, including private habits and journal entries: only you
+      match /private/{doc} { allow read, write: if me(uid); }
+
+      // what visitors see: only shared habits and their plants, and only if you're open to visits
+      match /public/{doc} {
+        allow read: if me(uid) || (friendOf(uid) && resource.data.open == true);
+        allow write: if me(uid);
+      }
+
+      // you can add or remove friends on your own list; a friend can add themselves to yours
+      // only by presenting an invite you created
+      match /friends/{fid} {
+        allow read: if me(uid) || me(fid);
+        allow create: if me(uid)
+          || (me(fid) && get(/databases/$(db)/documents/invites/$(request.resource.data.via)).data.from == uid);
+        allow delete: if me(uid) || me(fid);
+      }
+
+      // gifts arrive from friends; only the recipient can keep (update) or let go (delete) them,
+      // and the sender can read their own gift to see whether it was kept
+      match /gifts/{gid} {
+        allow read: if me(uid) || (signedIn() && resource.data.from == request.auth.uid);
+        allow create: if signedIn() && request.resource.data.from == request.auth.uid && friendOf(uid);
+        allow update: if me(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kept']);
+        allow delete: if me(uid);
+      }
+
+      // your record of gifts you sent
+      match /sent/{gid} { allow read, write: if me(uid); }
+    }
+
+    match /invites/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.from == request.auth.uid;
+    }
+  }
+}

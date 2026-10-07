@@ -54,24 +54,39 @@ recovery circle, with a shared archipelago and group goals. Optional ecosystems 
 seasonal characters, and printed or vinyl pressings of your island's song at the end of
 a season. No ads: ads pay for attention, which is the thing this design refuses to farm.
 
+## Playing with friends
+
+Signed in, the app is multiplayer:
+
+- **Sign in with Google.** First time, you pick a name and an ecosystem and start with
+  three private starter habits you can change.
+- **Invite a friend.** Open *Together* → *Invite a friend* and send the link. When they
+  sign in through it, you appear on each other's maps.
+- **Visit and gift.** Sail to a friend's island to see the plants from habits they chose
+  to share. Gifts you leave arrive on their island live. When they keep a gift you earned
+  from a week goal, it counts toward your next rare plant.
+- **Privacy is enforced by the database**, not only the app (`firestore.rules`): your
+  habits, journal and private plants live in a document only you can read. Visitors read a
+  separate public copy that holds shared habits only, and only if you're open to visits.
+
+Until someone has friends, the example islands (Mara, Theo, Jae, Priya) stay as
+neighbours to explore. Without a Firebase config the whole app runs as a one-person
+prototype.
+
+### Turning it on
+
+1. In the [Firebase console](https://console.firebase.google.com), create a project.
+2. **Build → Authentication → Get started**, enable **Google**. Under **Settings →
+   Authorized domains**, add `shared-minds-two.vercel.app`.
+3. **Build → Firestore Database → Create database** (production mode). Open **Rules**,
+   paste in [`firestore.rules`](firestore.rules), and **Publish**.
+4. **Project settings → Your apps → Web (`</>`)**, register an app, and copy the
+   `firebaseConfig` object into [`firebase-config.js`](firebase-config.js) in place of `null`.
+
+The config values identify the project and are safe to commit; the rules do the protecting.
+
 ## What is real and what is simulated
 
-The island, habits, characters, music, plots and privacy settings all work. Mara, Theo,
-Jae and Priya are example friends, and the gifts they leave are simulated, so the
-social side can be tried by one person. Real multi-person play needs sign-in and a shared
-database (see below).
-
-## Making it multiplayer
-
-"Multi-user" here means people on different phones and networks, not people on the same
-Wi-Fi. The plan is Firebase, which Music Map is already set up for:
-
-- **Firebase Authentication** (this week's technical assignment) to sign in with Google
-  or email, so each island belongs to one person.
-- **Firestore or the Realtime Database** to store islands, habits, plants and gifts,
-  with security rules so only you can log your habits and only the visitors you allow
-  can read what you share.
-- **Live updates** so a gift appears on a friend's island while they're looking at it.
-
-The example friends can stay as demo islands for new visitors until they have friends
-of their own.
+The island, habits, characters, music, plots and privacy settings all work. Signed out,
+Mara, Theo, Jae and Priya are example friends and their gifts are simulated, so the social
+side can be tried by one person.

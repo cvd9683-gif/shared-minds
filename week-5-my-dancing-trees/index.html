@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="data:,">
 <style>html,body{height:100%;margin:0}[hidden]{display:none!important}body{font:14px system-ui,sans-serif}</style>
+<script src="firebase-config.js"></script>
 <title>My Dancing Trees</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1180,7 +1181,7 @@ function renderTray(){const tray=document.getElementById("tray");tray.innerHTML=
   }else{const P=PEOPLE[current];tray.insertAdjacentHTML("beforeend",`<div class="day"><b>Leave ${P.name} a gift</b><small>Your gifts glow orange</small></div>`);
     let any=false;for(const sp in seeds){const n=seeds[sp];if(!n)continue;any=true;const b=document.createElement("button");b.className="habit";b.appendChild(iconCanvas(sp));
       b.insertAdjacentHTML("beforeend",`<span class="l">${SPECIES[sp].name}</span><span class="p">${PART_NAME[SPECIES[sp].part]}</span><span class="count">${n}</span>`);
-      b.addEventListener("click",()=>{seeds[sp]--;if(!seeds[sp])delete seeds[sp];const p=plantToday(SPECIES[sp].part,{sp,gift:"you",kept:true});renderTray();toast(`Your ${SPECIES[sp].name} is growing on ${P.name}'s island.`,"you");setTimeout(()=>openCard(p),400);});tray.appendChild(b);}
+      b.addEventListener("click",()=>{seeds[sp]--;if(!seeds[sp])delete seeds[sp];if(realFriend(current))sendGift(current,{sp,story:"",earned:false});const p=plantToday(SPECIES[sp].part,{sp,gift:"you",kept:!realFriend(current)});renderTray();toast(`Your ${SPECIES[sp].name} is growing on ${P.name}'s island.`,"you");setTimeout(()=>openCard(p),400);});tray.appendChild(b);}
     if(!any)tray.insertAdjacentHTML("beforeend",`<div class="day"><small style="text-transform:none;font:400 14px/1.4 var(--body);letter-spacing:0;max-width:280px">Finish a habit at home to earn a seed you can give.</small></div>`);}
   requestAnimationFrame(()=>tray.classList.toggle("more",tray.scrollWidth>tray.clientWidth+4&&tray.scrollLeft+tray.clientWidth<tray.scrollWidth-4));tray.onscroll=()=>tray.classList.toggle("more",tray.scrollLeft+tray.clientWidth<tray.scrollWidth-4);
   if(lastFocusId){const el=document.getElementById(lastFocusId);if(el)el.focus({preventScroll:true});}
@@ -1205,8 +1206,15 @@ function updateHub(){
   waiting.forEach(p=>{const P=PEOPLE[p.gift],row=document.createElement("div");row.className="who";row.appendChild(iconCanvas(p.sp,40));
     row.insertAdjacentHTML("beforeend",`<div class="t"><b>${P.name} sent a ${esc(SPECIES[p.sp].name)}</b><span>${esc(p.story?"grown "+p.story:"")}${p.note?` · “${esc(p.note)}”`:""}</span></div>`);
     const b=document.createElement("button");b.className="btn";b.textContent="Open";b.onclick=()=>{hub.hidden=true;if(current!=="you")setIsland("you");if(view!=="forest")setView("forest");p.flash=performance.now();openCard(p);hear(p);};row.appendChild(b);g.appendChild(row);});
-  const gl=document.getElementById("hubGoal");gl.innerHTML=`<h4>This week, together</h4><p>You, Mara and Theo are each eating a real meal four days this week. Nobody is behind; it fills up together.</p>`;
-  for(const k of ["you","mara","theo"]){const P=PEOPLE[k];gl.insertAdjacentHTML("beforeend",`<div class="who"><span class="av" style="background:${P.color}">${P.short}</span><div class="t"><b>${k==="you"?"You":P.name}</b><span>${goal[k]} of ${goal.target} days</span></div><span class="bar"><i style="width:${goal[k]/goal.target*100}%"></i></span></div>`);}
+  const gl=document.getElementById("hubGoal");
+  if(CLOUD.on){gl.innerHTML=`<h4>Your friends</h4>`;const ks=friendKeys().filter(k=>!PEOPLE[k].demo);
+    if(!ks.length)gl.insertAdjacentHTML("beforeend",`<p style="color:var(--ink-2)">No friends here yet. The example islands stay until someone joins you.</p>`);
+    for(const k of ks){const P=PEOPLE[k],row=document.createElement("div");row.className="who";row.innerHTML=`<span class="av" style="background:${P.color}">${esc(P.short)}</span><div class="t"><b>${esc(P.name)}</b><span>${BIOMES[P.biome].name}</span></div>`;const b=document.createElement("button");b.className="btn ghost";b.textContent="Visit";b.onclick=()=>{hub.hidden=true;setIsland(k);};row.appendChild(b);gl.appendChild(row);}
+    const ib=document.createElement("button");ib.className="btn";ib.textContent="Invite a friend";ib.onclick=async()=>{ib.disabled=true;ib.textContent="Making a link…";try{const url=await makeInvite();ib.remove();
+        gl.insertAdjacentHTML("beforeend",`<p style="font-size:14.5px">Send this link. When they sign in, you'll be on each other's maps.</p><div class="who"><input readonly value="${esc(url)}" style="flex:1;min-width:0;border:0;background:transparent;font:500 13px var(--mono)" id="invUrl"><button class="btn" id="invCopy" type="button">Copy</button></div>`);
+        document.getElementById("invCopy").onclick=()=>{const i=document.getElementById("invUrl");navigator.clipboard.writeText(i.value).then(()=>toast("Invite link copied.",null),()=>{i.select();});};}catch(e){ib.disabled=false;ib.textContent="Invite a friend";toast("Couldn't make an invite link.",null);}};gl.appendChild(ib);}
+  else{gl.innerHTML=`<h4>This week, together</h4><p>You, Mara and Theo are each eating a real meal four days this week. Nobody is behind; it fills up together.</p>`;
+  for(const k of ["you","mara","theo"]){const P=PEOPLE[k];gl.insertAdjacentHTML("beforeend",`<div class="who"><span class="av" style="background:${P.color}">${P.short}</span><div class="t"><b>${k==="you"?"You":P.name}</b><span>${goal[k]} of ${goal.target} days</span></div><span class="bar"><i style="width:${goal[k]/goal.target*100}%"></i></span></div>`);}}
   const rr=document.getElementById("hubRare"),sp=ROSTER[PEOPLE.you.biome].rare;
   rr.innerHTML=`<h4>Your next rare plant</h4><div class="who"><span></span><div class="t"><b>${SPECIES[sp].name}</b><span>Grows when friends keep three gifts you earned from a week goal.</span></div></div><div class="seedslots">${[0,1,2].map(i=>`<i class="${i<pollen?"on":""}" title="${i<pollen?"A friend kept one":"Not yet"}"></i>`).join("")}</div><p style="color:var(--ink-2);font-size:14px">${pollen} of 3 kept so far.</p>`;
   const holder=rr.querySelector(".who span");holder.replaceWith(Object.assign(iconCanvas(sp,40,false),{style:"filter:brightness(0) opacity(.25)"}));}
@@ -1221,7 +1229,7 @@ function reveal(o){RV=Object.assign({t0:performance.now(),stage:"pop"},o);const 
   setTimeout(()=>{renderRevealCard();card.classList.add("in");const b=card.querySelector("button");if(b)b.focus();},1900);requestAnimationFrame(revealFrame);}
 function renderRevealCard(){const o=RV,S=SPECIES[o.sp],R=rarityOf(o.sp),card=document.getElementById("revealCard");
   const chips=`<div class="chips"><span class="rare ${R==="rare"?"rare_":R}">${RARITY_NAME[R]}</span><span class="from">${PART_NAME[S.part]} · native to ${BIOMES[S.bio].name}</span></div>`;
-  if(o.stage==="choose"){card.innerHTML=`<span class="eyebrow">Gift your ${esc(S.name)}</span><h2 id="rvTitle">Who should it go to?</h2><p>It arrives with your story attached, so they'll see what you did to grow it.</p><div class="friends">${["mara","theo","jae","priya"].map(k=>`<button class="fbtn" data-k="${k}"><span class="av" style="background:${PEOPLE[k].color}">${PEOPLE[k].short}</span><div><b>${PEOPLE[k].name}</b><span>${BIOMES[PEOPLE[k].biome].name}</span></div></button>`).join("")}</div><div class="row"><button class="btn ghost" id="rvBack">Back</button></div>`;
+  if(o.stage==="choose"){card.innerHTML=`<span class="eyebrow">Gift your ${esc(S.name)}</span><h2 id="rvTitle">Who should it go to?</h2><p>It arrives with your story attached, so they'll see what you did to grow it.</p><div class="friends">${friendKeys().map(k=>`<button class="fbtn" data-k="${k}"><span class="av" style="background:${PEOPLE[k].color}">${PEOPLE[k].short}</span><div><b>${PEOPLE[k].name}</b><span>${BIOMES[PEOPLE[k].biome].name}</span></div></button>`).join("")}</div><div class="row"><button class="btn ghost" id="rvBack">Back</button></div>`;
     card.querySelectorAll(".fbtn").forEach(b=>b.onclick=()=>giftTo(b.dataset.k));card.querySelector("#rvBack").onclick=()=>{RV.stage="pop";renderRevealCard();};return;}
   if(o.kind==="week"){card.innerHTML=`<span class="eyebrow">Week goal reached · ${esc(o.habit.name)}, ${o.count} of the last 7 days</span><h2 id="rvTitle">You grew a ${esc(S.name)}</h2>${chips}<p class="persona">“${esc(S.persona)}”</p>
     <div class="meter"><div class="dots">${[0,1,2].map(i=>`<i class="${i<pollen?"on":""}"></i>`).join("")}</div><p><b>Gift it and it can grow a rare plant.</b> When friends keep three gifts you earned, you grow a ${esc(SPECIES[ROSTER[PEOPLE.you.biome].rare].name)}. ${pollen} of 3 kept so far.</p></div>
@@ -1231,7 +1239,7 @@ function renderRevealCard(){const o=RV,S=SPECIES[o.sp],R=rarityOf(o.sp),card=doc
   else{card.innerHTML=`<span class="eyebrow">Cross-pollinated · ${esc(o.from)} kept your gift</span><h2 id="rvTitle">Your kindness grew a ${esc(S.name)}</h2>${chips}<p class="persona">“${esc(S.persona)}”</p><p>${esc(S.fact)}</p><div class="row"><span></span><button class="btn" id="rvHome">Plant it at home</button></div>`;
     card.querySelector("#rvHome").onclick=()=>{closeReveal();if(current!=="you")setIsland("you");const p=plantToday(S.part,{sp:o.sp});p.flash=performance.now();toast(`Your ${S.name} is planted. It plays ${PART_NAME[S.part].toLowerCase()} in your song.`,null);};}}
 function closeReveal(){document.getElementById("reveal").hidden=true;RV=null;}
-function giftTo(k){const o=RV,S=SPECIES[o.sp];closeReveal();toast(`Sailing your ${S.name} to ${PEOPLE[k].name}…`,"you");
+function giftTo(k){const o=RV,S=SPECIES[o.sp];if(realFriend(k)){closeReveal();sendGift(k,{sp:o.sp,story:`after ${o.habit.name.toLowerCase()} ${o.count} of 7 days`,earned:true});toast(`Sailing your ${S.name} to ${PEOPLE[k].name}. If they keep it, it counts toward a rare plant.`,"you");setTimeout(()=>{setIsland(k);const p=plantToday(S.part,{sp:o.sp,gift:"you",kept:false});p.flash=performance.now();},900);return;}closeReveal();toast(`Sailing your ${S.name} to ${PEOPLE[k].name}…`,"you");
   setTimeout(()=>{setIsland(k);const p=plantToday(S.part,{sp:o.sp,gift:"you",kept:false,story:`after ${o.habit.name.toLowerCase()} ${o.count} of 7 days`});p.flash=performance.now();setTimeout(()=>openCard(p),300);
     setTimeout(()=>{p.kept=true;pollen=Math.min(3,pollen+1);renderPollen();toast(`${PEOPLE[k].name} kept your ${S.name}. That is ${pollen} of 3 toward a rare plant.`,k);if(selected===p)openCard(p);
       if(pollen>=3){pollen=0;setTimeout(()=>{renderPollen();reveal({kind:"pollen",sp:ROSTER[PEOPLE.you.biome].rare,from:PEOPLE[k].name});},1800);}},3200);},1100);}
@@ -1375,8 +1383,8 @@ function openCard(p){selected=p;const S=SPECIES[p.sp],R=rarityOf(p.sp);
   const gb=document.getElementById("cGift"),ga=document.getElementById("cGiftActions");ga.innerHTML="";
   if(p.gift&&p.gift!=="you"&&own()){const P=PEOPLE[p.gift];gb.hidden=false;gb.style.setProperty("--gc",P.color);
     document.getElementById("cGiftText").textContent=p.kept?`You kept ${P.name}'s ${S.name}. It plays ${PART_NAME[S.part].toLowerCase()} in your song.`:`${P.name} grew this ${p.story||""} and gave it to you${p.note?`: "${p.note}"`:"."} Keep it, or let it drift back.`;
-    if(!p.kept){const k=document.createElement("button");k.className="btn";k.textContent="Keep";k.onclick=()=>{p.kept=true;toast(`${P.name}'s ${S.name} is part of your island now. It counts toward ${P.name}'s next rare plant.`,p.gift);updateGiftChip();openCard(p);};ga.appendChild(k);}
-    const l=document.createElement("button");l.className="btn ghost";l.textContent=p.kept?"Let it go":"Let go";l.onclick=()=>{p.leaving=performance.now();toast(`${P.name}'s ${S.name} drifted back to their island.`,p.gift);closeCard();updateGiftChip();};ga.appendChild(l);}
+    if(!p.kept){const k=document.createElement("button");k.className="btn";k.textContent="Keep";k.onclick=()=>{p.kept=true;cloudKeep(p);toast(`${P.name}'s ${S.name} is part of your island now. It counts toward ${P.name}'s next rare plant.`,p.gift);updateGiftChip();openCard(p);};ga.appendChild(k);}
+    const l=document.createElement("button");l.className="btn ghost";l.textContent=p.kept?"Let it go":"Let go";l.onclick=()=>{p.leaving=performance.now();cloudDrop(p);toast(`${P.name}'s ${S.name} drifted back to their island.`,p.gift);closeCard();updateGiftChip();};ga.appendChild(l);}
   else if(p.gift==="you"&&current!=="you"){gb.hidden=false;gb.style.setProperty("--gc",PEOPLE.you.color);document.getElementById("cGiftText").textContent=p.kept?`${PEOPLE[current].name} kept your gift. Your gifts glow orange on every island.`:`Waiting to see if ${PEOPLE[current].name} keeps it.`;}
   else gb.hidden=true;
   document.getElementById("cPersona").textContent=`“${S.persona}”`;document.getElementById("cFact").textContent=S.fact;updateSolo();card.classList.remove("closed");card.inert=false;drawArt(p);
@@ -1432,7 +1440,9 @@ document.getElementById("openMap").addEventListener("click",openMap);
 document.getElementById("closeMap").addEventListener("click",closeMap);
 function openMap(){mapOpen=true;const el=document.getElementById("map");el.classList.add("open");el.inert=false;el.setAttribute("aria-hidden","false");setTimeout(()=>document.getElementById("closeMap").focus(),50);if(!MAP)MAP=buildMap();if(MAP)MAP.refresh();}
 function closeMap(){mapOpen=false;const el=document.getElementById("map");el.classList.remove("open");el.inert=true;el.setAttribute("aria-hidden","true");}
-function buildMap(){
+let MAPGEN=0;
+function refreshMap(){if(!MAP)return;MAPGEN++;MAP=null;document.getElementById("mLabels").innerHTML="";if(mapOpen){MAP=buildMap();if(MAP)MAP.refresh();}}
+function buildMap(){const gen=++MAPGEN;
   if(!window.THREE){document.getElementById("map").insertAdjacentHTML("beforeend",`<div class="m-fallback">The map needs its 3D library, which didn't load. Check your connection and open it again.</div>`);return null;}
   const T=THREE,el=document.getElementById("mapCv"),renderer=new T.WebGLRenderer({canvas:el,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
   const scene=new T.Scene();scene.fog=new T.Fog(0xe9d6b8,16,34);const cam=new T.PerspectiveCamera(38,1,.1,100);
@@ -1456,7 +1466,7 @@ function buildMap(){
     top.userData.key=k;cliff.userData.key=k;hits.push(top,cliff);scene.add(g);islands[k]={g};
     const b=document.createElement("button");b.className="m-label";b.addEventListener("click",()=>go(k));lw.appendChild(b);labels[k]=b;}
   const routes=[],dotM=new T.MeshBasicMaterial({color:0xfff2b0});
-  for(const k of ["mara","theo","jae","priya"]){const a=new T.Vector3(PEOPLE.you.pos[0],.08,PEOPLE.you.pos[1]),b=new T.Vector3(PEOPLE[k].pos[0],.08,PEOPLE[k].pos[1]),mid=a.clone().add(b).multiplyScalar(.5);mid.y=1.2;
+  for(const k of friendKeys()){if(!PEOPLE[k].pos)continue;const a=new T.Vector3(PEOPLE.you.pos[0],.08,PEOPLE.you.pos[1]),b=new T.Vector3(PEOPLE[k].pos[0],.08,PEOPLE[k].pos[1]),mid=a.clone().add(b).multiplyScalar(.5);mid.y=1.2;
     const curve=new T.QuadraticBezierCurve3(a,mid,b),line=new T.Line(new T.BufferGeometry().setFromPoints(curve.getPoints(60)),new T.LineDashedMaterial({color:0xe6be2e,dashSize:.18,gapSize:.12}));line.computeLineDistances();scene.add(line);
     const dots=[0,1].map(()=>{const d=new T.Mesh(new T.SphereGeometry(.05,8,8),dotM);scene.add(d);return d;});routes.push({curve,dots,o:Math.random()});}
   const boat=new T.Group();boat.add(new T.Mesh(new T.BoxGeometry(.36,.1,.16),lam("#f3efe6")));const sail=new T.Mesh(new T.ConeGeometry(.12,.34,3),lam("#e2701c"));sail.position.y=.22;boat.add(sail);boat.visible=false;scene.add(boat);
@@ -1471,7 +1481,7 @@ function buildMap(){
     trip={curve:new T.QuadraticBezierCurve3(A,mid,B),t0:performance.now(),k};boat.visible=true;labels[k].querySelector(".go").textContent="Sailing…";}
   function size(){const r=el.getBoundingClientRect();renderer.setSize(r.width,r.height,false);cam.aspect=r.width/r.height;cam.updateProjectionMatrix();}
   addEventListener("resize",size);size();const tmp=new T.Vector3();
-  function loop(now){requestAnimationFrame(loop);if(!mapOpen)return;const t=now/1000;
+  function loop(now){if(gen!==MAPGEN)return;requestAnimationFrame(loop);if(!mapOpen)return;const t=now/1000;
     for(let i=0;i<sp.count;i++){const x=base[i*3],z=base[i*3+2];sp.setY(i,Math.sin(x*.7+t*.9)*.05+Math.cos(z*.6+t*.7)*.05);}sp.needsUpdate=true;seaG.computeVertexNormals();
     if(trip){const k=Math.min(1,(now-trip.t0)/2400),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2,p=trip.curve.getPoint(e),q=trip.curve.getPoint(Math.min(1,e+.01));boat.position.copy(p);boat.position.y=.08+Math.sin(t*6)*.02;boat.lookAt(q.x,boat.position.y,q.z);boat.rotateY(Math.PI/2);goal3.set(p.x,0,p.z);
       if(k>=1){const dest=trip.k;trip=null;boat.visible=false;setIsland(dest);closeMap();}}
@@ -1484,15 +1494,153 @@ function buildMap(){
 function drawMini(){const c=document.getElementById("miniMap").getContext("2d");c.setTransform(2,0,0,2,0,0);c.fillStyle="#4d8a9c";c.fillRect(0,0,46,46);
   c.strokeStyle="rgba(255,255,255,.35)";c.lineWidth=1;for(let i=0;i<4;i++){c.beginPath();c.moveTo(4,10+i*9);c.quadraticCurveTo(10,8+i*9,16,10+i*9);c.stroke();}
   const cols={coastal:"#d6bd8f",canyon:"#5d6b3e",meadow:"#b4b86a"};const pts=[["you",23,25,9],["mara",37,13,5],["theo",9,12,5],["jae",34,37,5],["priya",10,36,4]];
-  c.setLineDash([2,2]);c.strokeStyle="#e6be2e";c.lineWidth=1.2;for(const [,x,y] of pts.slice(1)){c.beginPath();c.moveTo(23,25);c.lineTo(x,y);c.stroke();}c.setLineDash([]);
-  for(const [k,x,y,r] of pts){c.fillStyle="#7f5638";c.beginPath();c.ellipse(x,y+1.5,r,r*.6,0,0,7);c.fill();c.fillStyle=cols[PEOPLE[k].biome];c.beginPath();c.ellipse(x,y,r,r*.6,0,0,7);c.fill();if(k===current){c.strokeStyle="#fff";c.lineWidth=1.5;c.beginPath();c.ellipse(x,y,r+2,r*.6+2,0,0,7);c.stroke();}}}
+  c.setLineDash([2,2]);c.strokeStyle="#e6be2e";c.lineWidth=1.2;for(const [kk,x,y] of pts.slice(1)){if(!PEOPLE[kk])continue;c.beginPath();c.moveTo(23,25);c.lineTo(x,y);c.stroke();}c.setLineDash([]);
+  for(const [k,x,y,r] of pts){if(!PEOPLE[k])continue;c.fillStyle="#7f5638";c.beginPath();c.ellipse(x,y+1.5,r,r*.6,0,0,7);c.fill();c.fillStyle=cols[PEOPLE[k].biome];c.beginPath();c.ellipse(x,y,r,r*.6,0,0,7);c.fill();if(k===current){c.strokeStyle="#fff";c.lineWidth=1.5;c.beginPath();c.ellipse(x,y,r+2,r*.6+2,0,0,7);c.stroke();}}}
 
 
-setTimeout(()=>{if(current!=="you"||viewAs!=="me"||RV)return;plantToday("berries",{sp:"thimbleberry",gift:"theo",kept:false,note:"you said you've been skipping lunch, so here",story:"after eating a real meal 5 days"});updateGiftChip();toast("Theo left you a Thimbleberry","theo");},22000);
+setTimeout(()=>{if(CLOUD.on||current!=="you"||viewAs!=="me"||RV)return;plantToday("berries",{sp:"thimbleberry",gift:"theo",kept:false,note:"you said you've been skipping lunch, so here",story:"after eating a real meal 5 days"});updateGiftChip();toast("Theo left you a Thimbleberry","theo");},22000);
 
 addEventListener("resize",()=>{resize();if(selected)drawArt(selected);});
+/* ================= multiplayer: Firebase sign-in, shared islands, live gifts =================
+   Switches on only when window.FIREBASE_CONFIG is set (see firebase-config.js). Without it the
+   app runs as a one-person prototype with example friends. */
+const CLOUD={on:false,uid:null,fb:null,db:null,friends:{},unsub:[],lastSave:"",archive:[],sentKept:0,rareClaimed:0};
+const FB_VER="10.12.2";
+const isoOf=d=>{const x=dayDate(d);return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;};
+const dayOfIso=iso=>{const[y,m,d]=iso.split("-").map(Number);return Math.round((new Date(y,m-1,d)-START)/864e5);};
+const realFriend=k=>CLOUD.on&&k!=="you"&&PEOPLE[k]&&!PEOPLE[k].demo;
+const friendKeys=()=>Object.keys(PEOPLE).filter(k=>k!=="you");
+const FRIEND_COLORS=["#a0567a","#4f79a8","#2f8f78","#7a63b5","#c0863a","#3f7f9a","#9a4f4f","#5a8a3a"];
+const clean=o=>JSON.parse(JSON.stringify(o));
+
+function cloudOverlay(html){let el=document.getElementById("cloudSheet");if(!el){el=document.createElement("div");el.id="cloudSheet";el.className="scrim";el.style.zIndex=25;el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");document.getElementById("app").appendChild(el);}el.innerHTML=`<div class="sheet">${html}</div>`;el.hidden=false;return el;}
+function closeCloudOverlay(){const el=document.getElementById("cloudSheet");if(el)el.hidden=true;}
+
+async function cloudInit(){
+  const cfg=window.FIREBASE_CONFIG;if(!cfg||!cfg.apiKey)return;
+  let A,AU,FS;
+  try{[A,AU,FS]=await Promise.all([import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore.js`)]);}
+  catch(e){console.warn("Firebase didn't load; staying in prototype mode",e);return;}
+  const app=A.initializeApp(cfg),auth=AU.getAuth(app);CLOUD.fb={...AU,...FS,auth};CLOUD.db=FS.getFirestore(app);
+  try{await AU.getRedirectResult(auth);}catch(e){}
+  let first=true;
+  AU.onAuthStateChanged(auth,async user=>{
+    if(user){await cloudStart(user);}
+    else{if(CLOUD.on)location.reload();if(first)showSignIn();}
+    first=false;});
+}
+function showSignIn(){const inv=new URLSearchParams(location.search).get("invite");
+  const el=cloudOverlay(`<span class="eyebrow">My Dancing Trees</span><h2>${inv?"A friend invited you to their island":"Grow a forest that sings"}</h2>
+    <p>Every habit you keep grows a plant on your own island. Sign in to keep your island, visit friends and leave them gifts.</p>
+    <div class="row"><button class="btn ghost" id="cDemo" type="button">Look around first</button><button class="btn" id="cSign" type="button">Sign in with Google</button></div>
+    <p class="note">Your habits start private. Friends only ever see what you choose to share.</p>`);
+  el.querySelector("#cDemo").onclick=closeCloudOverlay;
+  el.querySelector("#cSign").onclick=async()=>{const {auth,GoogleAuthProvider,signInWithPopup,signInWithRedirect}=CLOUD.fb,prov=new GoogleAuthProvider();
+    try{await signInWithPopup(auth,prov);}catch(e){if(e&&/popup/i.test(e.code||""))await signInWithRedirect(auth,prov);else toast("Sign-in didn't work. Check that this site is an authorized domain in Firebase.",null);}};}
+
+async function cloudStart(user){const {doc,getDoc,setDoc,serverTimestamp}=CLOUD.fb,db=CLOUD.db;CLOUD.uid=user.uid;
+  const pref=doc(db,"users",user.uid),privRef=doc(db,"users",user.uid,"private","state");
+  const [ps,vs]=await Promise.all([getDoc(pref),getDoc(privRef)]);
+  if(!ps.exists()){await onboard(user);return;}
+  enterCloud(ps.data(),vs.exists()?vs.data():null);}
+function onboard(user){return new Promise(res=>{let biome="coastal";const nm=(user.displayName||"").split(" ")[0]||"";
+  const el=cloudOverlay(`<span class="eyebrow">Your island</span><h2>Welcome. What should friends call you?</h2>
+    <label class="private" for="obName">Name</label><input id="obName" maxlength="24" value="${esc(nm)}" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:500 17px var(--body)">
+    <h4>Pick your ecosystem</h4><div class="seg" id="obBiome">${Object.entries(BIOMES).map(([k,b])=>`<button type="button" data-b="${k}" aria-pressed="${k==="coastal"}">${b.name}</button>`).join("")}</div>
+    <p style="font-size:14.5px;color:var(--ink-2)">Each ecosystem has its own native plants and its own song. You can change it later.</p>
+    <div class="row"><span></span><button class="btn" id="obGo" type="button">Start my island</button></div>`);
+  el.querySelectorAll("#obBiome button").forEach(b=>b.onclick=()=>{biome=b.dataset.b;el.querySelectorAll("#obBiome button").forEach(o=>o.setAttribute("aria-pressed",String(o===b)));});
+  el.querySelector("#obGo").onclick=async()=>{const name=el.querySelector("#obName").value.trim()||nm||"Friend";const {doc,setDoc,serverTimestamp}=CLOUD.fb;
+    const prof={name,biome,color:"#e2701c",createdAt:serverTimestamp()};await setDoc(doc(CLOUD.db,"users",CLOUD.uid),prof);
+    hid=0;const starter={weeks:4,priv:{aud:"friends",calendar:true,stats:false},habits:[H_("bass","Sleep 7+ hours","7 hrs",ALL,false),H_("beat","Move your body","20 min",[1,1,1,1,1,0,0],false),H_("melody","Reach out to someone","1 message",[0,1,0,1,0,1,0],false)],plants:[]};
+    enterCloud({...prof},{island:serializeIsland(starter),extra:{}});res();toast("Your island is ready. Tap a habit when you've done it.",null);setTimeout(openHabits,900);};});}
+
+function serializeIsland(I){const keep=p=>!p.gift&&!p.cloudId;return{weeks:I.weeks,priv:I.priv,habits:I.habits.map(h=>({id:h.id,part:h.part,sp:h.sp||null,name:h.name,target:h.target||"",days:h.days,share:!!h.share,goal:!!h.goal,journal:!!h.journal})),
+  plants:I.plants.filter(keep).map(p=>({sp:p.sp,part:p.part,date:isoOf(p.day),hid:p.hid||null,seed:p.seed,w:+p.w.toFixed(3),entry:p.entry||null,mood:p.mood||null,label:p.label||null})).concat(CLOUD.archive)};}
+function plantsFrom(list,b,giftMap){const out=[],old=[];for(const q of list||[]){const d=dayOfIso(q.date);if(d<0){old.push(q);continue;}if(d>TI)continue;
+    const o={sp:q.sp,seed:q.seed,w:q.w||1,hid:q.hid||undefined,entry:q.entry||undefined,mood:q.mood||undefined,label:q.label||undefined,story:q.story||undefined};
+    if(q.gift){o.gift=giftMap?giftMap(q.gift):undefined;o.kept=true;if(!o.gift){o.label="A gift from a friend";}}
+    if(!SPECIES[q.sp])continue;out.push(mk(q.part||SPECIES[q.sp].part,d,b,o));}return{out,old};}
+
+function enterCloud(prof,priv){CLOUD.on=true;
+  for(const k of ["mara","theo","jae","priya"])if(PEOPLE[k])PEOPLE[k].demo=true;
+  PEOPLE.you.name="You";PEOPLE.you.real=prof.name;PEOPLE.you.short=(prof.name||"Y")[0].toUpperCase();PEOPLE.you.biome=prof.biome||"coastal";
+  document.getElementById("openProfile").textContent=PEOPLE.you.short;
+  const I=priv&&priv.island;
+  ISL.you.weeks=I?I.weeks:4;ISL.you.priv=I?I.priv:{aud:"friends",calendar:true,stats:false};
+  ISL.you.habits=I?I.habits.map(h=>Object.assign({},h,{sp:h.sp||undefined})):[];
+  hid=Math.max(0,...ISL.you.habits.map(h=>+String(h.id).replace(/\D/g,"")||0));
+  const r=plantsFrom(I?I.plants:[],PEOPLE.you.biome);ISL.you.plants=r.out;CLOUD.archive=r.old;
+  const ex=(priv&&priv.extra)||{};Object.keys(seeds).forEach(k=>delete seeds[k]);Object.assign(seeds,ex.seeds||{});discovered.clear();(ex.discovered||[]).forEach(s=>discovered.add(s));
+  CLOUD.rareClaimed=ex.rareClaimed||0;weekRewarded=ex.weekRewarded===isoOf(TI-DOW);
+  closeCloudOverlay();setIsland("you");watchFriends();watchGifts();watchSent();acceptInvite();
+  CLOUD.lastSave="";
+  setInterval(cloudSave,2500);document.addEventListener("visibilitychange",()=>{if(document.hidden)cloudSave();});
+  addSignOut();}
+function cloudSnapshot(){return{island:serializeIsland(ISL.you),extra:{seeds:clean(seeds),discovered:[...discovered],rareClaimed:CLOUD.rareClaimed,weekRewarded:weekRewarded?isoOf(TI-DOW):null}};}
+function publicSnapshot(){const I=ISL.you,shared=new Set(I.habits.filter(h=>h.share).map(h=>h.id));
+  const plants=I.plants.filter(p=>!p.leaving&&((!p.gift&&(p.label||(p.hid&&shared.has(p.hid))))||(p.gift&&p.kept))).map(p=>({sp:p.sp,part:p.part,date:isoOf(p.day),hid:p.hid&&shared.has(p.hid)?p.hid:null,seed:p.seed,w:+p.w.toFixed(3),label:p.label||null,story:p.story||null,gift:p.gift?(p.gift==="you"?CLOUD.uid:p.gift):null}));
+  return{open:I.priv.aud!=="me",calendar:!!I.priv.calendar,weeks:I.weeks,biome:PEOPLE.you.biome,habits:I.habits.filter(h=>h.share).map(h=>({id:h.id,part:h.part,sp:h.sp||null,name:h.name,target:h.target||"",days:h.days,share:true})),plants};}
+async function cloudSave(){if(!CLOUD.on)return;const snap=cloudSnapshot(),s=JSON.stringify([snap,publicSnapshot()]);if(s===CLOUD.lastSave)return;CLOUD.lastSave=s;
+  const {doc,setDoc}=CLOUD.fb,db=CLOUD.db,u=CLOUD.uid;
+  try{await Promise.all([setDoc(doc(db,"users",u,"private","state"),clean(snap)),setDoc(doc(db,"users",u,"public","island"),clean(publicSnapshot())),setDoc(doc(db,"users",u),{name:PEOPLE.you.real,biome:PEOPLE.you.biome,color:"#e2701c"},{merge:true})]);}
+  catch(e){console.warn("save failed",e);CLOUD.lastSave="";}}
+
+/* friends */
+function watchFriends(){const {collection,onSnapshot}=CLOUD.fb;
+  CLOUD.unsub.push(onSnapshot(collection(CLOUD.db,"users",CLOUD.uid,"friends"),snap=>{const ids=snap.docs.map(d=>d.id).filter(id=>id!==CLOUD.uid);
+    for(const id of Object.keys(CLOUD.friends))if(!ids.includes(id)){CLOUD.friends[id].forEach(f=>f());delete CLOUD.friends[id];delete PEOPLE[id];delete ISL[id];}
+    ids.forEach((id,i)=>{if(!CLOUD.friends[id])listenFriend(id);});
+    const real=ids.length>0;for(const k of ["mara","theo","jae","priya"]){if(real){delete PEOPLE[k];delete ISL[k];}}
+    placeFriends();updateHub();if(typeof refreshMap==="function")refreshMap();}));}
+function placeFriends(){const ks=friendKeys();ks.forEach((k,i)=>{const a=i/Math.max(1,ks.length)*Math.PI*2+.6,R=4.4+(i%2)*.7;PEOPLE[k].pos=[Math.cos(a)*R,Math.sin(a)*R];});}
+function listenFriend(id){const {doc,onSnapshot}=CLOUD.fb,db=CLOUD.db,col=FRIEND_COLORS[hash(id)%FRIEND_COLORS.length];
+  PEOPLE[id]={name:"Friend",short:"?",color:col,biome:"meadow",pos:[3,3]};ISL[id]={weeks:4,priv:{aud:"friends",calendar:false,stats:false},habits:[],plants:[]};
+  const u1=onSnapshot(doc(db,"users",id),s=>{const d=s.data()||{};Object.assign(PEOPLE[id],{name:d.name||"Friend",short:(d.name||"?")[0].toUpperCase(),biome:BIOMES[d.biome]?d.biome:"meadow"});ISL.you.plants.forEach(p=>{if(p.fromUid===id&&!p.gift){p.gift=id;p.label=undefined;}});updateHub();if(typeof refreshMap==="function")refreshMap();if(current===id)setIsland(id);});
+  const u2=onSnapshot(doc(db,"users",id,"public","island"),s=>{const d=s.data();if(!d){ISL[id].plants=[];ISL[id].closed=true;return;}
+      ISL[id]={weeks:d.weeks||4,priv:{aud:d.open?"friends":"me",calendar:!!d.calendar,stats:false},habits:(d.habits||[]).map(h=>Object.assign({},h,{sp:h.sp||undefined})),plants:plantsFrom(d.plants,d.biome||PEOPLE[id].biome,g=>g===CLOUD.uid?"you":PEOPLE[g]?g:undefined).out};
+      if(current===id){layout();renderTray();if(view==="calendar"){renderPlots();renderDayPanel(false);}}},
+    ()=>{ISL[id].closed=true;});
+  CLOUD.friends[id]=[u1,u2];}
+async function makeInvite(){const {doc,setDoc,serverTimestamp}=CLOUD.fb,code=Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,6);
+  await setDoc(doc(CLOUD.db,"invites",code),{from:CLOUD.uid,name:PEOPLE.you.real,createdAt:serverTimestamp()});
+  return`${location.origin}${location.pathname}?invite=${code}`;}
+async function acceptInvite(){const q=new URLSearchParams(location.search),code=q.get("invite");if(!code)return;history.replaceState(null,"",location.pathname);
+  const {doc,getDoc,setDoc,serverTimestamp}=CLOUD.fb,db=CLOUD.db;
+  try{const inv=await getDoc(doc(db,"invites",code));if(!inv.exists())return toast("That invite link has expired.",null);const from=inv.data().from;if(from===CLOUD.uid)return toast("That's your own invite link. Send it to a friend.",null);
+    await setDoc(doc(db,"users",CLOUD.uid,"friends",from),{via:code,since:serverTimestamp()});await setDoc(doc(db,"users",from,"friends",CLOUD.uid),{via:code,since:serverTimestamp()});
+    toast(`You and ${inv.data().name||"your friend"} are connected. Open the map to sail over.`,null);}
+  catch(e){console.warn(e);toast("Couldn't accept that invite.",null);}}
+
+/* gifts */
+function watchGifts(){const {collection,onSnapshot}=CLOUD.fb;let firstLoad=true;
+  CLOUD.unsub.push(onSnapshot(collection(CLOUD.db,"users",CLOUD.uid,"gifts"),snap=>{
+    const I=ISL.you;I.plants=I.plants.filter(p=>!p.cloudId);
+    for(const d of snap.docs){const g=d.data(),day=dayOfIso(g.date||isoOf(TI));if(day<0||day>TI||!SPECIES[g.sp])continue;const from=PEOPLE[g.from]?g.from:undefined;
+      I.plants.push(mk(SPECIES[g.sp].part,day,PEOPLE.you.biome,{fromUid:g.from,sp:g.sp,seed:g.seed||hash(d.id),gift:from,label:from?undefined:"A gift from a friend",kept:!!g.kept,story:g.story||undefined,note:g.note||undefined,cloudId:d.id,born:firstLoad?-1e9:performance.now()}));}
+    if(!firstLoad)snap.docChanges().forEach(ch=>{if(ch.type==="added"){const g=ch.doc.data();toast(`${PEOPLE[g.from]?.name||"A friend"} left you a ${SPECIES[g.sp]?.name||"plant"}`,PEOPLE[g.from]?g.from:null);}});
+    firstLoad=false;if(current==="you")layout();updateHub();}));}
+async function sendGift(k,o){const {collection,addDoc,doc,setDoc,serverTimestamp}=CLOUD.fb,db=CLOUD.db;
+  try{const g={from:CLOUD.uid,sp:o.sp,date:isoOf(TI),story:o.story||"",note:o.note||"",earned:!!o.earned,kept:false,seed:hash(o.sp+Date.now()),createdAt:serverTimestamp()};
+    const ref=await addDoc(collection(db,"users",k,"gifts"),g);await setDoc(doc(db,"users",CLOUD.uid,"sent",ref.id),{to:k,earned:!!o.earned,sp:o.sp,createdAt:serverTimestamp()});}
+  catch(e){console.warn(e);toast("That gift couldn't be delivered. Are you still friends?",null);}}
+function cloudKeep(p){if(!p.cloudId||!CLOUD.on)return;const {doc,updateDoc}=CLOUD.fb;updateDoc(doc(CLOUD.db,"users",CLOUD.uid,"gifts",p.cloudId),{kept:true}).catch(e=>console.warn(e));}
+function cloudDrop(p){if(!p.cloudId||!CLOUD.on)return;const {doc,deleteDoc}=CLOUD.fb;deleteDoc(doc(CLOUD.db,"users",CLOUD.uid,"gifts",p.cloudId)).catch(e=>console.warn(e));}
+// gifts you earned that friends kept count toward a rare plant
+async function watchSent(){const {collection,getDocs,doc,getDoc}=CLOUD.fb,db=CLOUD.db;
+  const check=async()=>{try{const sent=await getDocs(collection(db,"users",CLOUD.uid,"sent"));let kept=0;
+      await Promise.all(sent.docs.filter(d=>d.data().earned).map(async d=>{try{const g=await getDoc(doc(db,"users",d.data().to,"gifts",d.id));if(g.exists()&&g.data().kept)kept++;}catch(e){}}));
+      const was=CLOUD.sentKept;CLOUD.sentKept=kept;pollen=Math.max(0,kept-CLOUD.rareClaimed*3);
+      if(pollen>=3&&!RV){CLOUD.rareClaimed++;pollen-=3;reveal({kind:"pollen",sp:ROSTER[PEOPLE.you.biome].rare,from:"Your friends"});}
+      else if(kept>was&&was>0)toast("A friend kept a gift you earned. That counts toward your next rare plant.",null);
+      updateHub();}catch(e){console.warn(e);}};
+  check();setInterval(check,60000);}
+function addSignOut(){const sheet=document.querySelector("#profile .sheet");if(!sheet||document.getElementById("pSignOut"))return;
+  sheet.insertAdjacentHTML("beforeend",`<div class="row"><span class="from">Signed in as ${esc(PEOPLE.you.real)}</span><button class="btn ghost" id="pSignOut" type="button">Sign out</button></div>`);
+  document.getElementById("pSignOut").onclick=async()=>{await cloudSave();CLOUD.fb.signOut(CLOUD.fb.auth);};}
+
 window.__understory={art:sp=>ART[sp][0].canvas.toDataURL(),state:()=>({island:current,view,viewAs,biome:bio(),key:SONG.key,bpm:SONG.bpm,melody:MELODY.map(b=>b.map(n=>n[1])),habits:isl().habits.map(h=>({name:h.name,part:h.part,character:habitSp(h,PEOPLE[current].biome),target:h.target,days:h.days.join(""),share:h.share})),plants:isl().plants.length,characters:[...new Set(isl().plants.map(p=>p.sp))],today:isl().plants.filter(p=>p.day===TI).map(p=>p.sp),pollen,priv:isl().priv})};
-buildArt().then(()=>{document.getElementById("loading")?.remove();setIsland("you");renderGoal();renderPollen();requestAnimationFrame(frame);});
+buildArt().then(()=>{document.getElementById("loading")?.remove();setIsland("you");renderGoal();renderPollen();requestAnimationFrame(frame);cloudInit();});
 })();
 </script>
 </body>
