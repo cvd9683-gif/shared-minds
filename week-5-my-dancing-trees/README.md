@@ -23,6 +23,10 @@ also makes money. This is my answer, as a working prototype.
   join on the beat, so anyone can build the song by hand.
 - **Ecosystems.** Each island is a Big Sur coast, a redwood canyon or an oak meadow,
   with its own native cast, its own key and tempo, and its own landscape.
+- **Skip ahead.** Next to today's date, *Next day* moves you to tomorrow (tap the habits you
+  kept first) and *Skip a week* plays out a week, with about three in four habits kept. Watch
+  the island fill in, unlock a week-goal plant, and get gifts from the example friends. *Back
+  to today* puts everything back; nothing from demo time is saved.
 - **Gifts with a story.** Finishing a habit for a week grows an uncommon plant. You can
   keep it or sail it to a friend with the story of how you grew it. When friends keep
   three of your earned gifts, you grow a rare plant. The Albino Redwood is real: it
@@ -56,10 +60,10 @@ a season. No ads: ads pay for attention, which is the thing this design refuses 
 
 ## Playing with friends
 
-Signed in, the app is multiplayer:
+Anyone can open the app and play straight away with the example island and neighbours.
+Signing in is optional, under *Together → Play with real friends*:
 
-- **Sign in with Google.** First time, you pick a name and an ecosystem and start with
-  three private starter habits you can change.
+- **Sign in with Google.** The island you've been playing with becomes yours and is saved.
 - **Invite a friend.** Open *Together* → *Invite a friend* and send the link. When they
   sign in through it, you appear on each other's maps.
 - **Visit and gift.** Sail to a friend's island to see the plants from habits they chose
@@ -69,8 +73,8 @@ Signed in, the app is multiplayer:
   habits, journal and private plants live in a document only you can read. Visitors read a
   separate public copy that holds shared habits only, and only if you're open to visits.
 
-Until someone has friends, the example islands (Mara, Theo, Jae, Priya) stay as
-neighbours to explore. Without a Firebase config the whole app runs as a one-person
+The example islands (Mara, Theo, Jae, Priya) stay on the map as neighbours, even after you
+add real friends. Without a Firebase config the whole app runs as a one-person
 prototype.
 
 ### Turning it on
