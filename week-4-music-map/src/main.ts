@@ -24,6 +24,8 @@ import { JourneyRecorder, describeScene, pathAfter, type PathStep, type SaveStat
 import { artistGenres, enrichFromMusicBrainz } from './musicbrainz';
 import { enrichFromGenius, geniusSource, geniusToken, saveGeniusToken } from './genius';
 import { isFramed, loadConfig, siteConfig } from './config';
+import { applyLook, initLook, onLook, renderLookPicker, setLook, type LookId } from './looks';
+import { extendLibrary, getLibrary, hasLibrary, loadLibrary, saveLibrary } from './library';
 import { cachedProfile, lifeLine, loadProfile, type ArtistProfile } from './artist';
 import { NetworkView, type Scene, type SceneEdge, type SceneNode } from './network';
 import * as spotify from './spotify';
@@ -38,7 +40,6 @@ import {
 import type { Dataset, Journey, Node, Person, Relationship, Thought, Track, ViewMode, YearData } from './types';
 
 const DATASET_KEY = 'musicMap:dataset';
-const LIBRARY_KEY = 'musicMap:spotifyLibrary';
 const HOWTO_KEY = 'musicMap:howtoSeen';
 const IMPORTED_KEY = 'musicMap:importedAt';
 const ENRICHED_KEY = 'musicMap:enriched';
@@ -154,7 +155,8 @@ class MusicMapApp {
 
   async init(): Promise<void> {
     document.getElementById('build-ver')!.textContent = `Version ${__BUILD__}`;
-    await loadConfig();
+    initLook();
+    await Promise.all([loadConfig(), loadLibrary()]);
     const login = await spotify
       .completeLoginFromUrl()
       .catch((e: Error) => ({ completed: false, error: e.message }));
@@ -187,18 +189,13 @@ class MusicMapApp {
   // ---- Data -------------------------------------------------------------------
 
   private get datasetKind(): 'demo' | 'spotify' {
-    return localStorage.getItem(DATASET_KEY) === 'spotify' && localStorage.getItem(LIBRARY_KEY) ? 'spotify' : 'demo';
+    return localStorage.getItem(DATASET_KEY) === 'spotify' && hasLibrary() ? 'spotify' : 'demo';
   }
 
   private loadDataset(): void {
     this.graph.clear();
     if (this.datasetKind === 'spotify') {
-      try {
-        this.graph.merge(JSON.parse(localStorage.getItem(LIBRARY_KEY)!));
-      } catch {
-        localStorage.removeItem(LIBRARY_KEY);
-        this.graph.merge(demoData as Dataset);
-      }
+      this.graph.merge(getLibrary()!);
     } else {
       this.graph.merge(demoData as Dataset);
     }
@@ -520,7 +517,7 @@ class MusicMapApp {
     this.importStatus = 'Importing saved tracks from Spotify…';
     this.renderPanel();
     try {
-      const data = await spotify.importSavedTracks(1000, (n, total) => {
+      const data = await spotify.importSavedTracks(10000, (n, total) => {
         this.importStatus = `Importing saved tracks from Spotify… ${n} of ${total}`;
         this.renderPanel();
       });
@@ -530,7 +527,7 @@ class MusicMapApp {
       });
       data.playlists = playlists;
       data.playlistsNote = note;
-      localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
+      saveLibrary(data as Dataset);
       localStorage.setItem(DATASET_KEY, 'spotify');
       localStorage.setItem(IMPORTED_KEY, new Date().toISOString());
       this.importStatus =
@@ -559,20 +556,24 @@ class MusicMapApp {
   private addData(data: Partial<Dataset>): void {
     this.graph.merge(data);
     if (this.datasetKind !== 'spotify') return;
-    try {
-      const lib = JSON.parse(localStorage.getItem(LIBRARY_KEY)!) as Dataset;
-      lib.tracks.push(...(data.tracks ?? []).filter((t) => !lib.tracks.some((x) => x.id === t.id)));
-      lib.people.push(...(data.people ?? []).filter((p) => !lib.people.some((x) => x.id === p.id)));
-      lib.relationships.push(...(data.relationships ?? []).filter((r) => !lib.relationships.some((x) => x.id === r.id)));
-      localStorage.setItem(LIBRARY_KEY, JSON.stringify(lib));
-    } catch {
-      /* cache is a convenience only */
-    }
+    extendLibrary(data);
   }
 
   // ---- UI wiring ----------------------------------------------------------------
 
   private bindUi(): void {
+    // Notebook looks: a switcher on the Personal Timeline while one is being chosen.
+    const looksEl = document.getElementById('looks')!;
+    renderLookPicker(looksEl);
+    looksEl.addEventListener('click', (e) => {
+      const id = (e.target as HTMLElement).closest<HTMLElement>('[data-look]')?.dataset.look;
+      if (id) setLook(id as LookId);
+    });
+    onLook(() => {
+      renderLookPicker(looksEl);
+      applyLook(this.view === 'timeline');
+      this.canvas.restyle();
+    });
     document.querySelectorAll<HTMLButtonElement>('.mm-view').forEach((b) =>
       b.addEventListener('click', () => this.setView(b.dataset.view as ViewMode)),
     );
@@ -1430,6 +1431,8 @@ class MusicMapApp {
     if (selected || !history) this.closeAlbumPicker();
     this.renderYear();
     this.renderBlurb();
+    applyLook(this.view === 'timeline');
+    document.getElementById('looks')!.hidden = this.view !== 'timeline' || year;
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
     (document.getElementById('zoomctl') as HTMLElement).hidden = year;
     this.renderStageNote();
@@ -2075,7 +2078,7 @@ class MusicMapApp {
   }
 
   private dataSection(): string {
-    const hasLib = !!localStorage.getItem(LIBRARY_KEY);
+    const hasLib = hasLibrary();
     const connected = spotify.isConnected();
     return `<section class="mm-card" aria-labelledby="data-h">
       <div class="mm-card__head"><h2 id="data-h" class="mm-eyebrow">Data &amp; connections</h2><button type="button" class="mm-link" data-action="close-data">Close</button></div>
@@ -2476,7 +2479,7 @@ class MusicMapApp {
     const body = document.getElementById('spotify-dialog-body')!;
     const clientId = spotify.spotifyClientId();
     const connected = spotify.isConnected();
-    const hasLib = !!localStorage.getItem(LIBRARY_KEY);
+    const hasLib = hasLibrary();
     const imported = localStorage.getItem(IMPORTED_KEY);
     const redirect = spotify.redirectUri();
     const cfg = siteConfig();
