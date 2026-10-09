@@ -212,6 +212,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--poppy);outline-
   .hrow .top2 input:nth-child(2){grid-column:1/2;grid-row:2}
 }
 @media (prefers-reduced-motion: reduce){ .card,.toast,#map{transition:none} }
+.day .skip{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.day .skip button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 8px;font:700 11.5px/1 var(--display);color:var(--ink);cursor:pointer;white-space:nowrap;text-align:left}
+.day .skip button:hover{background:#fff7ee}
+.day .skip button.back{background:var(--poppy);color:#fff;border-color:transparent}
+.day small.demo{color:#b0560f;font-weight:700}
+@media (max-width:760px){.tray .day{max-width:112px}.day small.demo{white-space:normal}.day .skip button{font-size:11px;padding:5px 6px}}
 
 /* v6 additions */
 .habit .p{font-size:11px}
@@ -310,8 +316,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--poppy);outline-
 .timebar .btn{padding:9px 12px;font-size:13px}
 @media (max-width:760px){.timebar span{white-space:normal;font-size:12.5px;max-width:150px}.timebar .btn{padding:8px 9px;font-size:12px}}
 </style>
-</head>
-<body>
 
 <div id="app">
   <div id="loading" style="position:absolute;inset:0;display:grid;place-items:center;font:700 18px var(--display);color:#4d5e57;z-index:30">Growing your island…</div>
@@ -801,10 +805,10 @@ function glyph(c,sp,x,y,s){const S=SPECIES[sp],P=S.p,lw=1.4;c.lineJoin="round";
   }}
 
 /* ================= time & data (example people) ================= */
-const TODAY=new Date();TODAY.setHours(0,0,0,0);
-const DOW=(TODAY.getDay()+6)%7;
+let TODAY=new Date();TODAY.setHours(0,0,0,0);
+let DOW=(TODAY.getDay()+6)%7;
 const START=new Date(TODAY);START.setDate(TODAY.getDate()-DOW-21);
-const TI=21+DOW;
+let TI=21+DOW;
 const WD=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],DAYFULL=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],MONFULL=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const dayDate=i=>{const d=new Date(START);d.setDate(START.getDate()+i);return d;};
@@ -1172,7 +1176,8 @@ let lastFocusId=null;
 function renderTray(){const tray=document.getElementById("tray");tray.innerHTML="";
   if(viewAs==="friend"){tray.innerHTML=`<div class="day"><b>This is what friends see</b><small>They can leave gifts but not log your habits</small></div>`;return;}
   if(current==="you"){
-    tray.insertAdjacentHTML("beforeend",`<div class="day"><b>Today</b><small>${WD[DOW]} ${MON[TODAY.getMonth()]} ${TODAY.getDate()}</small></div>`);
+    tray.insertAdjacentHTML("beforeend",`<div class="day"><b>${DEMO?`${WD[DOW]} ${MON[TODAY.getMonth()]} ${TODAY.getDate()}`:"Today"}</b><small${DEMO?' class="demo"':""}>${DEMO?`Demo time · +${TI-DEMO.TI} day${TI-DEMO.TI>1?"s":""}`:`${WD[DOW]} ${MON[TODAY.getMonth()]} ${TODAY.getDate()}`}</small><span class="skip"><button type="button" id="skipDay" title="Go to tomorrow. Tap the habits you kept first.">Next day ›</button><button type="button" id="skipWeek" title="Play out a week: about three in four habits get done">Skip a week »</button>${DEMO?'<button type="button" class="back" id="skipBack">Back to today</button>':""}</span></div>`);
+    tray.querySelector("#skipDay").onclick=()=>skipAhead(1);tray.querySelector("#skipWeek").onclick=()=>skipAhead(7);if(DEMO)tray.querySelector("#skipBack").onclick=backToToday;
     for(const hb of ISL.you.habits){const done=doneToday(hb),sched=!!hb.days[DOW],sp=habitSp(hb,PEOPLE.you.biome),wc=weekCount(hb),T=thr(hb),near=!done&&wc===T-1&&!weekRewarded;
       const b=document.createElement("button");b.id="hb-"+hb.id;b.className="habit"+(done?" done":"")+(hb.goal&&!done?" goalmark":"");b.appendChild(iconCanvas(sp));
       b.insertAdjacentHTML("beforeend",`<span class="prog${near?" near":""}" title="${wc} of ${T} in the last 7 days">${near?"1 to go":wc+"/"+T}</span><span class="l">${esc(hb.name)}</span><span class="p">${esc(hb.target||PART_NAME[hb.part])}${sched?"":" · extra"}</span>`);
@@ -1194,10 +1199,37 @@ function completeHabit(hb,extra){const sp=habitSp(hb,PEOPLE.you.biome);const p=p
   else{renderTray();toast(`${hb.name}: done. A ${SPECIES[sp].name} is growing in today's plot.`,null);}
   if(hb.goal&&goal.you<goal.target){goal.you++;renderGoal();}}
 
+/* demo time: skip ahead to watch your island grow. Nothing done in demo time is saved;
+   Back to today puts everything back the way it was. */
+let DEMO=null;
+const DEMO_GIFTS=[["mara","melody","after calling home three times","thought of you on my ride"],["theo","berries","after eating a real meal 5 days","you said you've been skipping lunch, so here"],["jae","drops","after drinking water 6 of 7 days","hydrate or diedrate"],["priya","flute","after reading every night this week","for your quiet days"]];
+const demoKeys=()=>Object.keys(ISL).filter(k=>!realFriend(k));
+function demoSnap(){const isl={};for(const k of demoKeys())isl[k]={weeks:ISL[k].weeks,plants:ISL[k].plants.map(p=>Object.assign({},p))};
+  return{TI,DOW,TODAY,weekRewarded,pollen,seeds:clean(seeds),discovered:[...discovered],goal:clean(goal),isl};}
+function skipAhead(n){if(RV)return;if(!DEMO)DEMO=demoSnap();if(asOf!=null)setAsOf(null);if(current!=="you")setIsland("you");if(viewAs!=="me")setPreview(false);
+  let reward=null,gift=null,auto=0;const b=PEOPLE.you.biome;
+  for(let i=0;i<n;i++){
+    if(n>1)for(const h of ISL.you.habits){if(!h.days[DOW]||doneToday(h)||Math.random()>.75)continue;const sp=habitSp(h,b);ISL.you.plants.push(mk(h.part,TI,b,{hid:h.id,sp}));seeds[sp]=(seeds[sp]||0)+1;auto++;
+      if(!weekRewarded&&weekCount(h)>=thr(h)){weekRewarded=true;reward={kind:"week",sp:ROSTER[b].uncommon,habit:h,count:weekCount(h)};}}
+    TI++;DOW=TI%7;TODAY=dayDate(TI);if(DOW===0){weekRewarded=false;goal.you=0;goal.mara=Math.min(goal.target,2);goal.theo=1;}
+    for(const k of demoKeys()){const I=ISL[k];if(TI>=I.weeks*7)I.weeks=Math.floor(TI/7)+1;
+      if(k!=="you"&&PEOPLE[k]){const r=rngFrom(hash(k+"day"+TI));for(const h of I.habits)if(h.days[DOW]&&r()<.74)I.plants.push(mk(h.part,TI,PEOPLE[k].biome,{hid:h.id,sp:habitSp(h,PEOPLE[k].biome)}));}}
+    if(!gift&&!ISL.you.plants.some(p=>p.gift&&!p.kept)&&Math.random()<(n>1?.22:.35)){const g=DEMO_GIFTS[Math.floor(Math.random()*DEMO_GIFTS.length)];if(PEOPLE[g[0]]){gift=g;ISL.you.plants.push(mk(g[1],TI,PEOPLE[g[0]].biome,{gift:g[0],kept:false,story:g[2],note:g[3],born:performance.now()}));}}}
+  calSel=TI;closeCard();layout();renderTray();updateHub();drawMini();if(view==="calendar"){renderPlots();renderDayPanel(false);const sc=document.getElementById("calScroll");if(PL&&PL.plots[TI])sc.scrollTop=Math.max(0,PL.plots[TI].y-sc.clientHeight*.5);}
+  const when=`${DAYFULL[DOW]}, ${MON[TODAY.getMonth()]} ${TODAY.getDate()}`;
+  if(reward)setTimeout(()=>reveal(reward),500);
+  if(gift)toast(`${PEOPLE[gift[0]].name} left you a ${SPECIES[spOf(gift[1],PEOPLE[gift[0]].biome)]?.name||"plant"}. Open Together to keep it or let it go.`,gift[0]);
+  else toast(n>1?`A week went by: ${auto} habits kept. It's ${when}.`:`It's ${when}. Tap the habits you kept today.`,null);}
+function backToToday(){if(!DEMO)return;if(RV)closeReveal();const D=DEMO;DEMO=null;TI=D.TI;DOW=D.DOW;TODAY=D.TODAY;weekRewarded=D.weekRewarded;pollen=D.pollen;
+  Object.keys(seeds).forEach(k=>delete seeds[k]);Object.assign(seeds,D.seeds);discovered.clear();D.discovered.forEach(x=>discovered.add(x));Object.assign(goal,D.goal);
+  for(const k in D.isl)if(ISL[k]){ISL[k].weeks=D.isl[k].weeks;ISL[k].plants=D.isl[k].plants;}
+  if(asOf!=null)setAsOf(null);calSel=TI;setIsland(current==="you"||ISL[current]?current:"you");updateHub();toast("Back to today. Nothing from demo time was kept.",null);}
+
 /* the Together panel: gifts waiting, the group goal, progress toward a rare plant */
 function renderGoal(){updateHub();}
 function renderPollen(){updateHub();}
 function updateGiftChip(){updateHub();}
+function signInBlock(){if(!CLOUD.fb)return"";return`<h4>Play with real friends</h4><p style="color:var(--ink-2)">Sign in to save your island and invite friends with a link. You keep this island and the example neighbours.</p><div class="row" style="margin:6px 0 14px"><button class="btn" type="button" onclick="window.__signIn()">Sign in with Google</button></div>`;}
 function updateHub(){
   const waiting=ISL.you.plants.filter(p=>p.gift&&!p.kept),badge=document.getElementById("hubBadge");badge.hidden=!(waiting.length&&viewAs==="me");badge.textContent=waiting.length;
   const hub=document.getElementById("hub");if(hub.hidden)return;
@@ -1208,12 +1240,12 @@ function updateHub(){
     const b=document.createElement("button");b.className="btn";b.textContent="Open";b.onclick=()=>{hub.hidden=true;if(current!=="you")setIsland("you");if(view!=="forest")setView("forest");p.flash=performance.now();openCard(p);hear(p);};row.appendChild(b);g.appendChild(row);});
   const gl=document.getElementById("hubGoal");
   if(CLOUD.on){gl.innerHTML=`<h4>Your friends</h4>`;const ks=friendKeys().filter(k=>!PEOPLE[k].demo);
-    if(!ks.length)gl.insertAdjacentHTML("beforeend",`<p style="color:var(--ink-2)">No friends here yet. The example islands stay until someone joins you.</p>`);
+    if(!ks.length)gl.insertAdjacentHTML("beforeend",`<p style="color:var(--ink-2)">No friends here yet. Send an invite link, and in the meantime Mara, Theo, Jae and Priya are still around to visit.</p>`);
     for(const k of ks){const P=PEOPLE[k],row=document.createElement("div");row.className="who";row.innerHTML=`<span class="av" style="background:${P.color}">${esc(P.short)}</span><div class="t"><b>${esc(P.name)}</b><span>${BIOMES[P.biome].name}</span></div>`;const b=document.createElement("button");b.className="btn ghost";b.textContent="Visit";b.onclick=()=>{hub.hidden=true;setIsland(k);};row.appendChild(b);gl.appendChild(row);}
     const ib=document.createElement("button");ib.className="btn";ib.textContent="Invite a friend";ib.onclick=async()=>{ib.disabled=true;ib.textContent="Making a link…";try{const url=await makeInvite();ib.remove();
         gl.insertAdjacentHTML("beforeend",`<p style="font-size:14.5px">Send this link. When they sign in, you'll be on each other's maps.</p><div class="who"><input readonly value="${esc(url)}" style="flex:1;min-width:0;border:0;background:transparent;font:500 13px var(--mono)" id="invUrl"><button class="btn" id="invCopy" type="button">Copy</button></div>`);
         document.getElementById("invCopy").onclick=()=>{const i=document.getElementById("invUrl");navigator.clipboard.writeText(i.value).then(()=>toast("Invite link copied.",null),()=>{i.select();});};}catch(e){ib.disabled=false;ib.textContent="Invite a friend";toast("Couldn't make an invite link.",null);}};gl.appendChild(ib);}
-  else{gl.innerHTML=`<h4>This week, together</h4><p>You, Mara and Theo are each eating a real meal four days this week. Nobody is behind; it fills up together.</p>`;
+  else{gl.innerHTML=signInBlock()+`<h4>This week, together</h4><p>You, Mara and Theo are each eating a real meal four days this week. Nobody is behind; it fills up together.</p>`;
   for(const k of ["you","mara","theo"]){const P=PEOPLE[k];gl.insertAdjacentHTML("beforeend",`<div class="who"><span class="av" style="background:${P.color}">${P.short}</span><div class="t"><b>${k==="you"?"You":P.name}</b><span>${goal[k]} of ${goal.target} days</span></div><span class="bar"><i style="width:${goal[k]/goal.target*100}%"></i></span></div>`);}}
   const rr=document.getElementById("hubRare"),sp=ROSTER[PEOPLE.you.biome].rare;
   rr.innerHTML=`<h4>Your next rare plant</h4><div class="who"><span></span><div class="t"><b>${SPECIES[sp].name}</b><span>Grows when friends keep three gifts you earned from a week goal.</span></div></div><div class="seedslots">${[0,1,2].map(i=>`<i class="${i<pollen?"on":""}" title="${i<pollen?"A friend kept one":"Not yet"}"></i>`).join("")}</div><p style="color:var(--ink-2);font-size:14px">${pollen} of 3 kept so far.</p>`;
@@ -1498,7 +1530,7 @@ function drawMini(){const c=document.getElementById("miniMap").getContext("2d");
   for(const [k,x,y,r] of pts){if(!PEOPLE[k])continue;c.fillStyle="#7f5638";c.beginPath();c.ellipse(x,y+1.5,r,r*.6,0,0,7);c.fill();c.fillStyle=cols[PEOPLE[k].biome];c.beginPath();c.ellipse(x,y,r,r*.6,0,0,7);c.fill();if(k===current){c.strokeStyle="#fff";c.lineWidth=1.5;c.beginPath();c.ellipse(x,y,r+2,r*.6+2,0,0,7);c.stroke();}}}
 
 
-setTimeout(()=>{if(CLOUD.on||current!=="you"||viewAs!=="me"||RV)return;plantToday("berries",{sp:"thimbleberry",gift:"theo",kept:false,note:"you said you've been skipping lunch, so here",story:"after eating a real meal 5 days"});updateGiftChip();toast("Theo left you a Thimbleberry","theo");},22000);
+setTimeout(()=>{if(CLOUD.on||DEMO||current!=="you"||viewAs!=="me"||RV)return;plantToday("berries",{sp:"thimbleberry",gift:"theo",kept:false,note:"you said you've been skipping lunch, so here",story:"after eating a real meal 5 days"});updateGiftChip();toast("Theo left you a Thimbleberry","theo");},22000);
 
 addEventListener("resize",()=>{resize();if(selected)drawArt(selected);});
 /* ================= multiplayer: Firebase sign-in, shared islands, live gifts =================
@@ -1526,23 +1558,29 @@ async function cloudInit(){
   let first=true;
   AU.onAuthStateChanged(auth,async user=>{
     if(user){await cloudStart(user);}
-    else{if(CLOUD.on)location.reload();if(first)showSignIn();}
+    else{if(CLOUD.on)location.reload();if(first&&new URLSearchParams(location.search).get("invite"))showSignIn();updateHub();}
     first=false;});
 }
+async function doSignIn(){const {auth,GoogleAuthProvider,signInWithPopup,signInWithRedirect}=CLOUD.fb,prov=new GoogleAuthProvider();
+  try{await signInWithPopup(auth,prov);}catch(e){if(e&&/popup/i.test(e.code||""))await signInWithRedirect(auth,prov);else if(!/cancel|closed/i.test(e&&e.code||""))toast("Sign-in didn't work. Check that this site is an authorized domain in Firebase.",null);}}
+window.__signIn=()=>{document.getElementById("hub").hidden=true;doSignIn();};
 function showSignIn(){const inv=new URLSearchParams(location.search).get("invite");
   const el=cloudOverlay(`<span class="eyebrow">My Dancing Trees</span><h2>${inv?"A friend invited you to their island":"Grow a forest that sings"}</h2>
     <p>Every habit you keep grows a plant on your own island. Sign in to keep your island, visit friends and leave them gifts.</p>
     <div class="row"><button class="btn ghost" id="cDemo" type="button">Look around first</button><button class="btn" id="cSign" type="button">Sign in with Google</button></div>
     <p class="note">Your habits start private. Friends only ever see what you choose to share.</p>`);
   el.querySelector("#cDemo").onclick=closeCloudOverlay;
-  el.querySelector("#cSign").onclick=async()=>{const {auth,GoogleAuthProvider,signInWithPopup,signInWithRedirect}=CLOUD.fb,prov=new GoogleAuthProvider();
-    try{await signInWithPopup(auth,prov);}catch(e){if(e&&/popup/i.test(e.code||""))await signInWithRedirect(auth,prov);else toast("Sign-in didn't work. Check that this site is an authorized domain in Firebase.",null);}};}
+  el.querySelector("#cSign").onclick=()=>{closeCloudOverlay();doSignIn();};}
 
 async function cloudStart(user){const {doc,getDoc,setDoc,serverTimestamp}=CLOUD.fb,db=CLOUD.db;CLOUD.uid=user.uid;
   const pref=doc(db,"users",user.uid),privRef=doc(db,"users",user.uid,"private","state");
   const [ps,vs]=await Promise.all([getDoc(pref),getDoc(privRef)]);
-  if(!ps.exists()){await onboard(user);return;}
+  if(!ps.exists()){await firstSignIn(user);return;}
   enterCloud(ps.data(),vs.exists()?vs.data():null);}
+async function firstSignIn(user){if(DEMO)backToToday();const {doc,setDoc,serverTimestamp}=CLOUD.fb;const name=(user.displayName||"").split(" ")[0]||"Friend";
+  const prof={name,biome:PEOPLE.you.biome,color:"#e2701c",createdAt:serverTimestamp()};await setDoc(doc(CLOUD.db,"users",CLOUD.uid),prof);
+  enterCloud(prof,{island:serializeIsland(ISL.you),extra:{seeds:clean(seeds),discovered:[...discovered]}});CLOUD.lastSave="";cloudSave();
+  toast(`Signed in as ${name}. Your island is saved. Open Together to invite a friend.`,null);}
 function onboard(user){return new Promise(res=>{let biome="coastal";const nm=(user.displayName||"").split(" ")[0]||"";
   const el=cloudOverlay(`<span class="eyebrow">Your island</span><h2>Welcome. What should friends call you?</h2>
     <label class="private" for="obName">Name</label><input id="obName" maxlength="24" value="${esc(nm)}" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:500 17px var(--body)">
@@ -1581,7 +1619,7 @@ function cloudSnapshot(){return{island:serializeIsland(ISL.you),extra:{seeds:cle
 function publicSnapshot(){const I=ISL.you,shared=new Set(I.habits.filter(h=>h.share).map(h=>h.id));
   const plants=I.plants.filter(p=>!p.leaving&&((!p.gift&&(p.label||(p.hid&&shared.has(p.hid))))||(p.gift&&p.kept))).map(p=>({sp:p.sp,part:p.part,date:isoOf(p.day),hid:p.hid&&shared.has(p.hid)?p.hid:null,seed:p.seed,w:+p.w.toFixed(3),label:p.label||null,story:p.story||null,gift:p.gift?(p.gift==="you"?CLOUD.uid:p.gift):null}));
   return{open:I.priv.aud!=="me",calendar:!!I.priv.calendar,weeks:I.weeks,biome:PEOPLE.you.biome,habits:I.habits.filter(h=>h.share).map(h=>({id:h.id,part:h.part,sp:h.sp||null,name:h.name,target:h.target||"",days:h.days,share:true})),plants};}
-async function cloudSave(){if(!CLOUD.on)return;const snap=cloudSnapshot(),s=JSON.stringify([snap,publicSnapshot()]);if(s===CLOUD.lastSave)return;CLOUD.lastSave=s;
+async function cloudSave(){if(!CLOUD.on||DEMO)return;const snap=cloudSnapshot(),s=JSON.stringify([snap,publicSnapshot()]);if(s===CLOUD.lastSave)return;CLOUD.lastSave=s;
   const {doc,setDoc}=CLOUD.fb,db=CLOUD.db,u=CLOUD.uid;
   try{await Promise.all([setDoc(doc(db,"users",u,"private","state"),clean(snap)),setDoc(doc(db,"users",u,"public","island"),clean(publicSnapshot())),setDoc(doc(db,"users",u),{name:PEOPLE.you.real,biome:PEOPLE.you.biome,color:"#e2701c"},{merge:true})]);}
   catch(e){console.warn("save failed",e);CLOUD.lastSave="";}}
@@ -1591,7 +1629,6 @@ function watchFriends(){const {collection,onSnapshot}=CLOUD.fb;
   CLOUD.unsub.push(onSnapshot(collection(CLOUD.db,"users",CLOUD.uid,"friends"),snap=>{const ids=snap.docs.map(d=>d.id).filter(id=>id!==CLOUD.uid);
     for(const id of Object.keys(CLOUD.friends))if(!ids.includes(id)){CLOUD.friends[id].forEach(f=>f());delete CLOUD.friends[id];delete PEOPLE[id];delete ISL[id];}
     ids.forEach((id,i)=>{if(!CLOUD.friends[id])listenFriend(id);});
-    const real=ids.length>0;for(const k of ["mara","theo","jae","priya"]){if(real){delete PEOPLE[k];delete ISL[k];}}
     placeFriends();updateHub();if(typeof refreshMap==="function")refreshMap();}));}
 function placeFriends(){const ks=friendKeys();ks.forEach((k,i)=>{const a=i/Math.max(1,ks.length)*Math.PI*2+.6,R=4.4+(i%2)*.7;PEOPLE[k].pos=[Math.cos(a)*R,Math.sin(a)*R];});}
 function listenFriend(id){const {doc,onSnapshot}=CLOUD.fb,db=CLOUD.db,col=FRIEND_COLORS[hash(id)%FRIEND_COLORS.length];
@@ -1621,7 +1658,7 @@ function watchGifts(){const {collection,onSnapshot}=CLOUD.fb;let firstLoad=true;
     if(!firstLoad)snap.docChanges().forEach(ch=>{if(ch.type==="added"){const g=ch.doc.data();toast(`${PEOPLE[g.from]?.name||"A friend"} left you a ${SPECIES[g.sp]?.name||"plant"}`,PEOPLE[g.from]?g.from:null);}});
     firstLoad=false;if(current==="you")layout();updateHub();}));}
 async function sendGift(k,o){const {collection,addDoc,doc,setDoc,serverTimestamp}=CLOUD.fb,db=CLOUD.db;
-  try{const g={from:CLOUD.uid,sp:o.sp,date:isoOf(TI),story:o.story||"",note:o.note||"",earned:!!o.earned,kept:false,seed:hash(o.sp+Date.now()),createdAt:serverTimestamp()};
+  try{const g={from:CLOUD.uid,sp:o.sp,date:isoOf(DEMO?DEMO.TI:TI),story:o.story||"",note:o.note||"",earned:!!o.earned,kept:false,seed:hash(o.sp+Date.now()),createdAt:serverTimestamp()};
     const ref=await addDoc(collection(db,"users",k,"gifts"),g);await setDoc(doc(db,"users",CLOUD.uid,"sent",ref.id),{to:k,earned:!!o.earned,sp:o.sp,createdAt:serverTimestamp()});}
   catch(e){console.warn(e);toast("That gift couldn't be delivered. Are you still friends?",null);}}
 function cloudKeep(p){if(!p.cloudId||!CLOUD.on)return;const {doc,updateDoc}=CLOUD.fb;updateDoc(doc(CLOUD.db,"users",CLOUD.uid,"gifts",p.cloudId),{kept:true}).catch(e=>console.warn(e));}
@@ -1643,5 +1680,6 @@ window.__understory={art:sp=>ART[sp][0].canvas.toDataURL(),state:()=>({island:cu
 buildArt().then(()=>{document.getElementById("loading")?.remove();setIsland("you");renderGoal();renderPollen();requestAnimationFrame(frame);cloudInit();});
 })();
 </script>
+
 </body>
 </html>
