@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motion Takes</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='12' cy='16' r='7' fill='none' stroke='%2316161a' stroke-width='2.5'/%3E%3Ccircle cx='20' cy='16' r='7' fill='%233b2cff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- ============ TOOLBAR ============ -->
+    <header class="toolbar">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="12" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="20" cy="16" r="7" class="mark-fill" />
+        </svg>
+        <span class="wordmark">Motion Takes</span>
+      </div>
+
+      <div class="tools">
+        <div class="seg" role="radiogroup" aria-label="Input mode">
+          <span class="seg-label">Input</span>
+          <button class="seg-btn is-on" role="radio" aria-checked="true" data-input="cursor">Cursor</button>
+          <button class="seg-btn" role="radio" aria-checked="false" data-input="hand">Hand</button>
+        </div>
+
+        <span class="divider"></span>
+
+        <button class="tool tool-rec" id="btn-record" title="Record a new take (R)">
+          <span class="rec-dot"></span><span class="tool-text">Record</span><kbd>R</kbd>
+        </button>
+        <button class="tool" id="btn-stop" title="Stop (Esc)">
+          <span class="ico-stop"></span><span class="tool-text">Stop</span><kbd>Esc</kbd>
+        </button>
+        <button class="tool" id="btn-replay" title="Replay the selected take (Space)">
+          <span class="ico-play"></span><span class="tool-text">Replay</span><kbd>Space</kbd>
+        </button>
+      </div>
+
+      <div class="tools-right">
+        <div class="menu" id="menu-sound">
+          <button class="tool tool-quiet" data-menu-toggle aria-haspopup="true" aria-expanded="false">Sound</button>
+          <div class="menu-pop" role="menu">
+            <label class="menu-check"><input type="checkbox" id="opt-cues" checked> Count-in and record cues</label>
+            <label class="menu-check"><input type="checkbox" id="opt-speedtone"> Hear speed while performing and replaying</label>
+          </div>
+        </div>
+        <div class="menu" id="menu-project">
+          <button class="tool tool-quiet" data-menu-toggle aria-haspopup="true" aria-expanded="false">Project</button>
+          <div class="menu-pop" role="menu">
+            <button class="menu-item" id="act-download">Download project data (.json)
+              <small>Positions and timing of every take. Not a Lottie file.</small></button>
+            <button class="menu-item" id="act-open">Open project data (.json)…</button>
+            <button class="menu-item" id="act-examples">Add the example takes again</button>
+            <button class="menu-item menu-danger" id="act-clear">Delete all takes…</button>
+          </div>
+        </div>
+        <input type="file" id="file-open" accept="application/json,.json" hidden>
+      </div>
+    </header>
+
+    <!-- ============ STAGE ============ -->
+    <main class="stage" id="stage">
+      <canvas id="stage-canvas"></canvas>
+
+      <div class="stage-status">
+        <div class="stage-chip" id="mode-chip"><span class="chip-dot"></span><span id="mode-text">Live</span></div>
+        <span class="stage-sub" id="mode-sub"></span>
+      </div>
+
+      <div class="countdown" id="countdown" aria-live="assertive"></div>
+
+      <div class="first-take" id="first-take">
+        <p class="eyebrow">First take</p>
+        <ol>
+          <li id="ft-step1">Move your cursor over the frame</li>
+          <li>Press <kbd>R</kbd> · three-beat count-in, then <b id="ft-limit">5</b> s</li>
+          <li>Perform: rush, hesitate, drift · <kbd>R</kbd> or <kbd>Esc</kbd> stops</li>
+          <li>Replay, then try another take</li>
+        </ol>
+        <button class="x" id="first-take-close" aria-label="Hide instructions">&times;</button>
+      </div>
+
+      <p class="stage-keys">
+        <kbd>R</kbd> record <kbd>Space</kbd> replay <kbd>Esc</kbd> stop / back to live <kbd>1–9</kbd> select take
+      </p>
+    </main>
+
+    <!-- ============ MAPPING PANEL ============ -->
+    <aside class="panel" aria-label="Mapping">
+      <header class="panel-head">
+        <h2>Mapping</h2>
+        <p id="panel-note">How live input moves the object. The timeline below holds what you recorded.</p>
+      </header>
+
+      <div class="chain" id="chain-wrap">
+        <!-- INPUT NODE -->
+        <section class="node" id="node-input">
+          <div class="node-head">
+            <span class="port port-out"></span>
+            <span class="node-kind">Input</span>
+            <span class="node-title" id="input-title">Cursor position</span>
+          </div>
+
+          <div class="node-body">
+            <div class="cam" id="cam" hidden>
+              <div class="cam-view">
+                <video id="cam-video" playsinline muted></video>
+                <canvas id="cam-overlay"></canvas>
+                <div class="cam-empty" id="cam-empty">Camera off</div>
+              </div>
+              <div class="cam-status" id="cam-status"><span class="status-dot"></span><span id="cam-status-text">Camera off</span></div>
+              <div class="cam-actions">
+                <button class="btn btn-primary" id="btn-cam-on">Enable camera</button>
+                <button class="btn" id="btn-cam-off" hidden>Turn camera off</button>
+              </div>
+              <p class="fine" id="cam-note">Your index fingertip moves the object. The dashed box in the preview is the frame. Video is processed on this device by MediaPipe Hand Landmarker and is never saved or uploaded; takes store fingertip positions only.</p>
+            </div>
+            <p class="fine fine-warn" id="cam-error" hidden></p>
+            <p class="fine" id="cursor-note">Pointer position over the stage, in frame units (0–1).</p>
+            <div class="readout"><span>x</span><b id="ro-in-x">–</b><span>y</span><b id="ro-in-y">–</b></div>
+          </div>
+        </section>
+
+        <div class="wire" id="wire-1"><span class="pulse"></span></div>
+
+        <!-- SMOOTHING NODE -->
+        <section class="node" id="node-smooth">
+          <div class="node-head">
+            <span class="port port-in"></span><span class="port port-out"></span>
+            <span class="node-kind">Filter</span>
+            <span class="node-title">Smoothing</span>
+            <span class="node-val" id="smooth-val">35%</span>
+          </div>
+          <div class="node-body">
+            <input type="range" id="smooth" min="0" max="100" value="35" aria-label="Smoothing amount">
+            <canvas class="response" id="response" aria-hidden="true"></canvas>
+            <p class="fine"><span class="key-line key-raw"></span>input x <span class="key-line key-out"></span>object x · lag ≈ <b id="smooth-lag">80 ms</b></p>
+          </div>
+        </section>
+
+        <div class="wire" id="wire-2"><span class="pulse"></span></div>
+
+        <!-- OBJECT NODE -->
+        <section class="node" id="node-object">
+          <div class="node-head">
+            <span class="port port-in"></span>
+            <span class="node-kind">Object</span>
+            <span class="node-title">Position x / y</span>
+          </div>
+          <div class="node-body">
+            <div class="seg seg-small" role="radiogroup" aria-label="Object shape">
+              <button class="seg-btn is-on" data-shape="circle" role="radio" aria-checked="true">Circle</button>
+              <button class="seg-btn" data-shape="square" role="radio" aria-checked="false">Square</button>
+              <button class="seg-btn" data-shape="text" role="radio" aria-checked="false">Text</button>
+            </div>
+            <input type="text" class="text-input" id="shape-text" maxlength="14" value="hello" aria-label="Text to animate" hidden>
+            <div class="readout"><span>x</span><b id="ro-out-x">–</b><span>y</span><b id="ro-out-y">–</b></div>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- ============ TIMELINE ============ -->
+    <section class="timeline" aria-label="Timeline">
+      <div class="tl-head">
+        <button class="icon-btn" id="tl-play" title="Play / pause (Space)" aria-label="Play"><span class="ico-play"></span></button>
+        <button class="icon-btn toggle is-on" id="tl-loop" title="Loop replay" aria-pressed="true">Loop</button>
+        <span class="tl-time"><b id="tl-elapsed">0:00.00</b> <span>/</span> <span id="tl-total">0:05.00</span></span>
+
+        <div class="inspector" id="inspector" hidden>
+          <span class="insp-name" id="insp-name">Take</span>
+          <label>Speed
+            <select id="insp-speed">
+              <option value="0.5">0.5×</option>
+              <option value="0.75">0.75×</option>
+              <option value="1" selected>1×</option>
+              <option value="1.25">1.25×</option>
+              <option value="1.5">1.5×</option>
+              <option value="2">2×</option>
+            </select>
+          </label>
+          <label>Smoothing
+            <input type="range" id="insp-smooth" min="0" max="100" value="35">
+            <b id="insp-smooth-val">35%</b>
+          </label>
+          <span class="insp-orig" id="insp-orig">recorded at 35%</span>
+          <button class="btn btn-small" id="insp-reset">Reset</button>
+        </div>
+
+        <label class="tl-limit">Take length
+          <select id="limit">
+            <option value="3000">3 s</option>
+            <option value="5000" selected>5 s</option>
+            <option value="8000">8 s</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="tl-body" id="tl-body">
+        <div class="tl-row tl-ruler-row">
+          <div class="tl-gutter tl-gutter-head">
+            <span>Takes</span><span class="tl-legend">speed over time</span>
+          </div>
+          <div class="tl-lane"><canvas id="ruler"></canvas></div>
+        </div>
+        <div class="tl-tracks" id="tracks"></div>
+        <div class="playhead" id="playhead"><span class="playhead-knob"></span></div>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status" hidden><span id="toast-text"></span><button id="toast-action"></button></div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
