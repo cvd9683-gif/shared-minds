@@ -821,6 +821,7 @@ function ui() {
   if (m === 'live') {
     $('mode-text').textContent = `Live · ${st.input === 'hand' ? 'Hand' : 'Cursor'}`;
     sub.textContent = !L ? 'Add an object from the Scene menu.'
+      : st.input === 'hand' && HOSTED ? 'Hand input isn’t available on this link. Switch input to Cursor.'
       : st.input === 'hand' && hand.state !== 'ready' ? 'Turn the camera on in the Mapping panel, or switch input to Cursor.'
         : st.input === 'hand' ? `Your hand moves ${L.name}. Press R or say “record” to keep a take.`
           : `Drag on empty stage to rehearse ${L.name}; drag an object to place it. R records while the others play.`;
@@ -920,8 +921,16 @@ document.querySelectorAll('[data-input]').forEach(b => b.addEventListener('click
 $('btn-cam-on').addEventListener('click', () => { $('cam-error').hidden = true; hand.enable(); });
 $('btn-cam-off').addEventListener('click', () => hand.disable());
 $('btn-use-cursor').addEventListener('click', () => setInput('cursor'));
+// claude.ai links can't use the camera, so Hand mode says that once and offers the one useful action
 if (HOSTED) {
-  $('cam-note').textContent = 'On this claude.ai link the browser blocks the camera, so hand tracking can’t start here. To use your hand, run Motion Takes on your own computer (see the README) and allow the camera. Video is processed on your device and never saved; takes store fingertip positions only.';
+  $('cam-empty').textContent = 'Not available on this link';
+  for (const id of ['cam-status', 'grab-row', 'btn-cam-on', 'cam-note']) $(id).hidden = true;
+  const info = $('cam-error');
+  info.className = 'fine cam-info';
+  info.hidden = false;
+  info.innerHTML = 'Hand tracking needs your camera, and pages on claude.ai can’t use it. To try it, run Motion Takes on your computer: in the <code>motion-takes</code> folder run <code>python3 -m http.server</code>, then open <code>localhost:8000</code> in Chrome.';
+  $('btn-use-cursor').hidden = false;
+  $('btn-use-cursor').classList.add('btn-primary');
 }
 
 function setSmoothing(v) {
