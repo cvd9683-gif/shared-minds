@@ -81,6 +81,8 @@ export class LibraryWeb {
   /** Small pre-drawn copies of each cover: drawing these is far cheaper than the originals. */
   private thumbs = new Map<string, HTMLCanvasElement>();
   private thumbQueue: string[] = [];
+  /** Each cover's average colour, for covers too small on screen to be worth drawing as images. */
+  private tones = new Map<string, string>();
   private bigThumbs = new Map<string, HTMLCanvasElement>();
   private bigBudget = 0;
   private cam = { k: 1, tx: 0, ty: 0 };
@@ -320,8 +322,15 @@ export class LibraryWeb {
       const c = document.createElement('canvas');
       c.width = c.height = 96;
       try {
-        c.getContext('2d')!.drawImage(img, 0, 0, 96, 96);
+        const g = c.getContext('2d', { willReadFrequently: false })!;
+        g.drawImage(img, 0, 0, 96, 96);
         this.thumbs.set(src, c);
+        const px = document.createElement('canvas');
+        px.width = px.height = 1;
+        const pg = px.getContext('2d', { willReadFrequently: true })!;
+        pg.drawImage(c, 0, 0, 1, 1);
+        const [r, gr, b] = pg.getImageData(0, 0, 1, 1).data;
+        this.tones.set(src, `rgb(${r},${gr},${b})`);
       } catch {
         /* cross-origin or broken image: fall back to the original */
       }
@@ -519,9 +528,10 @@ export class LibraryWeb {
       }
       // Small covers draw from the thumbnail; only big ones use the full image.
       const thumb = s > 110 ? (this.bigThumb(n.item.cover) ?? this.thumbs.get(n.item.cover)) : this.thumbs.get(n.item.cover);
-      if (s < 3) {
-        ctx.fillStyle = '#c8c8c8';
-        ctx.fillRect(n.sx - 1, n.sy - 1, 2, 2);
+      if (s < 12) {
+        // Tiny on screen: a square of the cover's own colour reads the same and draws far faster.
+        ctx.fillStyle = this.tones.get(n.item.cover) ?? '#d6d6d6';
+        ctx.fillRect(n.sx - s / 2, n.sy - s / 2, s, s);
       } else if (thumb) ctx.drawImage(thumb, n.sx - s / 2, n.sy - s / 2, s, s);
       else {
         ctx.fillStyle = '#e6e6e6';
