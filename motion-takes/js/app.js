@@ -1266,7 +1266,7 @@ const demo = new Demo(
     enterSandbox: key => {
       if (sandbox) return;
       sandbox = { snap: snapshot(), past: past.splice(0), future: future.splice(0) };
-      const p = newProject(key === 'choreo' ? 'notification' : 'single');
+      const p = newProject(key === 'choreo' || key === 'walkthrough' ? 'notification' : 'single');
       if (key === 'feelings') p.takes = [p.takes[0]];
       project.template = p.template; project.decor = p.decor; project.layers = p.layers; project.takes = p.takes;
       project.selectedLayerId = p.selectedLayerId;
@@ -1289,6 +1289,22 @@ const demo = new Demo(
     compareIndexes: list => api.compare(list.map(i => takesOf(selLayer())[i])),
     play: () => api.playFromStart(),
     flashPieces: () => flash($('pieces-row')),
+    // where things are on screen, for the example's cursor
+    layerPoint: name => {
+      stage.updateOffset();
+      const L = st.drawn.find(d => d.layer.name === name);
+      const r = stage.rect;
+      return L ? { x: stage.left + r.x + L.x * r.w, y: stage.top + r.y + L.y * r.h } : { x: stage.left + r.x + r.w / 2, y: stage.top + r.y + r.h / 2 };
+    },
+    stageCenter: () => { stage.updateOffset(); const r = stage.rect; return { x: stage.left + r.x + r.w * 0.78, y: stage.top + r.y + r.h / 2 }; },
+    frameHeight: () => stage.rect.h,
+    laneOf: name => {
+      const row = [...document.querySelectorAll('.layer-row')].find(r => r.querySelector('.track-name').textContent === name);
+      row.scrollIntoView({ block: 'nearest' });
+      timeline.box = null;
+      return row.querySelector('.tl-lane');
+    },
+    cmdInput: () => cmdInput,
     flashLayers: () => document.querySelectorAll('.layer-row .tl-lane').forEach(flash),
     typeAndRun: async (text, cancelled) => {
       cmdInput.value = '';

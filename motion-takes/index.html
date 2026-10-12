@@ -67,9 +67,11 @@
         <div class="menu" id="menu-examples">
           <button class="tool tool-quiet" data-menu-toggle aria-haspopup="true" aria-expanded="false">Examples</button>
           <div class="menu-pop" role="menu">
-            <p class="menu-note">Guided examples that run the real tool on example takes. Your own takes are set aside and come back when you exit.</p>
+            <p class="menu-note">Guided examples that run the real tool on example takes. Your own scene is set aside and comes back when you exit.</p>
             <button class="menu-item" data-demo="retime">Retime a hesitation
               <small>Edit one pause and one move by saying what you want.</small></button>
+            <button class="menu-item" data-demo="walkthrough">Watch a designer use it
+              <small>A cursor shows each click, key and movement, from first look to a new take.</small></button>
             <button class="menu-item" data-demo="choreo">Choreograph a notification
               <small>Three objects, each performed on its own, then timed together.</small></button>
             <button class="menu-item" data-demo="feelings">One movement, three feelings
@@ -113,9 +115,11 @@
       <div class="demo" id="demo" hidden>
         <p class="eyebrow" id="demo-eyebrow">Example · runs the real tool</p>
         <h3 id="demo-title">Retime a hesitation</h3>
+        <p class="demo-who" id="demo-who" hidden></p>
         <p class="demo-step" id="demo-step">Step 1 of 8</p>
         <p class="demo-text" id="demo-text"></p>
         <p class="demo-say" id="demo-say" hidden></p>
+        <p class="demo-act" id="demo-act" hidden></p>
         <ol class="demo-guide" id="demo-guide" hidden></ol>
         <div class="demo-actions">
           <button class="btn" id="demo-pause">Pause</button>

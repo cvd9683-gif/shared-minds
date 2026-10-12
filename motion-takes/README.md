@@ -31,9 +31,11 @@ Drag an object on the stage to place it; drag on empty stage to rehearse the sel
 object without recording. **Scene** has two more starting points (one circle; three cards
 fanning out) and adds circles, squares, text, cards, buttons and badges.
 
-**Examples** in the toolbar has four guided walkthroughs. Three run the real tool on example
-takes, typing each command for you; your own scene is set aside and comes back when you
-exit. The fourth explains the hands-free gestures; it doesn't simulate a camera.
+**Examples** in the toolbar has guided walkthroughs that run the real tool on example takes;
+your own scene is set aside and comes back when you exit. **Watch a designer use it** shows a
+stand-in cursor and key presses doing each step (select, perform, drag, type), so you see what
+a person does; only the hand on the mouse is simulated. The hands-free guide explains the
+gestures and doesn't simulate a camera.
 
 | Key | Action |
 | --- | --- |

@@ -17,7 +17,41 @@ const ICON = {
   edit: '<svg viewBox="0 0 20 20"><path d="M3 10h4M13 10h4"/><rect x="7" y="7" width="6" height="6" rx="1"/><path d="M8 4l-2 3M12 4l2 3"/></svg>',
 };
 
+import { Puppet } from './puppet.js';
+
 export const SCENARIOS = {
+  walkthrough: {
+    title: 'Watch a designer use it',
+    who: 'A product designer is working out how a “new message” notification should arrive in their app. The list, toast and badge are already in the scene.',
+    steps: [
+      { text: 'First they watch the scene as it is.', does: 'Press Space.', act: async (a, P) => { await P.press(' ', 'plays the scene'); }, wait: 3800 },
+      { text: 'The toast drops in too abruptly for a friendly message. They want it gentler, so they select it.', does: 'Click the toast.', act: async (a, P) => { await P.press('Escape', 'back to live'); const p = a.layerPoint('Toast'); await P.clickAt(p.x, p.y); }, wait: 1800 },
+      { text: 'They perform a new version. After a three-beat count-in they move the mouse: a slow drift down, a small pause, then a settle. No clicking while performing; the list and badge play along so the timing fits.', does: 'Press R, then move the mouse down slowly, pause, settle. Press R to stop.', act: async (a, P) => {
+        const c = a.stageCenter();
+        await P.moveTo(c.x, c.y - 60, 500);
+        await P.press('r', 'record (3, 2, 1…)');
+        await P.pause(1250);
+        const h = a.frameHeight();
+        const x = c.x, y = c.y - 60;
+        await P.perform([
+          { t: 0, x, y }, { t: 250, x, y },
+          { t: 1300, x: x + 4, y: y + h * 0.27 },
+          { t: 1950, x: x + 4, y: y + h * 0.27 },
+          { t: 2400, x: x + 2, y: y + h * 0.32 },
+          { t: 2900, x: x + 2, y: y + h * 0.32 },
+        ]);
+        await P.press('r', 'stop');
+      }, wait: 5200 },
+      { text: 'Their new take plays, with the old one as a faint ghost: the same toast, two interpretations side by side.', wait: 5000 },
+      { text: 'Now the badge lands before the toast has settled. They hold the badge back by dragging its bar later in the timeline.', does: 'Drag the Badge bar to the right.', act: async (a, P) => {
+        const r = a.laneOf('Badge').getBoundingClientRect();
+        await P.drag(r.left + r.width * 0.12, r.top + r.height / 2, r.left + r.width * 0.12 + r.width * 0.07, r.top + r.height / 2, 900);
+      }, wait: 4200 },
+      { text: 'The pause in their performance could linger a little longer. Instead of performing again, they type it (or, on their own computer, say it).', does: 'Type “longer pause”.', act: async (a, P) => { await P.type(a.cmdInput(), 'longer pause'); }, wait: 5200 },
+      { text: 'They ask which take feels calmer. The answer comes from the timing (pauses and speed) and says why, so they can disagree.', does: 'Type “which feels calmer?”', act: async (a, P) => { await P.type(a.cmdInput(), 'which feels calmer?'); }, wait: 7500 },
+      { text: 'They keep the new take and move on to the next object. Every change can be undone, and what they performed is never altered.', act: async (a, P) => { P.hide(); a.play(); }, wait: 5000 },
+    ],
+  },
   retime: {
     title: 'Retime a hesitation',
     steps: [
@@ -75,6 +109,7 @@ export class Demo {
     this.els = els;
     this.api = api;
     this.running = null;
+    this.puppet = new Puppet();
     els.exit.addEventListener('click', () => this.exit());
     els.next.addEventListener('click', () => this.skip && this.skip());
     els.pause.addEventListener('click', () => {
@@ -97,6 +132,9 @@ export class Demo {
     els.title.textContent = sc.title;
     document.getElementById('demo-eyebrow').textContent = sc.guide ? 'Example · a guide, nothing simulated' : 'Example · runs the real tool';
     els.say.hidden = true;
+    const who = document.getElementById('demo-who'), act = document.getElementById('demo-act');
+    who.hidden = !sc.who; who.textContent = sc.who || '';
+    act.hidden = true;
 
     if (sc.guide) {
       els.step.textContent = 'Guide';
@@ -127,14 +165,23 @@ export class Demo {
       els.text.textContent = step.text;
       els.say.hidden = !step.say;
       if (step.say) els.say.textContent = `“${step.say}”`;
+      act.hidden = !step.does;
+      act.textContent = step.does || '';
       if (step.do) step.do(this.api);
       if (step.say) await this.api.typeAndRun(step.say, () => this.running !== token);
+      if (step.act) {
+        this.puppet.cancelled = () => this.running !== token;
+        try { await step.act(this.api, this.puppet); }
+        catch (err) { if (this.running !== token) return; console.error(err); }
+      }
       await this.wait(step.wait || 4000, token);
     }
     if (this.running !== token) return;
     els.step.textContent = 'Done';
     els.text.textContent = 'That was an example on example takes. Exit to get your own takes back, or keep playing with these: everything here is the real tool.';
     els.say.hidden = true;
+    act.hidden = true;
+    this.puppet.hide();
     els.pause.hidden = true; els.next.hidden = true;
   }
 
@@ -159,6 +206,7 @@ export class Demo {
     clearTimeout(this.timer);
     if (this.skip) this.skip();
     this.els.card.hidden = true;
+    this.puppet.hide();
     this.api.leaveSandbox();
   }
 }

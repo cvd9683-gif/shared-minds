@@ -65,7 +65,7 @@ export class Timeline {
       if (e.button !== 0 || e.target.closest('.piece')) return;
       e.preventDefault();
       this.box = null;
-      el.setPointerCapture(e.pointerId);
+      try { el.setPointerCapture(e.pointerId); } catch { /* not a real pointer (guided example) */ }
       const x0 = e.clientX;
       let dragging = false;
       if (scrubOnly) this.cb.onScrub(this.msAt(e.clientX), true);
@@ -331,7 +331,7 @@ export class Timeline {
       const grip = b.querySelector('.piece-grip');
       grip.addEventListener('pointerdown', ev => {
         ev.preventDefault(); ev.stopPropagation();
-        grip.setPointerCapture(ev.pointerId);
+        try { grip.setPointerCapture(ev.pointerId); } catch { /* not a real pointer */ }
         this.cb.onPieceDrag(p.i, null, 'start');
         const speed = (take.adjust && take.adjust.speed) || 1;
         const r = lane.getBoundingClientRect();
