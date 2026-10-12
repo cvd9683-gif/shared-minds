@@ -42,7 +42,7 @@ export class HandInput {
   async enable() {
     if (this.state === 'starting' || this.state === 'loading' || this.state === 'ready') return;
     if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      this.set('error', 'The camera needs a secure page (https or localhost), and this browser or preview does not provide one. Cursor input still works.');
+      this.set('error', 'This page can’t reach a camera here. Run it locally (see the README) to use your hand. Cursor input still works.');
       return;
     }
     this.set('starting');
@@ -53,7 +53,7 @@ export class HandInput {
       });
     } catch (err) {
       const msg = err && err.name === 'NotAllowedError'
-        ? 'Camera access was blocked. Allow it in the browser’s site settings to try again. Cursor input still works.'
+        ? 'Camera access was blocked, either by you, the browser, or the page hosting this prototype. To use your hand, run it locally (see the README) and allow the camera. Cursor input still works.'
         : err && err.name === 'NotFoundError'
           ? 'No camera was found. Cursor input still works.'
           : `The camera could not start (${(err && err.name) || 'unknown error'}). Cursor input still works.`;

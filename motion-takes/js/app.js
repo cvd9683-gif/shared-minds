@@ -665,7 +665,7 @@ document.querySelectorAll('.menu').forEach(menu => {
 });
 document.addEventListener('click', () => document.querySelectorAll('.menu.is-open').forEach(m => m.classList.remove('is-open')));
 
-$('act-download').addEventListener('click', () => {
+$('act-download').addEventListener('click', async () => {
   const data = {
     format: 'motion-takes-project',
     version: 1,
@@ -677,10 +677,17 @@ $('act-download').addEventListener('click', () => {
     counter: project.counter,
     takes: project.takes,
   };
-  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const json = JSON.stringify(data, null, 1);
+  const filename = `motion-takes-${new Date().toISOString().slice(0, 10)}.json`;
+  const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+  if (dl) {
+    try { await dl.save({ filename, data: json }); }
+    catch (err) { if (err && err.code !== 'declined') toast('This view can’t save files.'); }
+    return;
+  }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `motion-takes-${new Date().toISOString().slice(0, 10)}.json`;
+  a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
@@ -694,7 +701,14 @@ $('file-open').addEventListener('change', async e => {
     if (data.format !== 'motion-takes-project' || !Array.isArray(data.takes)) throw new Error('format');
     const takes = data.takes.filter(validTake);
     if (!takes.length) throw new Error('empty');
-    if (project.takes.some(t => !t.example) && !confirm(`Replace the current ${project.takes.length} takes with the ${takes.length} in this file?`)) return;
+    const apply = () => openProject(data, takes);
+    if (project.takes.some(t => !t.example)) toast(`Replace your ${project.takes.length} takes with the ${takes.length} in this file?`, 'Replace', apply);
+    else apply();
+  } catch {
+    toast('That file is not Motion Takes project data.');
+  }
+});
+function openProject(data, takes) {
     toLive();
     project.takes = takes;
     project.counter = Math.max(data.counter || 0, takes.length);
@@ -703,21 +717,20 @@ $('file-open').addEventListener('change', async e => {
     (data.compare || []).forEach(id => { if (id !== project.selectedId && takes.some(t => t.id === id)) compareIds.add(id); });
     save(); refresh();
     toast(`Opened ${takes.length} take${takes.length > 1 ? 's' : ''}.`);
-  } catch {
-    toast('That file is not Motion Takes project data.');
-  }
-});
+}
 $('act-examples').addEventListener('click', () => {
   project.takes.push(...exampleTakes());
   save(); refresh();
 });
 $('act-clear').addEventListener('click', () => {
-  if (!project.takes.length || !confirm(`Delete all ${project.takes.length} takes? This cannot be undone.`)) return;
-  toLive();
-  project.takes = [];
-  project.selectedId = null;
-  compareIds.clear();
-  save(); refresh();
+  if (!project.takes.length) return;
+  toast(`Delete all ${project.takes.length} takes? This can’t be undone.`, 'Delete all', () => {
+    toLive();
+    project.takes = [];
+    project.selectedId = null;
+    compareIds.clear();
+    save(); refresh();
+  });
 });
 
 // keyboard: the performer's hand stays in the air
