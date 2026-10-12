@@ -31,6 +31,19 @@ export const SCENARIOS = {
       { text: 'They can always return to exactly what they performed.', say: 'reset', wait: 4000 },
     ],
   },
+  choreo: {
+    title: 'Choreograph a notification',
+    steps: [
+      { text: 'A notification arriving in a messaging app. Three objects: the list makes room, the toast drops in, the badge lands. Each was performed on its own while the others played.', do: a => a.play(), wait: 5200 },
+      { text: 'Each object keeps its own takes. The toast has two: a quick drop and a gentle drift.', say: 'select toast', wait: 3800 },
+      { text: 'They try the gentle one in the scene.', say: 'use take 2', wait: 5200 },
+      { text: 'And see both at once: the quick drop in use, the gentle drift as the ghost.', say: 'compare 1 and 2', wait: 5500 },
+      { text: 'The badge lands before the toast has settled. They hold it back.', say: 'start the badge 300 ms later', wait: 5500 },
+      { text: 'The same by hand: drag any object’s bar in the timeline sideways to change when it starts.', do: a => a.flashLayers(), wait: 5000 },
+      { text: 'The toast’s drop could arrive sooner.', say: 'snappier entrance', wait: 5200 },
+      { text: 'To try a new version of any object, select it and press R. The other objects play while you perform it, so the new take is in time with them.', do: a => a.play(), wait: 7000 },
+    ],
+  },
   feelings: {
     title: 'One movement, three feelings',
     steps: [

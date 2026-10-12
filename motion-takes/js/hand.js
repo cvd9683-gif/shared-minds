@@ -54,7 +54,10 @@ export class HandInput {
         audio: false,
       });
     } catch (err) {
-      const msg = err && err.name === 'NotAllowedError'
+      const hosted = !!(window.claude && window.claude.use);
+      const msg = hosted
+        ? 'The camera is blocked on this claude.ai link, so hand tracking can’t start here. Run Motion Takes on your own computer to use your hand (see the README). Cursor input works here.'
+        : err && err.name === 'NotAllowedError'
         ? 'Camera access was blocked, either by you, the browser, or the page hosting this prototype. To use your hand, run it locally (see the README) and allow the camera. Cursor input still works.'
         : err && err.name === 'NotFoundError'
           ? 'No camera was found. Cursor input still works.'

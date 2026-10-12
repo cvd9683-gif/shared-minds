@@ -19,9 +19,21 @@ const NUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eigh
 const ORD = { first: 0, '1st': 0, second: 1, '2nd': 1, third: 2, '3rd': 2, fourth: 3, '4th': 3 };
 
 const has = (s, re) => re.test(s);
+const toMs = (n, unit) => (/^s|^sec/.test(unit || 'ms') && !/^ms|^milli/.test(unit || 'ms') ? +n * 1000 : +n);
+
+function findLayer(s, layers) {
+  let best = null;
+  for (const l of layers) {
+    const name = l.name.toLowerCase().replace(/[^\w\s]/g, ' ').trim();
+    if (!name) continue;
+    if (new RegExp(`\\b${name.replace(/\s+/g, '\\s+')}s?\\b`).test(s) && (!best || name.length > best.n)) best = { l, n: name.length };
+  }
+  return best && best.l;
+}
 const secs = ms => `${(ms / 1000).toFixed(2)} s`;
 
 export const HELP = [
+  ['Objects', '“select toast”, “record the badge”, “start the badge 250 ms later”, “stagger by 80 ms”, “use take 2”, “play all”'],
   ['Perform', '“record”, “stop”, “replay”, “pause”, “go live”'],
   ['Compare', '“compare 1 and 2”, “compare all”, “solo”, “take 3”, “next take”'],
   ['Read', '“describe”, “what’s different?”, “which feels more confident?”'],
@@ -118,6 +130,53 @@ export async function interpret(raw, api) {
   if (has(s, /\b(help|what can i (say|do)|commands)\b/)) return { kind: 'help', reply: 'Here’s what I understand:', help: true };
   if (has(s, /^\s*(undo|go back|take that back|never mind|nevermind)\b/)) return { kind: 'info', reply: api.undo() ? 'Undone.' : 'Nothing to undo.' };
   if (has(s, /^\s*(redo)\b/)) return { kind: 'info', reply: api.redo() ? 'Redone.' : 'Nothing to redo.' };
+
+  // --- objects in the scene (before transport, so “record the badge” records the badge)
+  const layers = api.layers();
+  const named = findLayer(s, layers);
+  if (has(s, /\b(play|replay|watch|show)\b.*\b(all|scene|everything|together|whole thing)\b/)) {
+    api.playFromStart();
+    return { kind: 'action', reply: 'Playing the whole scene.' };
+  }
+  const useM = s.match(/\buse (?:take\s*)?(\d|one|two|three|four|five|six|seven|eight|nine)\b/);
+  if (useM) {
+    const layer = named || api.selectedLayer();
+    if (!layer) return { kind: 'info', reply: 'Select an object first.' };
+    if (layer !== api.selectedLayer()) api.selectLayer(layer);
+    const t = api.takes()[(NUM[useM[1]] || +useM[1]) - 1];
+    if (!t) return { kind: 'info', reply: `${layer.name} has ${api.takes().length} take${api.takes().length === 1 ? '' : 's'}.` };
+    api.select(t);
+    return { kind: 'edit', reply: `${layer.name} now uses ${t.name}.` };
+  }
+  const stag = s.match(/\bstagger\b.*?(\d+(?:\.\d+)?)\s*(ms|milliseconds|s|sec|seconds)?\b/);
+  if (stag || has(s, /\bstagger\b/)) {
+    const ms = stag ? toMs(stag[1], stag[2]) : 80;
+    const inUse = layers.map(l => api.activeOf(l)).filter(Boolean);
+    if (inUse.length < 2) return { kind: 'info', reply: 'Staggering needs at least two objects with takes.' };
+    api.edit('stagger', () => inUse.forEach((t, i) => { t.adjust = { ...t.adjust, offset: i * ms }; }));
+    return { kind: 'edit', reply: `Each object now starts ${ms} ms after the one above it: ${layers.filter(l => api.activeOf(l)).map(l => l.name).join(', ')}.` };
+  }
+  const atM = s.match(/\b(?:start|starts|begin|begins|come in|comes in)\b.*?\bat\s+(\d+(?:\.\d+)?)\s*(ms|milliseconds|s|sec|seconds)\b/);
+  const relM = s.match(/(\d+(?:\.\d+)?)\s*(ms|milliseconds|millisecond|s|sec|secs|seconds?)\b.*?\b(later|earlier|sooner|after|before)\b/) || s.match(/\b(?:delay|hold back)\b.*?(\d+(?:\.\d+)?)\s*(ms|milliseconds|s|sec|seconds?)\b/);
+  if (atM || relM) {
+    const layer = named || api.selectedLayer();
+    const t = layer && api.activeOf(layer);
+    if (!t) return { kind: 'info', reply: `${layer ? layer.name : 'That object'} has no take to move in time yet.` };
+    const before = (t.adjust && t.adjust.offset) || 0;
+    const after = atM ? toMs(atM[1], atM[2]) : Math.max(0, before + toMs(relM[1], relM[2]) * (/(earlier|sooner|before)/.test(relM[3] || '') ? -1 : 1));
+    api.edit('offset', () => { t.adjust = { ...t.adjust, offset: Math.round(after) }; });
+    return { kind: 'edit', reply: `${layer.name} now starts at ${(after / 1000).toFixed(2)} s (was ${(before / 1000).toFixed(2)} s).` };
+  }
+  if (named && has(s, /\b(record|perform|redo|act out|do)\b/)) {
+    api.selectLayer(named);
+    api.record();
+    return { kind: 'action', reply: `Recording ${named.name} after the count-in, while the others play.` };
+  }
+  if (named && (words.length <= 3 || has(s, /\b(select|edit|work on|go to|switch to|pick)\b/)) && !has(s, /\b(longer|shorter|snappier|faster|slower|calmer|version|describe)\b/)) {
+    api.selectLayer(named);
+    const n = api.takes().length;
+    return { kind: 'action', reply: `${named.name} selected${n ? `, with ${n} take${n === 1 ? '' : 's'}` : ', no takes yet'}. Edits now apply to it.` };
+  }
 
   // --- transport (short phrases only, so “longer pause” isn't a command to pause)
   if (short && has(s, /\b(record|recording|action|roll|lets go|let's go|from the top|another take|new take)\b/) && !has(s, /\bversion\b/)) {

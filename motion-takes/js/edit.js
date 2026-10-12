@@ -76,10 +76,16 @@ export function isEdited(take) {
   return piecesChanged || effectiveSpeed(take) !== 1 || Math.abs(effectiveSmoothing(take) - take.smoothing) > 0.001;
 }
 
+// Back to the performance. Where and when the take sits in the scene stays.
 export function resetEdits(take) {
+  const a = take.adjust || {};
   take.edits = null;
-  take.adjust = { speed: 1, smoothing: take.smoothing };
+  take.adjust = { speed: 1, smoothing: take.smoothing, offset: a.offset || 0, dx: a.dx || 0, dy: a.dy || 0 };
 }
+
+// When the take starts in the scene (ms), and how far it is shifted in the frame.
+export function offsetOf(take) { return (take.adjust && take.adjust.offset) || 0; }
+export function shiftOf(take) { return { dx: (take.adjust && take.adjust.dx) || 0, dy: (take.adjust && take.adjust.dy) || 0 }; }
 
 // ---------- timing ----------
 
@@ -89,7 +95,17 @@ function warp(v, ease) {
   return ease > 0 ? 1 - Math.pow(1 - v, k) : Math.pow(v, k);
 }
 
+const timingCache = new WeakMap();
 export function timingOf(take) {
+  const key = JSON.stringify([effectiveSpeed(take), take.edits || null, take.segments ? take.segments.length : 0]);
+  const hit = timingCache.get(take);
+  if (hit && hit.key === key) return hit.timing;
+  const timing = computeTiming(take);
+  timingCache.set(take, { key, timing });
+  return timing;
+}
+
+function computeTiming(take) {
   const segs = piecesOf(take);
   const sp = effectiveSpeed(take);
   let acc = 0;
@@ -116,7 +132,8 @@ function toTakeTime(timing, T) {
 const cache = new WeakMap();
 
 export function rendered(take) {
-  const sig = JSON.stringify([effectiveSmoothing(take), effectiveSpeed(take), take.edits || null, take.segments ? take.segments.length : 0]);
+  const { dx, dy } = shiftOf(take);
+  const sig = JSON.stringify([effectiveSmoothing(take), effectiveSpeed(take), take.edits || null, take.segments ? take.segments.length : 0, dx, dy]);
   const hit = cache.get(take);
   if (hit && hit.sig === sig) return hit;
   const base = derived(take);
@@ -127,7 +144,7 @@ export function rendered(take) {
   for (let i = 0; i < n; i++) {
     const T = Math.min(D, i * STEP);
     const p = sampleAt(base, toTakeTime(timing, T));
-    t[i] = T; x[i] = p.x; y[i] = p.y; tracked[i] = p.tracked ? 1 : 0;
+    t[i] = T; x[i] = p.x + dx; y[i] = p.y + dy; tracked[i] = p.tracked ? 1 : 0;
   }
   const d = analyze({ t, x, y, tracked, n });
   d.sig = sig; d.timing = timing; d.duration = D;

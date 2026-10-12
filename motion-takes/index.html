@@ -46,12 +46,32 @@
       </div>
 
       <div class="tools-right">
+        <div class="menu" id="menu-scene">
+          <button class="tool tool-quiet" data-menu-toggle aria-haspopup="true" aria-expanded="false">Scene</button>
+          <div class="menu-pop" role="menu">
+            <p class="menu-note">Start from a scene. The current one can be brought back with Undo.</p>
+            <button class="menu-item" data-template="single">One object<small>A single circle, for working out a feeling.</small></button>
+            <button class="menu-item" data-template="notification">Notification arrives<small>A list makes room, a toast drops in, a badge lands.</small></button>
+            <button class="menu-item" data-template="cards">Cards fan out<small>Three stacked cards spread apart, one after another.</small></button>
+            <p class="menu-note menu-note-top">Add an object to this scene</p>
+            <div class="menu-row">
+              <button class="chip" data-add="circle">Circle</button>
+              <button class="chip" data-add="square">Square</button>
+              <button class="chip" data-add="text">Text</button>
+              <button class="chip" data-add="card">Card</button>
+              <button class="chip" data-add="button">Button</button>
+              <button class="chip" data-add="badge">Badge</button>
+            </div>
+          </div>
+        </div>
         <div class="menu" id="menu-examples">
           <button class="tool tool-quiet" data-menu-toggle aria-haspopup="true" aria-expanded="false">Examples</button>
           <div class="menu-pop" role="menu">
             <p class="menu-note">Guided examples that run the real tool on example takes. Your own takes are set aside and come back when you exit.</p>
             <button class="menu-item" data-demo="retime">Retime a hesitation
               <small>Edit one pause and one move by saying what you want.</small></button>
+            <button class="menu-item" data-demo="choreo">Choreograph a notification
+              <small>Three objects, each performed on its own, then timed together.</small></button>
             <button class="menu-item" data-demo="feelings">One movement, three feelings
               <small>Make calm, nervous and confident versions, then compare.</small></button>
             <button class="menu-item" data-demo="hands">Hands-free session
@@ -71,7 +91,7 @@
             <button class="menu-item" id="act-download">Download project data (.json)
               <small>Positions and timing of every take. Not a Lottie file.</small></button>
             <button class="menu-item" id="act-open">Open project data (.json)…</button>
-            <button class="menu-item" id="act-examples">Add the example takes again</button>
+            <button class="menu-item" id="act-examples">Add example takes to the selected object</button>
             <button class="menu-item menu-danger" id="act-clear">Delete all takes…</button>
           </div>
         </div>
@@ -108,7 +128,7 @@
       <div class="assist" id="assist">
         <div class="reply" id="reply" aria-live="polite">
           <p class="reply-you" id="reply-you" hidden></p>
-          <p class="reply-text" id="reply-text">Press <kbd>R</kbd> or say “record” to perform. On the example take, try “make the pause longer”. New here? Open <button class="link" id="open-examples">Examples</button>.</p>
+          <p class="reply-text" id="reply-text">A scene of objects, each with its own takes. Press <kbd>Space</kbd> to play it. Select an object and press <kbd>R</kbd> to perform it while the others play. New here? Open <button class="link" id="open-examples">Examples</button>.</p>
           <dl class="reply-help" id="reply-help" hidden></dl>
           <button class="link" id="reply-undo" hidden>Undo</button>
         </div>
@@ -147,14 +167,15 @@
               </div>
               <div class="cam-status" id="cam-status"><span class="status-dot"></span><span id="cam-status-text">Camera off</span></div>
               <label class="switch"><input type="checkbox" id="grab"> <span><b>Pinch to grab.</b> The object follows only while your thumb and index finger touch. Recording starts on the pinch and stops when you let go.</span></label>
+              <p class="fine fine-warn cam-error" id="cam-error" hidden></p>
               <div class="cam-actions">
                 <button class="btn btn-primary" id="btn-cam-on">Enable camera</button>
                 <button class="btn" id="btn-cam-off" hidden>Turn camera off</button>
+                <button class="btn" id="btn-use-cursor" hidden>Use cursor instead</button>
               </div>
               <p class="fine" id="cam-note">Your index fingertip moves the object. The dashed box in the preview is the frame. Video is processed on this device by MediaPipe Hand Landmarker and is never saved or uploaded; takes store fingertip positions only.</p>
             </div>
-            <p class="fine fine-warn" id="cam-error" hidden></p>
-            <p class="fine" id="cursor-note">Pointer position over the stage, in frame units (0–1).</p>
+            <p class="fine" id="cursor-note">Drag on the stage to rehearse. While recording, the object follows your pointer from wherever it starts; you don’t need to hold the button.</p>
             <div class="readout"><span>x</span><b id="ro-in-x">–</b><span>y</span><b id="ro-in-y">–</b></div>
           </div>
         </section>
@@ -183,15 +204,16 @@
           <div class="node-head">
             <span class="port port-in"></span>
             <span class="node-kind">Object</span>
-            <span class="node-title">Position x / y</span>
+            <span class="node-title" id="object-title">Circle · position</span>
           </div>
           <div class="node-body">
-            <div class="seg seg-small" role="radiogroup" aria-label="Object shape">
+            <div class="seg seg-small" id="shape-seg" role="radiogroup" aria-label="Object shape">
               <button class="seg-btn is-on" data-shape="circle" role="radio" aria-checked="true">Circle</button>
               <button class="seg-btn" data-shape="square" role="radio" aria-checked="false">Square</button>
               <button class="seg-btn" data-shape="text" role="radio" aria-checked="false">Text</button>
             </div>
-            <input type="text" class="text-input" id="shape-text" maxlength="14" value="hello" aria-label="Text to animate" hidden>
+            <input type="text" class="text-input" id="shape-text" maxlength="28" value="hello" aria-label="Object label" hidden>
+            <p class="fine">Moves relative to where it starts. Drag the object on the stage to place it.</p>
             <div class="readout"><span>x</span><b id="ro-out-x">–</b><span>y</span><b id="ro-out-y">–</b></div>
           </div>
         </section>
@@ -237,7 +259,7 @@
       <div class="tl-body" id="tl-body">
         <div class="tl-row tl-ruler-row">
           <div class="tl-gutter tl-gutter-head">
-            <span>Takes</span><span class="tl-legend">speed over time</span>
+            <span>Objects</span><span class="tl-legend">drag a bar to retime</span>
           </div>
           <div class="tl-lane"><canvas id="ruler"></canvas></div>
         </div>

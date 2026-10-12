@@ -870,3 +870,45 @@ select {
 .reply { transition: opacity .4s; }
 .reply.is-faded { opacity: 0; pointer-events: none; }
 .assist:hover .reply.is-faded, .assist:focus-within .reply.is-faded { opacity: 1; pointer-events: auto; }
+
+/* ------------------------------------------------
+   SCENES: objects and their takes
+   ------------------------------------------------ */
+.menu-note-top { border-top: 1px solid var(--line-soft); border-bottom: 0; margin: 4px 0 0; padding-top: 8px; }
+.menu-row { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 6px 6px; }
+.chip { padding: 3px 9px; border: 1px solid var(--line); border-radius: 12px; font-size: 12px; background: var(--raised); }
+.chip:hover { border-color: var(--faint); }
+
+.layer-row { height: 44px; }
+.layer-row .kind { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-linecap: round; }
+.layer-row.is-selected { background: var(--raised); }
+.layer-row.is-selected .tl-gutter { box-shadow: inset 3px 0 0 var(--accent); }
+.layer-row.is-selected .kind { stroke: var(--accent); }
+.layer-row .tl-lane { cursor: grab; }
+.layer-row .tl-lane:active { cursor: grabbing; }
+.layer-row .track-name { font-weight: 600; }
+
+.take-row { height: 38px; background: var(--paper); }
+.take-row .tl-gutter { padding-left: 18px; gap: 6px; }
+.take-row .track-name { font-weight: 400; font-size: 12px; }
+.take-row .tl-lane { cursor: grab; }
+.track.is-selected .compare { cursor: pointer; }
+.use {
+  flex: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--faint);
+  background: var(--raised);
+}
+.use:hover { border-color: var(--accent); }
+.take-row.is-active .use { border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--raised); background: var(--accent); }
+.use.is-rec { border-color: var(--rec); background: var(--rec); }
+.take-row.is-active .compare { opacity: 0.25; cursor: default; }
+
+.cam-error { padding: 6px 8px; border-radius: 6px; background: var(--rec-soft); }
+.mic.is-blocked { color: var(--faint); }
+.mic.is-blocked::after { content: ""; position: absolute; width: 20px; height: 1.5px; background: var(--rec); transform: rotate(-45deg); }
+.mic { position: relative; }
+
+.stage.is-arranging { cursor: move; }
+.stage.is-rehearsing { cursor: grabbing; }
