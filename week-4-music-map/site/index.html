@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="./assets/index-BqTjM6In.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D6z4DuE8.css">
+    <script type="module" crossorigin src="./assets/index-CdbZj29k.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Dn-GM_TF.css">
   </head>
   <body class="mm">
     <a class="mm-skip" href="#panel">Skip to details</a>
@@ -51,6 +51,11 @@
       <section class="mm-stage" id="stage" aria-label="Map" data-view="timeline">
         <nav class="mm-pathbar" id="pathbar" aria-label="Your path" hidden></nav>
 
+        <div class="mm-layout" id="layout-switch" role="radiogroup" aria-label="Layout">
+          <button type="button" role="radio" data-layout="timeline" aria-checked="true">Timeline</button>
+          <button type="button" role="radio" data-layout="compass" aria-checked="false">Compass</button>
+        </div>
+        <div class="mm-compass" id="compass" hidden></div>
         <div class="mm-canvas" id="canvas" aria-label="Timeline. Scroll sideways to move through time."></div>
         <div class="mm-webbar" id="webbar" hidden>
           <div class="mm-webbar__modes" role="group" aria-label="Map by">

@@ -3414,3 +3414,276 @@ input::placeholder {
   padding: 12px 0 2px;
   border-top: 1px solid var(--rule);
 }
+
+/* ---- Layout switch (Personal): Timeline · Compass -------------------------------- */
+.mm-layout {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  z-index: 1200;
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--ink);
+  background: var(--surface);
+}
+.mm-layout button {
+  padding: 5px 12px;
+  border: 0;
+  background: none;
+  font: 600 12.5px var(--font);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.mm-layout button[aria-checked='true'] {
+  background: var(--saved);
+  color: var(--on-accent);
+}
+.mm-layout button:not([aria-checked='true']):hover {
+  background: var(--saved-soft);
+}
+
+/* ---- Compass: two axes you name, albums you place --------------------------------- */
+.mm-compass {
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+.mm-compass__field {
+  position: relative;
+  margin: 58px 40px 8px;
+  min-height: 0;
+}
+.mm-compass__title {
+  position: absolute;
+  left: 50%;
+  top: -48px;
+  transform: translateX(-50%);
+  width: min(560px, 70%);
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  background: transparent;
+  text-align: center;
+  font: 800 26px/1.2 var(--font);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  padding: 2px 4px 4px;
+}
+.mm-compass__title:focus,
+.mm-compass__label:focus {
+  outline: none;
+  border-color: var(--saved);
+}
+.mm-compass__axis {
+  position: absolute;
+  background: var(--ink);
+}
+.mm-compass__axis.is-x {
+  left: 3%;
+  right: 3%;
+  top: 50%;
+  height: 2px;
+}
+.mm-compass__axis.is-y {
+  top: 5%;
+  bottom: 5%;
+  left: 50%;
+  width: 2px;
+}
+.mm-compass__axis::before,
+.mm-compass__axis::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid var(--ink);
+  border-left: 2px solid var(--ink);
+}
+.mm-compass__axis.is-x::before { left: 0; top: -5px; transform: rotate(-45deg); transform-origin: 0 0; top: 1px; }
+.mm-compass__axis.is-x::after { right: -1px; top: -5px; transform: rotate(135deg); transform-origin: center; }
+.mm-compass__axis.is-y::before { top: 0; left: -5px; transform: rotate(45deg); transform-origin: center; }
+.mm-compass__axis.is-y::after { bottom: 0; left: -5px; transform: rotate(-135deg); transform-origin: center; }
+.mm-compass__label {
+  position: absolute;
+  width: 160px;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  background: rgba(255, 255, 255, 0.9);
+  font: 700 17px var(--font);
+  letter-spacing: -0.01em;
+  color: var(--saved);
+  text-align: center;
+  padding: 2px 4px;
+}
+.mm-compass__label:hover {
+  border-bottom-color: var(--line);
+}
+.mm-compass__label.is-top { left: 50%; top: 0; transform: translate(-50%, -110%); }
+.mm-compass__label.is-bottom { left: 50%; bottom: 0; transform: translate(-50%, 110%); }
+.mm-compass__label.is-left { left: 0; top: 50%; transform: translate(-30%, -50%) rotate(-90deg); }
+.mm-compass__label.is-right { right: 0; top: 50%; transform: translate(30%, -50%) rotate(90deg); }
+.mm-compass__covers {
+  position: absolute;
+  inset: 0;
+}
+.mm-compass__hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 18px);
+  margin: 0;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.92);
+  font: 500 12.5px var(--font);
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.mm-compass__cov {
+  position: absolute;
+  width: 74px;
+  height: 74px;
+  padding: 0;
+  border: 0;
+  background: var(--paper-2);
+  box-shadow: 0 0 0 1px rgba(23, 21, 31, 0.85);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s ease;
+  touch-action: none;
+}
+.mm-compass__cov img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  pointer-events: none;
+}
+.mm-compass__cov.is-placed:hover,
+.mm-compass__cov.is-placed:focus-visible {
+  z-index: 5;
+  transform: translate(-50%, -50%) scale(1.35);
+  box-shadow: 0 0 0 1px var(--ink), 0 14px 28px rgba(23, 21, 31, 0.22);
+}
+.mm-compass__name {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 4px);
+  max-width: 120px;
+  padding: 1px 4px;
+  background: var(--surface);
+  font: 600 10px var(--font);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.mm-compass__cov.is-placed:hover .mm-compass__name,
+.mm-compass__cov.is-placed:focus-visible .mm-compass__name {
+  opacity: 1;
+}
+.mm-compass__cov.is-lifting {
+  opacity: 0.25;
+}
+.mm-compass__cov.is-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 3000;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px var(--ink), 0 18px 36px rgba(23, 21, 31, 0.3);
+  transition: none;
+}
+.mm-compass__tray {
+  border-top: 1px solid var(--ink);
+  background: var(--surface-glass);
+  padding: 8px 16px 12px;
+  transition: background-color 0.15s ease;
+}
+.mm-compass__tray.is-target {
+  background: var(--saved-soft);
+}
+.mm-compass__trayhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.mm-compass__filter {
+  width: min(340px, 50%);
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font: 500 13px var(--font);
+  color: var(--ink);
+}
+.mm-compass__count {
+  margin-right: auto;
+  font: 500 11px var(--mono);
+  color: var(--muted);
+}
+.mm-compass__list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  scrollbar-width: thin;
+}
+.mm-compass__list .mm-compass__cov {
+  position: relative;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  transform: none;
+}
+.mm-compass__list .mm-compass__cov:hover {
+  transform: translateY(-3px);
+}
+.mm-stage.is-compass .mm-yearnav,
+.mm-stage.is-compass .mm-demo-tag {
+  display: none;
+}
+@media (max-width: 600px) {
+  .mm-compass__field {
+    margin: 58px 22px 8px;
+  }
+  .mm-compass__cov {
+    width: 52px;
+    height: 52px;
+  }
+}
+.mm-compass {
+  grid-template-columns: minmax(0, 1fr);
+}
+.mm-compass__tray {
+  min-width: 0;
+}
+.mm-stage.is-compass .mm-canvas,
+.mm-stage.is-compass .mm-zoom,
+.mm-stage.is-compass .mm-zoom__lines {
+  visibility: hidden;
+}
+.mm-compass__field {
+  margin: 104px 56px 40px;
+}
+.mm-compass__title {
+  top: -92px;
+}
+.mm-compass__label {
+  background: transparent;
+  width: 140px;
+}
+.mm-compass__label.is-top { transform: translate(-50%, -125%); }
+.mm-compass__label.is-bottom { transform: translate(-50%, 115%); }
+@media (max-width: 600px) {
+  .mm-compass__field {
+    margin: 104px 30px 40px;
+  }
+}

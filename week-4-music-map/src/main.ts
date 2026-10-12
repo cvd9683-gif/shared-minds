@@ -6,6 +6,7 @@
 import './style.css';
 import demoData from './data/demo-collection.json';
 import { coverUrl } from './covers';
+import { CompassView, type CompassItem } from './compass';
 import { TimelineCanvas, escapeHtml as h, type CanvasItem, type CanvasSection } from './canvas';
 import { LibraryWeb, type WebHub, type WebItem, type WebLink } from './web';
 import {
@@ -109,6 +110,9 @@ class MusicMapApp {
   private announcer = document.getElementById('announcer')!;
   private yearEl = document.getElementById('year-view')!;
   private canvas: TimelineCanvas;
+  private compass!: CompassView;
+  /** Personal view: the timeline, or a compass you arrange yourself. */
+  private layout: 'timeline' | 'compass' = localStorage.getItem('musicMap:layout') === 'compass' ? 'compass' : 'timeline';
   private web: LibraryWeb;
   private webKey = '';
   /** Web album id → its songs. */
@@ -295,6 +299,30 @@ class MusicMapApp {
       editable: true,
       items: this.groupItems(year, entries),
     }));
+  }
+
+  /** Every saved album once, for the compass tray. */
+  private compassItems(): CompassItem[] {
+    const byAlbum = new Map<string, CompassItem>();
+    for (const { entry, track } of this.graph.savedTracks(this.hidden)) {
+      const key = this.albumKey(track);
+      const year = `${new Date(entry.savedAt).getFullYear()}`;
+      const it = byAlbum.get(key);
+      if (it) {
+        if (!it.years.includes(year)) it.years.push(year);
+        continue;
+      }
+      byAlbum.set(key, {
+        key,
+        title: track.album?.name ?? track.title,
+        artist: track.artistCredit,
+        cover: coverUrl(track.cover, track.album?.name ?? track.title),
+        years: [year],
+        genres: this.genresOf(track),
+        trackId: track.id,
+      });
+    }
+    return [...byAlbum.values()].reverse();
   }
 
   /** Songs group by album; without album info, the same cover art means the same album. */
@@ -599,6 +627,18 @@ class MusicMapApp {
   // ---- UI wiring ----------------------------------------------------------------
 
   private bindUi(): void {
+    this.compass = new CompassView(document.getElementById('compass')!, (trackId) => {
+      this.view = 'history';
+      this.selectOrigin(trackId);
+    });
+    document.getElementById('layout-switch')!.addEventListener('click', (e) => {
+      const l = (e.target as HTMLElement).closest<HTMLElement>('[data-layout]')?.dataset.layout;
+      if (l !== 'timeline' && l !== 'compass') return;
+      this.layout = l;
+      localStorage.setItem('musicMap:layout', l);
+      if (this.picked) this.unpick();
+      this.render();
+    });
     document.querySelectorAll<HTMLButtonElement>('.mm-view').forEach((b) =>
       b.addEventListener('click', () => this.setView(b.dataset.view as ViewMode)),
     );
@@ -1456,14 +1496,21 @@ class MusicMapApp {
       if (history) this.refreshWeb();
       else this.refreshCanvas();
     }
-    this.canvas.setVisible(!selected && !history && !year);
+    const compass = !selected && !history && !year && this.layout === 'compass';
+    this.canvas.setVisible(!selected && !history && !year && !compass);
+    this.compass.setVisible(compass);
+    if (compass) this.compass.setItems(this.compassItems());
+    const switcher = document.getElementById('layout-switch')!;
+    switcher.hidden = selected || history || year;
+    switcher.querySelectorAll<HTMLButtonElement>('[data-layout]').forEach((b) => b.setAttribute('aria-checked', `${b.dataset.layout === this.layout}`));
+    this.stage.classList.toggle('is-compass', compass);
     this.web.setVisible(!selected && history);
     document.getElementById('webbar')!.hidden = !(history && !selected);
     if (selected || !history) this.closeAlbumPicker();
     this.renderYear();
     this.renderBlurb();
     (document.getElementById('stage-tools') as HTMLElement).hidden = !selected;
-    (document.getElementById('zoomctl') as HTMLElement).hidden = year;
+    (document.getElementById('zoomctl') as HTMLElement).hidden = year || compass;
     this.renderStageNote();
     this.renderPathbar();
     this.renderPanel();
