@@ -46,6 +46,18 @@
       </div>
 
       <div class="tools-right">
+        <div class="menu" id="menu-examples">
+          <button class="tool tool-quiet" data-menu-toggle aria-haspopup="true" aria-expanded="false">Examples</button>
+          <div class="menu-pop" role="menu">
+            <p class="menu-note">Guided examples that run the real tool on example takes. Your own takes are set aside and come back when you exit.</p>
+            <button class="menu-item" data-demo="retime">Retime a hesitation
+              <small>Edit one pause and one move by saying what you want.</small></button>
+            <button class="menu-item" data-demo="feelings">One movement, three feelings
+              <small>Make calm, nervous and confident versions, then compare.</small></button>
+            <button class="menu-item" data-demo="hands">Hands-free session
+              <small>A guide to recording with your voice and a pinch.</small></button>
+          </div>
+        </div>
         <div class="menu" id="menu-sound">
           <button class="tool tool-quiet" data-menu-toggle aria-haspopup="true" aria-expanded="false">Sound</button>
           <div class="menu-pop" role="menu">
@@ -78,20 +90,36 @@
 
       <div class="countdown" id="countdown" aria-live="assertive"></div>
 
-      <div class="first-take" id="first-take">
-        <p class="eyebrow">First take</p>
-        <ol>
-          <li id="ft-step1">Move your cursor over the frame</li>
-          <li>Press <kbd>R</kbd> · three-beat count-in, then <b id="ft-limit">5</b> s</li>
-          <li>Perform: rush, hesitate, drift · <kbd>R</kbd> or <kbd>Esc</kbd> stops</li>
-          <li>Replay, then try another take</li>
-        </ol>
-        <button class="x" id="first-take-close" aria-label="Hide instructions">&times;</button>
+      <div class="demo" id="demo" hidden>
+        <p class="eyebrow" id="demo-eyebrow">Example · runs the real tool</p>
+        <h3 id="demo-title">Retime a hesitation</h3>
+        <p class="demo-step" id="demo-step">Step 1 of 8</p>
+        <p class="demo-text" id="demo-text"></p>
+        <p class="demo-say" id="demo-say" hidden></p>
+        <ol class="demo-guide" id="demo-guide" hidden></ol>
+        <div class="demo-actions">
+          <button class="btn" id="demo-pause">Pause</button>
+          <button class="btn" id="demo-next">Next</button>
+          <button class="btn" id="demo-try" hidden>Try it with my hand</button>
+          <button class="btn btn-quiet" id="demo-exit">Exit example</button>
+        </div>
       </div>
 
-      <p class="stage-keys">
-        <kbd>R</kbd> record <kbd>Space</kbd> replay <kbd>Esc</kbd> stop / back to live <kbd>1–9</kbd> select take
-      </p>
+      <div class="assist" id="assist">
+        <div class="reply" id="reply" aria-live="polite">
+          <p class="reply-you" id="reply-you" hidden></p>
+          <p class="reply-text" id="reply-text">Press <kbd>R</kbd> or say “record” to perform. On the example take, try “make the pause longer”. New here? Open <button class="link" id="open-examples">Examples</button>.</p>
+          <dl class="reply-help" id="reply-help" hidden></dl>
+          <button class="link" id="reply-undo" hidden>Undo</button>
+        </div>
+        <form class="cmd" id="cmd" autocomplete="off">
+          <button type="button" class="mic" id="mic" title="Listen for voice commands (M)" aria-pressed="false">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></svg>
+          </button>
+          <input id="cmd-input" type="text" placeholder="Say or type: “longer pause”, “snappier entrance”, “make a calm version”…" aria-label="Command">
+          <kbd class="cmd-kbd">/</kbd>
+        </form>
+      </div>
     </main>
 
     <!-- ============ MAPPING PANEL ============ -->
@@ -118,6 +146,7 @@
                 <div class="cam-empty" id="cam-empty">Camera off</div>
               </div>
               <div class="cam-status" id="cam-status"><span class="status-dot"></span><span id="cam-status-text">Camera off</span></div>
+              <label class="switch"><input type="checkbox" id="grab"> <span><b>Pinch to grab.</b> The object follows only while your thumb and index finger touch. Recording starts on the pinch and stops when you let go.</span></label>
               <div class="cam-actions">
                 <button class="btn btn-primary" id="btn-cam-on">Enable camera</button>
                 <button class="btn" id="btn-cam-off" hidden>Turn camera off</button>
@@ -211,6 +240,18 @@
             <span>Takes</span><span class="tl-legend">speed over time</span>
           </div>
           <div class="tl-lane"><canvas id="ruler"></canvas></div>
+        </div>
+        <div class="tl-row tl-pieces" id="pieces-row" hidden>
+          <div class="tl-gutter piece-gutter">
+            <div class="piece-info"><span class="piece-name" id="piece-name">Pieces</span><span class="piece-dur" id="piece-dur"></span></div>
+            <div class="piece-ease" id="piece-ease" role="radiogroup" aria-label="Easing of the selected piece">
+              <button data-ease="-0.65" title="Starts slow, builds">In</button>
+              <button data-ease="0" title="As performed">As played</button>
+              <button data-ease="0.65" title="Starts fast, settles">Out</button>
+              <button id="piece-reset" title="Reset this piece">Reset</button>
+            </div>
+          </div>
+          <div class="tl-lane piece-lane" id="piece-lane"></div>
         </div>
         <div class="tl-tracks" id="tracks"></div>
         <div class="playhead" id="playhead"><span class="playhead-knob"></span></div>

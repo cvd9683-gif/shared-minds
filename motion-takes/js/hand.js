@@ -24,6 +24,8 @@ export class HandInput {
     this.everTracked = false;
     this.landmarks = null;     // last detected hand, mirrored for display
     this.pos = null;           // mapped to frame units
+    this.pinched = false;      // thumb tip touching index tip
+    this.pinchRatio = 1;
     this.listeners = new Set();
   }
 
@@ -76,15 +78,19 @@ export class HandInput {
         minHandPresenceConfidence: 0.5,
         minTrackingConfidence: 0.5,
       });
+      // some machines hang on the GPU path instead of failing, so give it a deadline
+      const within = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('timed out')), ms))]);
       try {
-        this.landmarker = await vision.HandLandmarker.createFromOptions(files, opts('GPU'));
-      } catch {
-        this.landmarker = await vision.HandLandmarker.createFromOptions(files, opts('CPU'));
+        this.landmarker = await within(vision.HandLandmarker.createFromOptions(files, opts('GPU')), 15000);
+      } catch (gpuErr) {
+        console.warn('GPU hand tracking unavailable, using CPU', gpuErr);
+        this.landmarker = await within(vision.HandLandmarker.createFromOptions(files, opts('CPU')), 30000);
       }
     } catch (err) {
       console.warn('Hand Landmarker failed to load', err);
       this.disable();
-      this.set('error', 'The hand-tracking model could not load. It needs network access to cdn.jsdelivr.net and storage.googleapis.com. The camera has been turned off; cursor input still works.');
+      const detail = err && err.message ? ` (${String(err.message).slice(0, 120)})` : '';
+      this.set('error', `The hand-tracking model could not load${detail}. It needs network access to cdn.jsdelivr.net and storage.googleapis.com. The camera has been turned off; cursor input still works.`);
       return;
     }
     if (!this.stream) return; // turned off while loading
@@ -114,13 +120,23 @@ export class HandInput {
     let res;
     try { res = this.landmarker.detectForVideo(v, now); } catch (err) { console.warn(err); return; }
     const hand = res && res.landmarks && res.landmarks[0];
-    if (!hand) { this.tracked = false; return; }
+    if (!hand) { this.tracked = false; this.pinched = false; return; }
     // Mirror x so moving your hand right moves the object right.
     this.landmarks = hand.map(p => ({ x: 1 - p.x, y: p.y }));
     const tip = this.landmarks[8];
     const r = this.region();
     const clamp = v => Math.max(-0.05, Math.min(1.05, v));
     this.pos = { x: clamp((tip.x - r.x) / r.w), y: clamp((tip.y - r.y) / r.h) };
+    // pinch: thumb tip (4) to index tip (8), relative to hand size (wrist 0 to middle knuckle 9).
+    // Two thresholds so it doesn't flicker at the edge.
+    const L = this.landmarks;
+    const size = Math.hypot(L[9].x - L[0].x, L[9].y - L[0].y) || 0.1;
+    this.pinchRatio = Math.hypot(L[4].x - L[8].x, L[4].y - L[8].y) / size;
+    if (this.pinched && this.pinchRatio > 0.5) this.pinched = false;
+    else if (!this.pinched && this.pinchRatio < 0.32) this.pinched = true;
+    // while grabbing, the point between thumb and index is steadier than the fingertip
+    const mx = (L[4].x + L[8].x) / 2, my = (L[4].y + L[8].y) / 2;
+    this.grabPos = { x: clamp((mx - r.x) / r.w), y: clamp((my - r.y) / r.h) };
     this.tracked = true;
     this.everTracked = true;
   }

@@ -6,17 +6,22 @@
 //   live       input → smoothing → object, nothing kept
 //   countdown  three beats, then recording begins
 //   recording  raw input is sampled with elapsed time
+//   armed      (pinch to grab) waiting for the pinch that starts a take
 //   review     a take replays (or is scrubbed); ghosts compare
 // ------------------------------------------------
 
 import {
-  analyze, compactRaw, createFilter, derived, effectiveSmoothing, effectiveSpeed,
-  exampleTakes, fmtTime, makeTake, playDuration, sampleAt, speedAt, stepFilter, tauFor, validTake,
+  analyze, compactRaw, createFilter, effectiveSmoothing, effectiveSpeed,
+  exampleTakes, fmtTime, makeTake, newId, sampleAt, speedAt, stepFilter, tauFor, validTake,
 } from './takes.js';
+import { editOf, isEdited, pieceLabel, pieceName, playDuration, rendered, resetEdits, setEdit, timingOf } from './edit.js';
+import { HELP, interpret } from './commands.js';
 import { Stage } from './stage.js';
 import { Timeline } from './timeline.js';
 import { HandInput } from './hand.js';
 import { Sound } from './sound.js';
+import { Voice } from './voice.js';
+import { Demo } from './demo.js';
 
 const $ = id => document.getElementById(id);
 const STORE_KEY = 'motion-takes:v1';
@@ -32,7 +37,7 @@ const defaults = () => ({
   selectedId: null,
   compare: [],
   counter: 0,
-  settings: { smoothing: 0.35, limit: 5000, shape: 'circle', text: 'hello', cues: true, speedTone: false, loop: true, firstTakeHidden: false },
+  settings: { smoothing: 0.35, limit: 5000, shape: 'circle', text: 'hello', cues: true, speedTone: false, loop: true, grab: false },
 });
 
 function load() {
@@ -48,7 +53,9 @@ function load() {
 
 let saveTimer = 0;
 let storageOk = true;
+let sandbox = null; // while a guided example runs, the user's project is set aside here
 function save() {
+  if (sandbox) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     project.compare = [...compareIds];
@@ -84,6 +91,8 @@ const st = {
   trail: [],
   respBuf: [],
   rec: null,
+  piece: null,          // selected piece of the selected take
+  releasedAt: 0,
   last: performance.now(),
 };
 const live = createFilter(0.5, 0.5);
@@ -96,11 +105,18 @@ const sound = new Sound();
 sound.cues = S.cues; sound.speedTone = S.speedTone;
 const hand = new HandInput($('cam-video'));
 const timeline = new Timeline(
-  { body: $('tl-body'), tracks: $('tracks'), ruler: $('ruler'), playhead: $('playhead') },
+  { body: $('tl-body'), tracks: $('tracks'), ruler: $('ruler'), playhead: $('playhead'), piecesRow: $('pieces-row'), pieceLane: $('piece-lane') },
   {
     onSelect: id => selectTake(id),
     onCompare: id => { compareIds.has(id) ? compareIds.delete(id) : compareIds.add(id); save(); timeline.select(project.selectedId, compareIds); ui(); },
-    onRename: (id, name) => { const t = byId(id); if (t) { t.name = name; save(); refresh(); } },
+    onRename: (id, name) => { const t = byId(id); if (t) { pushHistory(); t.name = name; save(); refresh(); } },
+    onPieceSelect: i => selectPiece(i, true),
+    onPieceDrag: (i, scale, phase) => {
+      const t = selected(); if (!t) return;
+      if (phase === 'start') { pushHistory(); selectPiece(i, false); return; }
+      if (phase === 'move') { setEdit(t, i, { scale }); timeline.pieces(t, st.piece); timeline.redraw(); pieceGutter(); return; }
+      save(); refresh();
+    },
     onDelete: id => deleteTake(id),
     onScrub: (ms, id, first) => scrub(ms, id, first),
   },
@@ -113,20 +129,21 @@ new ResizeObserver(() => stage.resize()).observe($('stage'));
 
 function toggleRecord() {
   if (st.mode === 'recording') return stopRecording();
-  if (st.mode === 'countdown') return toLive();
+  if (st.mode === 'countdown' || st.mode === 'armed') return toLive();
   if (st.input === 'hand' && hand.state !== 'ready') {
     toast('Turn the camera on in the Mapping panel first, or switch input to Cursor.');
     return;
   }
   sound.ensure();
   st.playing = false;
+  if (st.input === 'hand' && S.grab) { st.mode = 'armed'; ui(); return; }
   st.mode = 'countdown';
   st.countStart = performance.now();
   st.lastBeat = -1;
   ui();
 }
 
-function beginRecording(now) {
+function beginRecording(now, grab = false) {
   st.mode = 'recording';
   const f = createFilter(live.x, live.y, live.lost, Math.max(0, live.recoverUntil - now));
   st.rec = {
@@ -136,15 +153,21 @@ function beginRecording(now) {
     smoothing: S.smoothing,
     input: st.input,
     raw: [],
+    grab,
     path: { t: [], x: [], y: [], tracked: [], n: 0, holds: [], lostSpans: [], speed: [] },
   };
   sound.recStart();
   ui();
 }
 
-function stopRecording() {
+// trimMs drops the end of the take: the moment spent saying "stop" or opening the hand
+function stopRecording(trimMs = 0) {
   const rec = st.rec;
   st.rec = null;
+  if (trimMs > 0 && rec.raw.length) {
+    const end = rec.raw[rec.raw.length - 1][0] - trimMs;
+    while (rec.raw.length > 2 && rec.raw[rec.raw.length - 1][0] > end) rec.raw.pop();
+  }
   sound.recStop();
   sound.silence();
   // the live filter continues from where the performance ended
@@ -159,9 +182,10 @@ function stopRecording() {
     smoothing: rec.smoothing,
     start: rec.startState,
   });
+  pushHistory();
   project.takes.push(take);
   project.selectedId = take.id;
-  S.firstTakeHidden = true;
+  st.piece = null;
   save();
   st.mode = 'review';
   st.playhead = 0;
@@ -207,7 +231,7 @@ function stop() {
 
 function scrub(ms, id, first) {
   if (st.mode === 'recording' || st.mode === 'countdown') return;
-  if (id && id !== project.selectedId) { project.selectedId = id; compareIds.delete(id); save(); timeline.select(id, compareIds); }
+  if (id && id !== project.selectedId) { project.selectedId = id; st.piece = null; compareIds.delete(id); save(); timeline.select(id, compareIds); }
   if (!selected()) return;
   st.mode = 'review';
   st.playing = false;
@@ -218,6 +242,7 @@ function scrub(ms, id, first) {
 
 function selectTake(id) {
   if (st.mode === 'recording' || st.mode === 'countdown') return;
+  if (id !== project.selectedId) st.piece = null;
   project.selectedId = id;
   compareIds.delete(id);
   save();
@@ -227,30 +252,98 @@ function selectTake(id) {
   ui();
 }
 
-let undo = null;
 function deleteTake(id) {
   const i = project.takes.findIndex(t => t.id === id);
   if (i < 0) return;
+  pushHistory();
   const [take] = project.takes.splice(i, 1);
-  const wasCompared = compareIds.delete(id);
-  const wasSelected = project.selectedId === id;
-  if (wasSelected) {
+  compareIds.delete(id);
+  if (project.selectedId === id) {
     const next = project.takes[Math.min(i, project.takes.length - 1)];
     project.selectedId = next ? next.id : null;
+    st.piece = null;
     if (next) compareIds.delete(next.id);
     if (!next) toLive();
   }
-  undo = { take, i, wasSelected, wasCompared };
   save();
   refresh();
-  toast(`Deleted “${take.name}”.`, 'Undo', () => {
-    if (!undo) return;
-    project.takes.splice(Math.min(undo.i, project.takes.length), 0, undo.take);
-    if (undo.wasSelected) project.selectedId = undo.take.id;
-    if (undo.wasCompared) compareIds.add(undo.take.id);
-    undo = null;
-    save(); refresh();
+  toast(`Deleted “${take.name}”.`, 'Undo', () => undoEdit());
+}
+
+// ---------- pieces ----------
+
+function selectPiece(i, seek) {
+  const t = selected();
+  if (!t) return;
+  st.piece = i;
+  if (seek) {
+    const seg = timingOf(t)[i];
+    if (seg) { st.mode = 'review'; st.playhead = seg.d0; st.playing = true; st.endHold = 0; }
+  }
+  ui();
+}
+
+// rings for a take's holds on the stage; only pauses in the middle get a label
+function holdMarks(take, labels) {
+  const d = rendered(take);
+  const timing = timingOf(take);
+  return timing.filter(p => p.kind === 'hold' && p.d1 - p.d0 > 40).map((p, j) => {
+    const at = sampleAt(d, (p.d0 + p.d1) / 2);
+    const inner = p.i > 0 && p.i < timing.length - 1;
+    return { t0: p.d0, t1: p.d1, x: at.x, y: at.y, label: labels && inner ? `pause ${((p.d1 - p.d0) / 1000).toFixed(2)}s` : '' };
   });
+}
+
+function pieceGutter() {
+  const t = selected();
+  const seg = t && st.piece != null ? timingOf(t)[st.piece] : null;
+  $('piece-name').textContent = seg ? pieceName(t, seg.i) : 'Pieces';
+  $('piece-dur').textContent = seg ? `${((seg.d1 - seg.d0) / 1000).toFixed(2)} s${Math.abs(seg.scale - 1) > 0.005 ? ` · ${seg.scale.toFixed(2)}×` : ''}` : (t ? `${timingOf(t).length}, click one` : '');
+  document.querySelectorAll('#piece-ease [data-ease]').forEach(b => {
+    b.disabled = !seg;
+    b.classList.toggle('is-on', !!seg && Math.abs(seg.ease - +b.dataset.ease) < 0.01);
+  });
+  $('piece-reset').disabled = !seg || (Math.abs(seg.scale - 1) < 0.005 && Math.abs(seg.ease) < 0.005);
+}
+
+// ---------- history: every edit can be undone ----------
+
+const past = [], future = [];
+function snapshot() {
+  return {
+    takes: project.takes.map(t => ({ ...t, adjust: { ...t.adjust }, edits: t.edits ? t.edits.map(e => ({ ...e })) : null })),
+    selectedId: project.selectedId,
+    compare: [...compareIds],
+    counter: project.counter,
+  };
+}
+function restore(snap) {
+  project.takes = snap.takes.map(t => ({ ...t, adjust: { ...t.adjust }, edits: t.edits ? t.edits.map(e => ({ ...e })) : null }));
+  project.selectedId = snap.selectedId;
+  project.counter = snap.counter;
+  compareIds.clear();
+  snap.compare.forEach(id => compareIds.add(id));
+  if (!selected()) { project.selectedId = project.takes[0] ? project.takes[0].id : null; st.piece = null; }
+  if (st.piece != null && (!selected() || st.piece >= timingOf(selected()).length)) st.piece = null;
+}
+function pushHistory() {
+  past.push(snapshot());
+  if (past.length > 80) past.shift();
+  future.length = 0;
+}
+function undoEdit() {
+  if (!past.length) return false;
+  future.push(snapshot());
+  restore(past.pop());
+  save(); refresh();
+  return true;
+}
+function redoEdit() {
+  if (!future.length) return false;
+  past.push(snapshot());
+  restore(future.pop());
+  save(); refresh();
+  return true;
 }
 
 // ---------- input ----------
@@ -264,15 +357,18 @@ stageEl.addEventListener('pointermove', e => {
   st.pointer.moved = true;
 });
 stageEl.addEventListener('pointerdown', e => {
-  if (e.target.closest('.first-take')) return;
+  if (e.target.closest('.assist, .demo')) return;
   stageEl.dispatchEvent(new PointerEvent('pointermove', e));
 });
 
 function readInput() {
   if (st.input === 'cursor') return { x: st.pointer.x, y: st.pointer.y, tracked: true };
-  if (hand.state === 'ready' && hand.tracked && hand.pos) {
-    st.rawLast = { ...hand.pos };
-    return { ...hand.pos, tracked: true };
+  const ready = hand.state === 'ready' && hand.tracked && hand.pos;
+  // with pinch to grab on, only a pinched hand drives the object
+  if (ready && (!S.grab || hand.pinched)) {
+    const p = S.grab ? hand.grabPos : hand.pos;
+    st.rawLast = { ...p };
+    return { ...p, tracked: true };
   }
   return { ...st.rawLast, tracked: false };
 }
@@ -316,6 +412,7 @@ let lastCamStatus = '';
 function camStatus(force) {
   let cls = '', text = 'Camera off';
   if (hand.state === 'starting') { cls = 'is-loading'; text = 'Waiting for camera permission…'; }
+  else if (hand.state === 'ready' && hand.tracked && S.grab) { cls = 'is-tracking'; text = hand.pinched ? 'Pinched · grabbing the object' : 'Tracking · pinch to grab'; }
   else if (hand.state === 'loading') { cls = 'is-loading'; text = 'Loading hand model…'; }
   else if (hand.state === 'ready') {
     if (hand.tracked) { cls = 'is-tracking'; text = 'Tracking index fingertip'; }
@@ -354,6 +451,17 @@ function frame(now) {
     if (beat >= BEATS) { countdownEl.textContent = ''; beginRecording(now); }
   }
 
+  if (st.mode === 'armed' && hand.state === 'ready' && hand.tracked && hand.pinched) {
+    // the pinch is the start: snap the object to the hand so the take begins where the grab does
+    live.x = hand.grabPos.x; live.y = hand.grabPos.y; live.lost = false; live.recoverUntil = -Infinity;
+    beginRecording(now, true);
+  }
+  if (st.mode === 'recording' && st.rec.grab) {
+    if (hand.pinched && hand.tracked) st.releasedAt = 0;
+    else if (!st.releasedAt) st.releasedAt = now;
+    else if (now - st.releasedAt > 220) { stopRecording(now - st.releasedAt); return requestAnimationFrame(frame); }
+  }
+
   if (st.mode === 'recording') {
     const rec = st.rec;
     const t = now - rec.start;
@@ -363,12 +471,13 @@ function frame(now) {
     const p = rec.path;
     p.t.push(tt); p.x.push(rec.filter.x); p.y.push(rec.filter.y); p.tracked.push(raw.tracked ? 1 : 0); p.n++;
     objX = rec.filter.x; objY = rec.filter.y; lost = rec.filter.lost && hand.everTracked;
-    if (st.input === 'cursor') lost = false;
+    if (st.input === 'cursor' || rec.grab) lost = false;
     if (t >= S.limit) { stopRecording(); return requestAnimationFrame(frame); }
   } else {
     stepFilter(live, raw.x, raw.y, raw.tracked, now, S.smoothing);
     objX = live.x; objY = live.y;
     lost = st.input === 'hand' && hand.state === 'ready' && live.lost && hand.everTracked;
+    if (lost && S.grab && hand.tracked) lost = 'released';
   }
 
   // trail & response buffers (live output)
@@ -393,11 +502,10 @@ function frame(now) {
     const p = selected();
     if (!p) { toLive(); }
     else {
-      const ghosts = [...compareIds].map(byId).filter(Boolean).map(t => ({
-        d: derived(t), t: st.playhead * effectiveSpeed(t), label: t.name,
-      }));
-      review = { primary: { d: derived(p), t: st.playhead * effectiveSpeed(p) }, ghosts };
-      if (st.playing) sound.tone(speedAt(review.primary.d, review.primary.t) * effectiveSpeed(p));
+      const ghosts = [...compareIds].map(byId).filter(Boolean).map(t => ({ d: rendered(t), t: st.playhead, label: `${project.takes.indexOf(t) + 1} · ${t.name.length > 26 ? t.name.slice(0, 25) + '…' : t.name}`, holds: holdMarks(t, false) }));
+      const seg = st.piece != null ? timingOf(p)[st.piece] : null;
+      review = { primary: { d: rendered(p), t: st.playhead, holds: holdMarks(p, true), piece: seg ? { d0: seg.d0, d1: seg.d1, label: `${pieceName(p, seg.i)} · ${((seg.d1 - seg.d0) / 1000).toFixed(2)} s` } : null }, ghosts };
+      if (st.playing) sound.tone(speedAt(review.primary.d, review.primary.t));
     }
   }
   if (st.mode === 'recording' && st.trail.length > 2) {
@@ -414,7 +522,8 @@ function frame(now) {
     live: { x: objX, y: objY },
     lost,
     trail: st.trail,
-    cross: showCross ? hand.pos : null,
+    grab: st.input === 'hand' && S.grab && hand.pinched && hand.tracked && st.mode !== 'review',
+    cross: showCross ? (S.grab ? hand.grabPos : hand.pos) : null,
     rec: st.rec ? st.rec.path : null,
     recProgress: st.rec ? (now - st.rec.start) / S.limit : 0,
     review,
@@ -517,6 +626,9 @@ function ui() {
     sub.textContent = st.input === 'hand' && hand.state !== 'ready'
       ? 'Turn the camera on in the Mapping panel, or switch input to Cursor.'
       : 'Rehearse freely; nothing is kept. Press R to record a take.';
+  } else if (m === 'armed') {
+    $('mode-text').textContent = 'Ready';
+    sub.textContent = 'Pinch to grab and start recording. Let go to stop. Esc cancels.';
   } else if (m === 'countdown') {
     $('mode-text').textContent = 'Get ready';
     sub.textContent = 'Recording starts after the count-in. Esc cancels.';
@@ -527,9 +639,10 @@ function ui() {
     sub.textContent = `${take.name}${ghostN ? ` · compared with ${ghostN} ghost${ghostN > 1 ? 's' : ''}` : ''}. Esc returns to live.`;
   }
 
-  const recording = m === 'recording' || m === 'countdown';
+  const recording = m === 'recording' || m === 'countdown' || m === 'armed';
+  chip.classList.toggle('is-count', m === 'countdown' || m === 'armed');
   $('btn-record').classList.toggle('is-live', recording);
-  $('btn-record').querySelector('.tool-text').textContent = m === 'recording' ? 'Recording' : m === 'countdown' ? 'Cancel' : 'Record';
+  $('btn-record').querySelector('.tool-text').textContent = m === 'recording' ? 'Recording' : m === 'countdown' || m === 'armed' ? 'Cancel' : 'Record';
   $('btn-stop').disabled = m === 'live';
   const playing = m === 'review' && st.playing;
   for (const id of ['btn-replay', 'tl-play']) {
@@ -550,11 +663,10 @@ function ui() {
     : 'How live input moves the object. The timeline below holds what you recorded.';
   note.classList.toggle('is-note', m === 'review');
 
-  const userTakes = project.takes.some(t => !t.example);
-  const ft = $('first-take');
-  ft.hidden = S.firstTakeHidden || userTakes;
-  ft.classList.toggle('is-muted', recording);
-  $('ft-step1').textContent = st.input === 'hand' ? 'Raise one hand; your index fingertip leads' : 'Move your cursor over the frame';
+  $('assist').classList.toggle('is-muted', m === 'recording');
+  $('grab').checked = S.grab;
+  timeline.pieces(m === 'recording' ? null : take, st.piece);
+  pieceGutter();
 
   $('tl-total').textContent = fmtTime(m === 'review' ? reviewDuration() : S.limit);
   $('tl-loop').classList.toggle('is-on', S.loop);
@@ -573,8 +685,8 @@ function inspector() {
   const s = effectiveSmoothing(take);
   $('insp-smooth').value = Math.round(s * 100);
   $('insp-smooth-val').textContent = `${Math.round(s * 100)}%`;
-  const changed = effectiveSpeed(take) !== 1 || Math.abs(s - take.smoothing) > 0.001;
-  $('insp-orig').textContent = changed ? `adjusted · recorded at ${Math.round(take.smoothing * 100)}%, 1×` : `as performed`;
+  const changed = isEdited(take);
+  $('insp-orig').textContent = changed ? 'edited · performance kept' : 'as performed';
   $('insp-orig').classList.toggle('is-changed', changed);
   $('insp-reset').disabled = !changed;
   const recording = st.mode === 'recording' || st.mode === 'countdown';
@@ -619,7 +731,6 @@ $('shape-text').addEventListener('input', e => { S.text = e.target.value; save()
 
 $('limit').addEventListener('change', e => {
   S.limit = +e.target.value;
-  $('ft-limit').textContent = S.limit / 1000;
   timeline.setLimit(S.limit);
   save(); refresh();
 });
@@ -627,11 +738,14 @@ $('limit').addEventListener('change', e => {
 // take adjustments: stored beside the take, original samples untouched
 $('insp-speed').addEventListener('change', e => {
   const t = selected(); if (!t) return;
+  pushHistory();
   const before = effectiveSpeed(t);
   t.adjust = { ...t.adjust, speed: +e.target.value };
   st.playhead = st.playhead * before / t.adjust.speed; // keep the same moment of the take
   save(); refresh();
 });
+$('insp-smooth').addEventListener('pointerdown', () => pushHistory());
+$('insp-smooth').addEventListener('keydown', () => pushHistory());
 $('insp-smooth').addEventListener('input', e => {
   const t = selected(); if (!t) return;
   t.adjust = { ...t.adjust, smoothing: e.target.value / 100 };
@@ -640,13 +754,21 @@ $('insp-smooth').addEventListener('input', e => {
 $('insp-smooth').addEventListener('change', () => refresh());
 $('insp-reset').addEventListener('click', () => {
   const t = selected(); if (!t) return;
-  const before = effectiveSpeed(t);
-  t.adjust = { speed: 1, smoothing: t.smoothing };
-  st.playhead = st.playhead * before;
+  pushHistory();
+  resetEdits(t);
+  st.playhead = Math.min(st.playhead, playDuration(t));
   save(); refresh();
 });
 
-$('first-take-close').addEventListener('click', () => { S.firstTakeHidden = true; save(); ui(); });
+document.querySelectorAll('#piece-ease [data-ease]').forEach(b => b.addEventListener('click', () => {
+  const t = selected(); if (!t || st.piece == null) return;
+  pushHistory(); setEdit(t, st.piece, { ease: +b.dataset.ease }); save(); refresh();
+}));
+$('piece-reset').addEventListener('click', () => {
+  const t = selected(); if (!t || st.piece == null) return;
+  pushHistory(); setEdit(t, st.piece, { scale: 1, ease: 0 }); save(); refresh();
+});
+$('grab').addEventListener('change', e => { S.grab = e.target.checked; save(); ui(); });
 
 $('opt-cues').addEventListener('change', e => { S.cues = sound.cues = e.target.checked; save(); });
 $('opt-speedtone').addEventListener('change', e => { S.speedTone = sound.speedTone = e.target.checked; if (!e.target.checked) sound.silence(); else sound.ensure(); save(); });
@@ -709,6 +831,7 @@ $('file-open').addEventListener('change', async e => {
   }
 });
 function openProject(data, takes) {
+    pushHistory();
     toLive();
     project.takes = takes;
     project.counter = Math.max(data.counter || 0, takes.length);
@@ -719,12 +842,14 @@ function openProject(data, takes) {
     toast(`Opened ${takes.length} take${takes.length > 1 ? 's' : ''}.`);
 }
 $('act-examples').addEventListener('click', () => {
+  pushHistory();
   project.takes.push(...exampleTakes());
   save(); refresh();
 });
 $('act-clear').addEventListener('click', () => {
   if (!project.takes.length) return;
-  toast(`Delete all ${project.takes.length} takes? This can’t be undone.`, 'Delete all', () => {
+  toast(`Delete all ${project.takes.length} takes?`, 'Delete all', () => {
+    pushHistory();
     toLive();
     project.takes = [];
     project.selectedId = null;
@@ -736,8 +861,16 @@ $('act-clear').addEventListener('click', () => {
 // keyboard: the performer's hand stays in the air
 const typing = el => el && (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && el.type !== 'range' && el.type !== 'checkbox') || el.isContentEditable);
 document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && !typing(e.target)) {
+    e.preventDefault();
+    const ok = e.shiftKey ? redoEdit() : undoEdit();
+    say(null, { reply: ok ? (e.shiftKey ? 'Redone.' : 'Undone.') : `Nothing to ${e.shiftKey ? 'redo' : 'undo'}.` });
+    return;
+  }
   if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
   const k = e.key;
+  if (k === '/') { e.preventDefault(); $('cmd-input').focus(); return; }
+  if (k === 'm' || k === 'M') { voice.toggle(); return; }
   if (k === 'r' || k === 'R') { if (!e.repeat) toggleRecord(); e.preventDefault(); }
   else if (k === ' ') { if (!e.repeat) togglePlay(); e.preventDefault(); }
   else if (k === 'Escape') { stop(); }
@@ -762,15 +895,195 @@ function toast(text, action, fn) {
   btn.onclick = () => { el.hidden = true; fn && fn(); };
   el.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.hidden = true; if (action) undo = null; }, action ? 6000 : 3800);
+  toastTimer = setTimeout(() => { el.hidden = true; }, action ? 6000 : 3800);
 }
 
 window.addEventListener('beforeunload', () => {
   clearTimeout(saveTimer);
+  if (sandbox) { restore(sandbox.snap); sandbox = null; }
   project.compare = [...compareIds];
   try { localStorage.setItem(STORE_KEY, JSON.stringify(project)); } catch { /* not available */ }
   hand.disable();
 });
+
+// ---------- commands: say it or type it ----------
+
+let claudeFn, claudeOff = false;
+async function getClaude() {
+  if (claudeOff || !(window.claude && window.claude.use)) return null;
+  if (claudeFn === undefined) claudeFn = await window.claude.use('sample').catch(() => null);
+  return claudeFn;
+}
+
+const api = {
+  takes: () => project.takes,
+  selected,
+  input: () => st.input,
+  grabGate: () => S.grab,
+  selectedPiece: () => st.piece,
+  selectPiece: i => { st.piece = i; ui(); },
+  record: () => { if (!['recording', 'countdown', 'armed'].includes(st.mode)) toggleRecord(); },
+  stop,
+  play: () => { if (!(st.mode === 'review' && st.playing)) togglePlay(); },
+  pause: () => { if (st.mode === 'review' && st.playing) togglePlay(); },
+  live: toLive,
+  setLoop: v => { S.loop = v; save(); ui(); },
+  select: t => selectTake(t.id),
+  compare: list => {
+    compareIds.clear();
+    list.forEach(t => { if (t && t.id !== project.selectedId) compareIds.add(t.id); });
+    save();
+    if (st.mode !== 'review' && selected()) { st.mode = 'review'; st.playhead = 0; st.playing = true; }
+    timeline.select(project.selectedId, compareIds);
+    ui();
+  },
+  comparedWithSelected: () => [selected(), ...[...compareIds].map(byId)].filter(Boolean),
+  undo: undoEdit,
+  redo: redoEdit,
+  edit: (label, fn) => { pushHistory(); const r = fn(); save(); refresh(); return r; },
+  duplicate: (src, name) => {
+    const c = { ...src, id: newId(), name, createdAt: new Date().toISOString(), adjust: { ...src.adjust }, edits: src.edits ? src.edits.map(e => ({ ...e })) : null };
+    project.takes.push(c);
+    return c;
+  },
+  rename: (t, name) => { t.name = name; },
+  remove: t => deleteTake(t.id),
+  duration: t => playDuration(t),
+  claude: getClaude,
+  disableClaude: () => { claudeOff = true; },
+  thinking: on => {
+    $('reply').classList.toggle('is-thinking', on);
+    if (on) { $('reply-text').textContent = 'Thinking…'; $('reply-help').hidden = true; $('reply-undo').hidden = true; }
+  },
+};
+
+let replyTimer = 0;
+function say(you, res) {
+  const r = $('reply');
+  r.classList.remove('is-faded');
+  clearTimeout(replyTimer);
+  // replies step out of the way after a while, so the frame stays clear
+  replyTimer = setTimeout(() => r.classList.add('is-faded'), res.help ? 25000 : 9000);
+  $('reply-you').hidden = !you;
+  if (you) $('reply-you').textContent = you;
+  $('reply-text').textContent = res.reply;
+  r.classList.toggle('is-claude', res.by === 'claude');
+  r.classList.toggle('is-edit', res.kind === 'edit');
+  const help = $('reply-help');
+  help.hidden = !res.help;
+  if (res.help) {
+    help.textContent = '';
+    for (const [a, b] of HELP) {
+      const dt = document.createElement('dt'); dt.textContent = a;
+      const dd = document.createElement('dd'); dd.textContent = b;
+      help.append(dt, dd);
+    }
+  }
+  $('reply-undo').hidden = res.kind !== 'edit';
+}
+
+async function run(text, source) {
+  if (!text || !text.trim()) return;
+  let res;
+  try { res = await interpret(text, api); }
+  catch (err) { console.error(err); res = { kind: 'unknown', reply: 'Something went wrong with that command.' }; }
+  say(text, res || { kind: 'unknown', reply: `I don’t know “${text}” yet. Say “help” to see what I understand.` });
+}
+
+const cmdInput = $('cmd-input');
+$('cmd').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = cmdInput.value;
+  cmdInput.value = '';
+  run(v, 'typed');
+});
+cmdInput.addEventListener('keydown', e => { if (e.key === 'Escape') cmdInput.blur(); });
+$('reply-undo').addEventListener('click', () => say(null, { reply: undoEdit() ? 'Undone.' : 'Nothing to undo.' }));
+$('open-examples').addEventListener('click', e => {
+  e.stopPropagation();
+  const m = $('menu-examples');
+  m.classList.add('is-open');
+  m.querySelector('[data-menu-toggle]').setAttribute('aria-expanded', 'true');
+});
+
+// voice: final phrases become commands; "stop" is caught early while recording
+let voiceStopAt = 0;
+const voice = new Voice({
+  onFinal: text => {
+    cmdInput.classList.remove('is-interim');
+    cmdInput.value = '';
+    if (performance.now() - voiceStopAt < 3000 && /\b(stop|cut|done)\b/i.test(text)) return;
+    run(text, 'voice');
+  },
+  onInterim: text => {
+    if (st.mode === 'recording' && /\b(stop|cut|done)\b/i.test(text)) {
+      voiceStopAt = performance.now();
+      stopRecording(450);
+      say(text, { kind: 'action', reply: 'Stopped. The moment you spent saying “stop” was trimmed off.' });
+      return;
+    }
+    cmdInput.value = text;
+    cmdInput.classList.add('is-interim');
+  },
+  onState: v => {
+    $('mic').classList.toggle('is-on', v.on);
+    $('mic').setAttribute('aria-pressed', v.on);
+    if (v.error) say(null, { kind: 'info', reply: v.error });
+    else if (v.on) say(null, { kind: 'info', reply: 'Listening. Say “record”, “replay”, “longer pause”, or “help”.' });
+    else cmdInput.classList.remove('is-interim');
+  },
+});
+$('mic').addEventListener('click', () => voice.toggle());
+
+// ---------- guided examples ----------
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const demo = new Demo(
+  { card: $('demo'), title: $('demo-title'), step: $('demo-step'), text: $('demo-text'), say: $('demo-say'), guide: $('demo-guide'), pause: $('demo-pause'), next: $('demo-next'), tryIt: $('demo-try'), exit: $('demo-exit') },
+  {
+    enterSandbox: key => {
+      if (sandbox) return;
+      sandbox = { snap: snapshot(), past: past.splice(0), future: future.splice(0) };
+      toLive();
+      const ex = exampleTakes();
+      project.takes = key === 'feelings' ? [ex[0]] : ex;
+      project.selectedId = project.takes[0].id;
+      compareIds.clear();
+      st.piece = null;
+      refresh();
+    },
+    leaveSandbox: () => {
+      if (!sandbox) return;
+      const sb = sandbox;
+      sandbox = null;
+      toLive();
+      restore(sb.snap);
+      past.length = 0; past.push(...sb.past);
+      future.length = 0; future.push(...sb.future);
+      st.piece = null;
+      refresh();
+      say(null, { kind: 'info', reply: 'Example closed. Your own takes are back.' });
+    },
+    selectIndex: i => { const t = project.takes[i]; if (t) selectTake(t.id); },
+    compareIndexes: list => api.compare(list.map(i => project.takes[i])),
+    play: () => { st.mode = 'review'; st.playhead = 0; st.playing = true; st.endHold = 0; ui(); },
+    flashPieces: () => { const r = $('pieces-row'); r.classList.remove('flash'); void r.offsetWidth; r.classList.add('flash'); },
+    typeAndRun: async (text, cancelled) => {
+      cmdInput.value = '';
+      for (const ch of text) { if (cancelled()) return; cmdInput.value += ch; await sleep(32); }
+      await sleep(300);
+      if (cancelled()) return;
+      cmdInput.value = '';
+      await run(text, 'demo');
+    },
+    tryHands: () => {
+      setInput('hand');
+      S.grab = true; save(); ui();
+      say(null, { kind: 'info', reply: 'Hand input is on, with Pinch to grab. Click Enable camera in the Mapping panel. The camera only works when Motion Takes runs on your own computer.' });
+    },
+  },
+);
+document.querySelectorAll('[data-demo]').forEach(b => b.addEventListener('click', () => demo.start(b.dataset.demo)));
 
 // ---------- start ----------
 
@@ -778,7 +1091,6 @@ setSmoothing(S.smoothing);
 setShape(S.shape);
 $('shape-text').value = S.text;
 $('limit').value = String(S.limit);
-$('ft-limit').textContent = S.limit / 1000;
 $('opt-cues').checked = S.cues;
 $('opt-speedtone').checked = S.speedTone;
 setInput('cursor');

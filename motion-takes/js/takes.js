@@ -48,10 +48,6 @@ export function effectiveSmoothing(take) {
 export function effectiveSpeed(take) {
   return take.adjust && take.adjust.speed ? take.adjust.speed : 1;
 }
-// Duration as it plays, after the speed adjustment.
-export function playDuration(take) {
-  return take.duration / effectiveSpeed(take);
-}
 
 export function derived(take) {
   const s = effectiveSmoothing(take);
@@ -218,7 +214,7 @@ export function exampleTakes() {
     const k = easeInOut(Math.min(1, t / 3900));
     return { x: 0.08 + 0.67 * k, y: 0.62 - 0.15 * Math.sin(Math.PI * k) };
   }, 11);
-  const a = makeTake({ name: 'Example · quick entrance, hesitation', raw: quick, input: 'example', smoothing: 0.25, start: { x: -0.04, y: 0.62, lost: false, recoverLeft: 0 }, example: true });
+  const a = makeTake({ name: 'Example · rush, then hesitate', raw: quick, input: 'example', smoothing: 0.25, start: { x: -0.04, y: 0.62, lost: false, recoverLeft: 0 }, example: true });
   const b = makeTake({ name: 'Example · calm arc', raw: calm, input: 'example', smoothing: 0.25, start: { x: 0.08, y: 0.62, lost: false, recoverLeft: 0 }, example: true });
   for (const t of [a, b]) { t.raw = compactRaw(t.raw); t.duration = t.raw[t.raw.length - 1][0]; }
   return [a, b];

@@ -5,7 +5,8 @@
 // as a tall early peak and a hesitation as a flat gap.
 // ------------------------------------------------
 
-import { derived, effectiveSpeed, fmtTime, playDuration } from './takes.js';
+import { effectiveSpeed, fmtTime } from './takes.js';
+import { editOf, pieceLabel, pieceName, playDuration, rendered, timingOf } from './edit.js';
 
 const COMPARE_SVG = '<svg viewBox="0 0 18 18" aria-hidden="true"><circle class="c-a" cx="9" cy="9" r="5.5"/></svg>';
 
@@ -70,7 +71,7 @@ export class Timeline {
     const takes = project.takes;
     const longest = takes.reduce((m, t) => Math.max(m, playDuration(t)), 0);
     this.scale = Math.ceil(Math.max(this.limit, longest) / 500) * 500;
-    this.vmax = Math.max(0.8, ...takes.map(t => derived(t).maxSpeed));
+    this.vmax = Math.max(0.8, ...takes.map(t => rendered(t).maxSpeed));
 
     if (!takes.length) {
       const p = document.createElement('p');
@@ -160,9 +161,59 @@ export class Timeline {
 
   setLimit(ms) { this.limit = ms; }
 
+  // The selected take's pieces, as blocks on the same time scale.
+  // Drag a block's right edge to stretch or squeeze that piece.
+  pieces(take, selIndex) {
+    const row = this.els.piecesRow, lane = this.els.pieceLane;
+    row.hidden = !take;
+    if (!take) return;
+    const timing = timingOf(take);
+    const key = JSON.stringify([take.id, selIndex, this.scale, timing.map(p => [p.d0, p.d1, p.ease])]);
+    if (key === this.piecesKey) return;
+    this.piecesKey = key;
+    lane.textContent = '';
+    for (const p of timing) {
+      const b = document.createElement('div');
+      const e = editOf(take, p.i);
+      b.className = `piece ${p.kind}` + (p.i === selIndex ? ' is-sel' : '') + (Math.abs(e.scale - 1) > 0.005 || Math.abs(e.ease) > 0.005 ? ' is-edited' : '');
+      b.style.left = `${(p.d0 / this.scale) * 100}%`;
+      b.style.width = `${((p.d1 - p.d0) / this.scale) * 100}%`;
+      const label = p.kind === 'hold' ? `${((p.d1 - p.d0) / 1000).toFixed(2)}s` : pieceLabel(take, p.i).toLowerCase();
+      b.title = `${pieceName(take, p.i)} · ${((p.d1 - p.d0) / 1000).toFixed(2)} s${Math.abs(e.scale - 1) > 0.005 ? ` (${e.scale.toFixed(2)}× as performed)` : ''}. Drag the right edge to retime.`;
+      b.innerHTML = `<span></span><span class="piece-grip" aria-hidden="true"></span>`;
+      b.firstChild.textContent = label;
+      b.addEventListener('pointerdown', ev => {
+        if (ev.target.classList.contains('piece-grip')) return;
+        this.cb.onPieceSelect(p.i);
+      });
+      const grip = b.querySelector('.piece-grip');
+      grip.addEventListener('pointerdown', ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        grip.setPointerCapture(ev.pointerId);
+        this.cb.onPieceDrag(p.i, null, 'start');
+        const speed = effectiveSpeed(take);
+        const move = mv => {
+          const r = lane.getBoundingClientRect();
+          const ms = ((mv.clientX - r.left) / r.width) * this.scale - p.d0;
+          this.cb.onPieceDrag(p.i, (Math.max(30, ms) * speed) / (p.t1 - p.t0), 'move');
+        };
+        const up = () => {
+          grip.removeEventListener('pointermove', move);
+          grip.removeEventListener('pointerup', up);
+          grip.removeEventListener('pointercancel', up);
+          this.cb.onPieceDrag(p.i, null, 'end');
+        };
+        grip.addEventListener('pointermove', move);
+        grip.addEventListener('pointerup', up);
+        grip.addEventListener('pointercancel', up);
+      });
+      lane.appendChild(b);
+    }
+  }
+
   redraw() {
     this.drawRuler();
-    for (const r of this.rows.values()) this.drawLane(r.canvas, derived(r.take), effectiveSpeed(r.take), r.take.id === this.selectedId);
+    for (const r of this.rows.values()) this.drawLane(r.canvas, rendered(r.take), 1, r.take.id === this.selectedId);
   }
 
   fit(canvas) {

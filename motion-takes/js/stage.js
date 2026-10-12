@@ -37,7 +37,7 @@ export class Stage {
     this.w = r.width; this.h = r.height;
     this.canvas.width = Math.round(r.width * this.dpr);
     this.canvas.height = Math.round(r.height * this.dpr);
-    const padX = 56, padTop = 60, padBottom = 64;
+    const padX = 56, padTop = 60, padBottom = 120;
     const aw = Math.max(10, this.w - padX * 2), ah = Math.max(10, this.h - padTop - padBottom);
     let w = aw, h = aw * 9 / 16;
     if (h > ah) { h = ah; w = ah * 16 / 9; }
@@ -80,9 +80,9 @@ export class Stage {
     c.clip();
 
     if (view.mode === 'review' && view.review) {
-      for (const g of view.review.ghosts) this.path(g.d, g.t, col.ink, true);
+      for (const g of view.review.ghosts) this.path(g.d, g.t, col.ink, true, false, null, g.holds);
       const p = view.review.primary;
-      if (p) this.path(p.d, p.t, col.accent, false);
+      if (p) this.path(p.d, p.t, col.accent, false, false, p.piece, p.holds);
       for (const g of view.review.ghosts) {
         const s = sampleAt(g.d, g.t);
         this.object(s.x, s.y, view, { ghost: true, label: g.label });
@@ -94,7 +94,7 @@ export class Stage {
     } else {
       if (view.mode === 'recording' && view.rec) this.path(view.rec, Infinity, col.accent, false, true);
       this.trail(view.trail, view.now, view.mode === 'recording' ? col.rec : col.accent);
-      this.object(view.live.x, view.live.y, view, { lost: view.lost });
+      this.object(view.live.x, view.live.y, view, { lost: view.lost, grab: view.grab });
     }
 
     if (view.cross) this.crosshair(view.cross.x, view.cross.y);
@@ -123,7 +123,7 @@ export class Stage {
   }
 
   // A take's path with spacing beads; `upTo` is the playhead in take time.
-  path(d, upTo, color, ghost, live = false) {
+  path(d, upTo, color, ghost, live = false, piece = null, pieceHolds = null) {
     const c = this.ctx;
     const { t, x, y, n } = d;
     if (n < 2) return;
@@ -148,6 +148,30 @@ export class Stage {
       c.stroke();
     }
 
+    // the selected piece, so a spoken or dragged edit has a place on the stage
+    if (piece) {
+      c.globalAlpha = 0.9;
+      c.lineWidth = 5;
+      c.beginPath();
+      let started = false;
+      for (let i = 0; i < n; i++) {
+        if (t[i] < piece.d0 || t[i] > piece.d1) continue;
+        const [px, py] = this.P(x[i], y[i]);
+        started ? c.lineTo(px, py) : (c.moveTo(px, py), started = true);
+      }
+      c.stroke();
+      if (started) {
+        const s0 = sampleAt(d, piece.d0), s1 = sampleAt(d, piece.d1);
+        for (const s of [s0, s1]) { const [px, py] = this.P(s.x, s.y); c.beginPath(); c.arc(px, py, 4, 0, Math.PI * 2); c.fill(); }
+        const mid = sampleAt(d, (piece.d0 + piece.d1) / 2);
+        const [mx, my] = this.P(mid.x, mid.y);
+        c.font = `600 11px ${this.v('--sans')}`;
+        c.textBaseline = 'bottom';
+        c.fillStyle = color;
+        c.fillText(piece.label, mx + 10, my - 14);
+      }
+    }
+
     // spacing beads
     c.fillStyle = color;
     const end = t[n - 1];
@@ -166,7 +190,9 @@ export class Stage {
     if (!live) {
       c.font = `500 10px ${this.v('--mono')}`;
       c.textBaseline = 'middle';
-      for (const h of d.holds) {
+      // holds come from the take's pieces when we have them, so the stage and timeline agree
+      const holds = pieceHolds || d.holds.map(h => ({ ...h, label: `hold ${((h.t1 - h.t0) / 1000).toFixed(2)}s` }));
+      holds.forEach((h, k) => {
         const dur = h.t1 - h.t0;
         const [px, py] = this.P(h.x, h.y);
         const rad = 10 + Math.min(18, dur / 60);
@@ -176,11 +202,13 @@ export class Stage {
         c.setLineDash([2, 3]);
         c.beginPath(); c.arc(px, py, rad, 0, Math.PI * 2); c.stroke();
         c.setLineDash([]);
-        if (!ghost) {
+        const isSel = piece && Math.abs(piece.d0 - h.t0) < 1;
+        if (!ghost && h.label && !isSel) {
           c.fillStyle = color;
-          c.fillText(`hold ${(dur / 1000).toFixed(2)}s`, px + rad + 6, py - rad - 4);
+          // alternate above and below, so neighbouring pauses don't print over each other
+          c.fillText(h.label, px + rad + 6, k % 2 ? py + rad + 10 : py - rad - 4);
         }
-      }
+      });
     }
     c.globalAlpha = 1;
   }
@@ -203,7 +231,7 @@ export class Stage {
     c.globalAlpha = 1;
   }
 
-  object(x, y, view, { ghost = false, lost = false, label = '' } = {}) {
+  object(x, y, view, { ghost = false, lost = false, label = '', grab = false } = {}) {
     const c = this.ctx, col = this.col;
     const [px, py] = this.P(x, y);
     const R = this.rect.w * 0.03;
@@ -237,7 +265,19 @@ export class Stage {
       c.fillText(label, px, py + R + 8);
       c.textAlign = 'left';
     }
-    if (lost) {
+    if (grab) {
+      c.strokeStyle = col.ink; c.lineWidth = 2;
+      c.beginPath(); c.arc(px, py, R + 6, 0, Math.PI * 2); c.stroke();
+    }
+    if (lost === 'released') {
+      c.strokeStyle = col.graphite; c.lineWidth = 1; c.setLineDash([2, 4]);
+      c.beginPath(); c.arc(px, py, R + 7, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+      c.font = `500 10px ${this.v('--mono')}`;
+      c.fillStyle = col.graphite; c.textAlign = 'center'; c.textBaseline = 'top';
+      c.fillText('LET GO · PINCH TO GRAB', px, py + R + 12);
+      c.textAlign = 'left';
+    } else if (lost) {
       c.strokeStyle = col.warn; c.lineWidth = 1.5; c.setLineDash([4, 4]);
       c.beginPath(); c.arc(px, py, R + 9, 0, Math.PI * 2); c.stroke();
       c.setLineDash([]);

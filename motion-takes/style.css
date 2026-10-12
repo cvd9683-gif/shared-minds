@@ -67,7 +67,7 @@ kbd {
 .app {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 304px;
-  grid-template-rows: 52px minmax(0, 1fr) 244px;
+  grid-template-rows: 52px minmax(0, 1fr) 284px;
   grid-template-areas:
     "bar bar"
     "stage panel"
@@ -630,7 +630,7 @@ select {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 260px;
+  bottom: 300px;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -682,3 +682,191 @@ select {
   .toast { bottom: 16px; max-width: calc(100% - 32px); }
   :root { --gutter: 132px; }
 }
+
+/* ------------------------------------------------
+   ASSIST: the command bar and its reply
+   ------------------------------------------------ */
+
+.assist {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: min(640px, calc(100% - 28px));
+  display: grid;
+  gap: 6px;
+  cursor: default;
+  z-index: 2;
+}
+.reply {
+  justify-self: start;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.reply-you { font: 400 11px var(--mono); color: var(--graphite); margin-bottom: 2px; }
+.reply-you::before { content: "you · "; color: var(--faint); }
+.reply.is-claude .reply-text::before {
+  content: "Claude · ";
+  font: 500 10px var(--mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.reply.is-thinking .reply-text { color: var(--graphite); }
+.reply.is-edit { border-color: var(--accent); }
+.reply-help { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin-top: 6px; font-size: 12px; }
+.reply-help dt { font: 500 10px/18px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--graphite); }
+.reply-help dd { color: var(--ink); }
+.link { color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
+#reply-undo { margin-top: 4px; font-size: 12px; }
+
+.cmd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 8px 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 21px;
+  background: var(--raised);
+  box-shadow: 0 8px 24px rgba(22, 22, 26, 0.08);
+}
+.cmd:focus-within { border-color: var(--accent); }
+.cmd input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 13px; }
+.cmd input::placeholder { color: var(--faint); }
+.cmd input.is-interim { color: var(--graphite); font-style: italic; }
+.cmd-kbd { flex: none; }
+.mic {
+  flex: none;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  color: var(--ink-2);
+}
+.mic:hover { background: var(--chrome); }
+.mic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.mic.is-on { background: var(--accent); color: #fff; }
+.mic.is-on svg rect { fill: currentColor; }
+.mic.is-on { box-shadow: 0 0 0 4px var(--accent-soft); animation: listen 1.6s ease-in-out infinite; }
+@keyframes listen { 50% { box-shadow: 0 0 0 7px var(--accent-soft); } }
+
+/* ------------------------------------------------
+   DEMO CARD
+   ------------------------------------------------ */
+
+.demo {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 300px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--raised);
+  box-shadow: 0 12px 32px rgba(22, 22, 26, 0.1);
+  cursor: default;
+  z-index: 3;
+  display: grid;
+  gap: 6px;
+}
+.demo .eyebrow { color: var(--warn); }
+.demo h3 { font-size: 14px; font-weight: 600; text-wrap: balance; }
+.demo-step { font: 400 11px var(--mono); color: var(--graphite); }
+.demo-text { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.demo-say { font-size: 13px; color: var(--ink); padding: 6px 10px; border-left: 2px solid var(--accent); background: var(--accent-soft); border-radius: 0 6px 6px 0; }
+.demo-say::before { content: "Designer says  "; font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); display: block; }
+.demo-guide { display: grid; gap: 8px; padding-left: 0; list-style: none; counter-reset: g; }
+.demo-guide li { display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: start; font-size: 12.5px; color: var(--ink-2); }
+.demo-guide li.is-now { color: var(--ink); }
+.demo-guide li.is-now .g-ico { background: var(--accent); color: #fff; border-color: var(--accent); }
+.g-ico { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font: 500 10px var(--mono); color: var(--graphite); }
+.g-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.demo-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.btn-quiet { border-color: transparent; background: transparent; color: var(--graphite); }
+.menu-note { padding: 6px 9px 8px; font-size: 11.5px; color: var(--graphite); border-bottom: 1px solid var(--line-soft); margin-bottom: 4px; }
+.flash { animation: flash 1.2s ease-out 2; }
+@keyframes flash { 30% { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); } }
+
+/* ------------------------------------------------
+   PIECES ROW
+   ------------------------------------------------ */
+
+.tl-pieces { height: 48px; border-bottom: 1px solid var(--line); background: var(--paper); }
+.piece-gutter { display: grid; align-content: center; gap: 4px; padding: 0 10px 0 14px; border-right: 1px solid var(--line-soft); }
+.piece-info { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.piece-name { font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.piece-dur { font: 400 11px var(--mono); color: var(--graphite); flex: none; }
+.piece-ease { display: flex; gap: 2px; }
+.piece-ease button {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: 500 10px/16px var(--mono);
+  color: var(--ink-2);
+  background: var(--raised);
+}
+.piece-ease button.is-on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.piece-ease #piece-reset { margin-left: auto; border-color: transparent; color: var(--graphite); }
+.piece-ease button:disabled { opacity: 0.35; }
+.piece-lane { cursor: default; }
+.piece {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 5px;
+  font: 500 10px var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.piece.move { background: var(--accent-soft); color: var(--accent); }
+.piece.hold {
+  color: var(--ink-2);
+  background: repeating-linear-gradient(135deg, rgba(22,22,26,0.05) 0 4px, transparent 4px 8px), var(--chrome);
+  border-color: var(--line);
+}
+.piece.is-edited { box-shadow: inset 0 -2px 0 currentColor; }
+.piece.is-sel { border-color: var(--ink); color: var(--ink); }
+.piece-grip {
+  position: absolute;
+  top: 0; bottom: 0; right: -1px;
+  width: 9px;
+  cursor: ew-resize;
+}
+.piece-grip::after {
+  content: "";
+  position: absolute;
+  top: 25%; bottom: 25%; left: 3px;
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.35;
+}
+.piece:hover .piece-grip::after, .piece.is-sel .piece-grip::after { opacity: 0.9; }
+
+.switch { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; font-size: 11.5px; color: var(--ink-2); line-height: 1.45; cursor: pointer; }
+.switch input { margin-top: 2px; accent-color: var(--accent); }
+.switch b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 760px) {
+  .app { grid-template-rows: auto 56vh auto 340px; }
+  .demo { left: 14px; right: 14px; width: auto; top: auto; bottom: 120px; }
+  .cmd-kbd { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+.assist.is-muted { opacity: 0.4; }
+.reply { transition: opacity .4s; }
+.reply.is-faded { opacity: 0; pointer-events: none; }
+.assist:hover .reply.is-faded, .assist:focus-within .reply.is-faded { opacity: 1; pointer-events: auto; }
