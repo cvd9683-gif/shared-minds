@@ -65,6 +65,8 @@ export async function startHands(video, preview, onHands) {
       const my = (points[4].y + points[8].y) / 2;
       hands.push({
         id,
+        // 0 with fingers apart … 1 at the moment they count as touching.
+        closeness: Math.min(1, Math.max(0, (PINCH_OFF * 2 - pinch) / (PINCH_OFF * 2 - PINCH_ON))),
         x: s.fx((mx - 0.5) / REACH, now),
         z: s.fz((my - 0.5) / REACH, now),
         pressed: s.pinched,

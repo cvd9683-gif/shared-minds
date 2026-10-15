@@ -7,13 +7,16 @@ const API = '/api/stems';
 const POLL = 3000;
 const GIVE_UP = 6 * 60 * 1000;
 
-// Is the helper deployed and configured? (Not when the page is served locally.)
+// Is the helper there, and set up? → { found, ready, missing: [setting names] }
+// Not found when the page is served without it (locally, or on a plain static host).
 export async function available() {
   try {
     const r = await fetch(API);
-    return r.ok && (await r.json()).ready === true;
+    if (r.status === 404) return { found: false, ready: false, missing: [] };
+    const body = await r.json().catch(() => ({ error: `it answered ${r.status}` }));
+    return { found: true, ready: body.ready === true, missing: body.missing || [], error: body.error };
   } catch {
-    return false;
+    return { found: false, ready: false, missing: [] };
   }
 }
 

@@ -4,7 +4,7 @@
 // (Vercel caps a request at 4.5 MB), so the browser uploads straight to Vercel Blob and
 // only the song's address passes through here.
 //
-//   GET  /api/stems                      → { ready }       is everything configured?
+//   GET  /api/stems                      → { ready, missing }  is everything configured?
 //   GET  /api/stems?song=<hash>          → { stems|null }  stems already made for this song
 //   POST /api/stems  (from upload())     →                 lets the browser upload to Blob
 //   POST /api/stems  { song, upload }    → { id }          start separating
@@ -35,11 +35,12 @@ export default async function handler(req, res) {
   res.setHeader('Vary', 'Origin');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  const ready = Boolean(process.env.REPLICATE_API_TOKEN && process.env.BLOB_READ_WRITE_TOKEN);
+  const missing = ['REPLICATE_API_TOKEN', 'BLOB_READ_WRITE_TOKEN'].filter(name => !process.env[name]);
+  const ready = missing.length === 0;
   try {
     if (req.method === 'GET') {
       const { song, id, upload } = req.query;
-      if (!song && !id) return res.status(200).json({ ready });
+      if (!song && !id) return res.status(200).json({ ready, missing });
       if (!ready) return res.status(500).json({ error: 'Stem separation is not set up' });
       if (!HASH.test(String(song))) return res.status(400).json({ error: 'Bad song id' });
       if (!id) return res.status(200).json({ stems: await savedStems(song) });

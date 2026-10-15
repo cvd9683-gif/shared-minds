@@ -58,7 +58,7 @@ async function loadFiles(fileList) {
 function loaded() {
   setStatus(engine.mode === 'carved' ? `${title} · carved from the mix` : `${title} · four stems`);
   document.body.classList.toggle('carved', engine.mode === 'carved');
-  trueButton.hidden = !(canSeparate && song && engine.mode === 'carved');
+  trueButton.hidden = !(helper.found && song && engine.mode === 'carved');
 }
 
 // ---------------------------------------------------------------- true stems
@@ -67,10 +67,14 @@ function loaded() {
 // It keeps playing meanwhile; when the stems arrive they take over at the same moment.
 
 const trueButton = $('#true-stems');
-let canSeparate = false;
-available().then(ok => { canSeparate = ok; loaded(); });
+let helper = { found: false, ready: false, missing: [] };
+available().then(h => { helper = h; loaded(); });
 
 trueButton.addEventListener('click', async () => {
+  if (!helper.ready) {
+    if (!helper.missing.length) return say(`The stem helper isn’t working (${helper.error || 'unknown error'}). Check its logs in Vercel.`, 8000);
+    return say(`True stems aren’t switched on yet: add ${helper.missing.join(' and ')} in Vercel, then redeploy.`, 8000);
+  }
   const file = song;
   separating = file;
   trueButton.disabled = true;
@@ -127,24 +131,48 @@ addEventListener('drop', e => {
 
 const touches = new Map();   // id → { x, z, pressed, grab }
 
-function touch(id, point, pressed) {
+function touch(id, point, pressed, extra) {
   let t = touches.get(id);
   if (!point) { if (t) release(id); return; }
   if (!t) { t = { x: point.x, z: point.z, pressed: false, grab: null }; touches.set(id, t); }
   t.x = point.x; t.z = point.z;
+  Object.assign(t, extra);
 
   if (pressed && !t.pressed) {
     const under = touchAt(t.x, t.z);
     if (under?.kind === 'button') { togglePlay(); t.grab = { kind: 'button' }; }
     if (under?.kind === 'arm') { t.grab = under; setLevel(under.arm, under.level); }
+    if (t.hand) tick(under ? 'grab' : 'miss');
   } else if (pressed && t.grab?.kind === 'arm') {
     setLevel(t.grab.arm, levelOnArm(t.grab.arm, t.x, t.z));
   }
+  if (!pressed && t.pressed && t.hand) tick('let go');
   if (!pressed) t.grab = null;
   t.pressed = pressed;
 }
 
-function release(id) { touches.delete(id); }
+function release(id) {
+  const t = touches.get(id);
+  if (t?.pressed && t.hand) tick('let go');
+  touches.delete(id);
+}
+
+// Small sounds for a hand in the air, where there is nothing to feel: a click when it takes
+// hold, a softer one when it lets go, and a faint detent each time a level passes a light.
+function tick(kind) {
+  const ctx = engine.ctx;
+  if (ctx.state !== 'running') return;
+  const [frequency, gain, length] = {
+    grab: [1400, 0.07, 0.05], miss: [500, 0.04, 0.06], 'let go': [900, 0.045, 0.05], detent: [2200, 0.02, 0.025],
+  }[kind];
+  const t = ctx.currentTime;
+  const osc = new OscillatorNode(ctx, { frequency });
+  const amp = new GainNode(ctx, { gain: 0 });
+  amp.gain.setValueAtTime(gain, t);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + length);
+  osc.connect(amp).connect(ctx.destination);
+  osc.start(t); osc.stop(t + length + 0.01);
+}
 
 const canvas = disc.canvas;
 canvas.addEventListener('pointerdown', e => {
@@ -164,7 +192,10 @@ canvas.addEventListener('pointerleave', e => { if (!e.buttons) release('p' + e.p
 
 // ---------------------------------------------------------------- levels & playback
 
+const LIGHTS = 6;
 function setLevel(i, value) {
+  const step = v => Math.round(v * LIGHTS);
+  if (step(value) !== step(engine.levels[i]) && [...touches.values()].some(t => t.hand && t.grab?.arm === i)) tick('detent');
   engine.setLevel(i, value);
   sliders[i].value = Math.round(value * 100);
   sliders[i].setAttribute('aria-valuetext', `${Math.round(value * 100)} percent`);
@@ -232,12 +263,16 @@ function onHands(hands) {
   const now = new Set();
   for (const h of hands) {
     now.add('h' + h.id);
-    touch('h' + h.id, { x: h.x, z: h.z }, h.pressed);
+    touch('h' + h.id, { x: h.x, z: h.z }, h.pressed, { hand: true, closeness: h.closeness });
   }
   for (const id of handIds) if (!now.has(id)) release(id);
   handIds = now;
-  $('#cam-status').textContent = !hands.length ? 'Show a hand'
-    : hands.some(h => h.pressed) ? 'Touching' : 'Pinch to touch the disc';
+  const held = [...touches.values()].find(t => t.hand && t.grab);
+  const state = !hands.length ? ['lost', 'No hand yet. Hold one up to the camera']
+    : held ? ['held', held.grab.kind === 'arm' ? `Holding ${['vocals', 'drums', 'bass', 'other'][held.grab.arm]}` : 'Pressed play']
+    : ['found', 'Hand found. Pinch to take hold'];
+  cam.dataset.state = state[0];
+  $('#cam-status').textContent = state[1];
 }
 
 // ---------------------------------------------------------------- messages
@@ -271,6 +306,7 @@ function frame() {
     playing: engine.playing,
     loaded: engine.loaded,
     focus,
+    buttonFocus: list.some(t => touchAt(t.x, t.z)?.kind === 'button'),
     separating: !!separating && song === separating,
     touches: list.slice(0, 3),
     lean: lead && Math.hypot(lead.x, lead.z) < 1.15 ? { x: lead.x, z: lead.z, pressed: !!pressed } : null,

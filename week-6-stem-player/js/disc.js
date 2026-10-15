@@ -124,6 +124,21 @@ export function createDisc(container) {
   button.position.y = surfaceY(0) - 0.006;
   disc.add(button);
 
+  // A play or pause mark on the button, so the middle says what pressing it will do.
+  const glyphMat = new THREE.MeshBasicMaterial({ color: '#fff1e2', transparent: true, depthWrite: false });
+  const triangle = new THREE.Shape();
+  triangle.moveTo(-0.026, 0.034); triangle.lineTo(0.036, 0); triangle.lineTo(-0.026, -0.034); triangle.closePath();
+  const bars = [-0.017, 0.017].map(x => {
+    const s = new THREE.Shape();
+    s.moveTo(x - 0.009, 0.032); s.lineTo(x + 0.009, 0.032); s.lineTo(x + 0.009, -0.032); s.lineTo(x - 0.009, -0.032); s.closePath();
+    return s;
+  });
+  const glyphY = button.position.y + 0.025;
+  const playGlyph = new THREE.Mesh(new THREE.ShapeGeometry(triangle).rotateX(-Math.PI / 2), glyphMat);
+  const pauseGlyph = new THREE.Mesh(new THREE.ShapeGeometry(bars).rotateX(-Math.PI / 2), glyphMat);
+  playGlyph.position.y = pauseGlyph.position.y = glyphY;
+  disc.add(playGlyph, pauseGlyph);
+
   // A ring of light round the button that fills clockwise as the song plays.
   const ringGeo = new THREE.RingGeometry(BUTTON + 0.016, BUTTON + 0.026, 96, 1, Math.PI / 2, Math.PI * 2);
   ringGeo.rotateX(-Math.PI / 2);
@@ -144,16 +159,20 @@ export function createDisc(container) {
     return { mesh: led, mat, base: new THREE.Color(COLORS[i]), shown: 0 };
   }));
 
-  // Where a finger or a hand is touching: a soft patch of light on the surface.
+  // Where a finger or a hand is: a ring that closes as the fingers close, and a patch of light
+  // when it touches. So you can see a hand being found, getting ready, and taking hold.
   const glowTex = radialTexture([[0, 'rgba(255,255,255,1)'], [0.35, 'rgba(255,255,255,0.35)'], [1, 'rgba(255,255,255,0)']]);
+  const ringShape = new THREE.RingGeometry(0.82, 1, 48).rotateX(-Math.PI / 2);
   const cursors = [0, 1, 2].map(() => {
     const mat = new THREE.MeshBasicMaterial({
       map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0,
     });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3).rotateX(-Math.PI / 2), mat);
-    mesh.renderOrder = 2;
-    disc.add(mesh);
-    return { mesh, mat, x: 0, z: 0, opacity: 0 };
+    const ringMat = new THREE.MeshBasicMaterial({ color: '#fff4e8', transparent: true, depthWrite: false, opacity: 0 });
+    const ring = new THREE.Mesh(ringShape, ringMat);
+    mesh.renderOrder = ring.renderOrder = 2;
+    disc.add(mesh, ring);
+    return { mesh, mat, ring, ringMat, x: 0, z: 0, opacity: 0, ringOpacity: 0, size: 0.12 };
   });
 
   // A soft shadow underneath, so the disc rests on something.
@@ -248,6 +267,13 @@ export function createDisc(container) {
     ringGeo.setDrawRange(0, Math.floor(progress * 96) * 6);
     ringMat.opacity = state.playing ? 0.95 : 0.4;
     buttonMat.emissive.set(state.playing ? '#2a1d12' : '#000000');
+    playGlyph.visible = !state.playing;
+    pauseGlyph.visible = state.playing;
+    // Paused, the play mark breathes, asking to be pressed; playing, the pause mark sits quietly.
+    const glyphWant = !state.loaded ? 0.25
+      : state.playing ? (state.buttonFocus ? 0.85 : 0.4)
+      : (state.buttonFocus ? 1 : 0.6 + 0.3 * Math.sin(now / 600));
+    glyphMat.opacity += (glyphWant - glyphMat.opacity) * ease(10);
 
     // Lean toward whatever is touching it, a little more while pressing.
     const want = state.lean || { x: 0, z: 0, pressed: false };
@@ -261,7 +287,13 @@ export function createDisc(container) {
 
     cursors.forEach((c, k) => {
       const t = state.touches[k];
-      const wantOpacity = t ? (t.pressed ? 0.55 : 0.22) : 0;
+      const wantOpacity = t ? (t.pressed ? 0.55 : 0.12) : 0;
+      // The ring: wide and faint when a hand is just found, tighter as the pinch closes, gone into
+      // a bright point on touch. A mouse gets a fainter ring, since the pointer already shows.
+      const closing = t ? (t.pressed ? 1 : t.closeness ?? 0) : 0;
+      const wantRing = t ? (t.pressed ? 0.95 : (t.hand ? 0.55 + 0.4 * closing : 0.3)) : 0;
+      c.ringOpacity += (wantRing - c.ringOpacity) * ease(14);
+      c.size += (THREE.MathUtils.lerp(0.13, 0.045, closing) - c.size) * ease(20);
       if (t) {
         if (c.opacity < 0.01) { c.x = t.x; c.z = t.z; }
         c.x += (t.x - c.x) * ease(30);
@@ -272,6 +304,11 @@ export function createDisc(container) {
       c.mesh.position.set(c.x, (r < R ? surfaceY(r) : 0) + 0.004, c.z);
       c.mat.opacity = c.opacity;
       c.mesh.visible = c.opacity > 0.005;
+      c.ring.position.copy(c.mesh.position);
+      c.ring.position.y += 0.001;
+      c.ring.scale.setScalar(c.size);
+      c.ringMat.opacity = c.ringOpacity;
+      c.ring.visible = c.ringOpacity > 0.005;
     });
 
     composer.render();
