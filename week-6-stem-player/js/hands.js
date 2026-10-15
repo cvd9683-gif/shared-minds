@@ -16,6 +16,9 @@ const PINCH_OFF = 0.45;
 // The middle of the camera frame maps onto the disc, so you never have to reach for the edges.
 const REACH = 0.34;
 
+// Each hand has its own tint, the same in the camera panel and on the disc.
+export const HAND_TINTS = { left: '#bcd8ff', right: '#ffe0bd' };
+
 const CONNECTIONS = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11],
   [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [0, 17], [17, 18], [18, 19], [19, 20]];
 
@@ -38,7 +41,10 @@ export async function startHands(video, preview, onHands) {
   });
 
   const g = preview.getContext('2d');
-  const state = new Map();   // per hand: smoothing filters and whether it is pinching
+  // Each hand keeps its own identity from frame to frame by staying nearest to where it was,
+  // not by MediaPipe's left/right guess, which can flip, or name both hands the same.
+  let tracked = [];          // { id, x, y, fx, fz, pinched }
+  let nextId = 0;
   let running = true;
   let lastTime = -1;
 
@@ -51,12 +57,28 @@ export async function startHands(video, preview, onHands) {
     const result = landmarker.detectForVideo(video, now);
 
     const hands = [];
-    const seen = new Set();
+    const wrists = result.landmarks.map(points => ({ x: 1 - points[0].x, y: points[0].y }));
+    const claimed = new Set();
+    const matched = wrists.map(wr => {
+      let best = null, bestD = 0.3;
+      for (const s of tracked) {
+        const dd = Math.hypot(s.x - wr.x, s.y - wr.y);
+        if (!claimed.has(s) && dd < bestD) { best = s; bestD = dd; }
+      }
+      const s = best || { id: nextId++, fx: oneEuro(), fz: oneEuro(), pinched: false };
+      claimed.add(s);
+      return Object.assign(s, wr);
+    });
+    tracked = matched;
+    // Which is your left and which your right, as you see them in the mirror: with two hands,
+    // simply the one further left; with one, which half of the frame it is in.
+    const sides = matched.length === 2
+      ? (matched[0].x < matched[1].x ? ['left', 'right'] : ['right', 'left'])
+      : matched.map(s => (s.x < 0.5 ? 'left' : 'right'));
+
     result.landmarks.forEach((points, k) => {
-      const id = result.handedness[k]?.[0]?.categoryName || String(k);
-      seen.add(id);
-      let s = state.get(id);
-      if (!s) { s = { fx: oneEuro(), fz: oneEuro(), pinched: false }; state.set(id, s); }
+      const s = matched[k];
+      const id = s.id;
 
       const w = video.videoWidth, h = video.videoHeight;
       const d = (a, b) => Math.hypot((points[a].x - points[b].x) * w, (points[a].y - points[b].y) * h);
@@ -69,6 +91,8 @@ export async function startHands(video, preview, onHands) {
       const my = (points[4].y + points[8].y) / 2;
       hands.push({
         id,
+        side: sides[k],
+        tint: HAND_TINTS[sides[k]],
         // 0 with fingers apart … 1 at the moment they count as touching.
         closeness: Math.min(1, Math.max(0, (PINCH_OFF * 2 - pinch) / (PINCH_OFF * 2 - PINCH_ON))),
         x: s.fx((mx - 0.5) / REACH, now),
@@ -76,7 +100,6 @@ export async function startHands(video, preview, onHands) {
         pressed: s.pinched,
       });
     });
-    for (const id of state.keys()) if (!seen.has(id)) state.delete(id);
 
     drawPreview(g, preview, video, result.landmarks, hands);
     onHands(hands);
@@ -102,16 +125,25 @@ function drawPreview(g, canvas, video, landmarks, hands) {
   g.restore();
   landmarks.forEach((points, k) => {
     const p = i => [(1 - points[i].x) * W, points[i].y * H];
-    g.strokeStyle = hands[k]?.pressed ? 'rgba(255,224,190,0.95)' : 'rgba(255,255,255,0.55)';
+    const tint = HAND_TINTS[hands[k]?.side] || '#ffffff';
+    g.strokeStyle = hands[k]?.pressed ? '#ffd3a1' : tint;
+    g.globalAlpha = hands[k]?.pressed ? 0.95 : 0.7;
     g.lineWidth = 1.5;
     g.beginPath();
     for (const [a, b] of CONNECTIONS) { g.moveTo(...p(a)); g.lineTo(...p(b)); }
     g.stroke();
     const [x4, y4] = p(4), [x8, y8] = p(8);
-    g.fillStyle = hands[k]?.pressed ? '#ffd3a1' : 'rgba(255,255,255,0.8)';
+    g.fillStyle = hands[k]?.pressed ? '#ffd3a1' : tint;
     g.beginPath();
     g.arc((x4 + x8) / 2, (y4 + y8) / 2, hands[k]?.pressed ? 5 : 3, 0, Math.PI * 2);
     g.fill();
+    // Name each hand at its wrist, so the panel and the disc can be matched up.
+    const [wx, wy] = p(0);
+    g.globalAlpha = 0.9;
+    g.font = '600 13px system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.fillText(hands[k]?.side === 'left' ? 'L' : 'R', wx, Math.min(H - 6, wy + 18));
+    g.globalAlpha = 1;
   });
 }
 

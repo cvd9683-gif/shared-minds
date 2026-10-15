@@ -402,6 +402,7 @@ const DWELL = 700;      // ms of holding still before a hover takes hold
 const STILL = 0.07;     // how far a hand may drift and still count as still (disc radius = 1)
 const LET_GO = 0.26;    // how far off to the side of a held strip lets it go
 const hovers = new Map();
+let twoHandsShown = false;
 
 function onHands(hands) {
   const now = new Set();
@@ -432,17 +433,27 @@ function onHands(hands) {
       }
     }
     touch(id, { x: h.x, z: h.z }, h.pressed || d.held, {
-      hand: true, closeness: Math.max(h.closeness * 0.6, progress, d.held ? 1 : 0),
+      hand: true, side: h.side, tint: h.tint, closeness: Math.max(h.closeness * 0.6, progress, d.held ? 1 : 0),
     });
   }
   for (const id of handIds) if (!now.has(id)) { release(id); hovers.delete(id); }
   handIds = now;
-  const held = [...touches.values()].find(t => t.hand && t.grab?.kind === 'arm');
-  const state = !hands.length ? ['lost', 'No hand yet. Hold one up to the camera']
-    : held ? ['held', `Holding ${(fxMode ? EFFECTS : STEMS)[held.grab.arm]}. Slide along it, move off to let go`]
-    : ['found', 'Hand found. Hold still over a strip to take it'];
-  cam.dataset.state = state[0];
-  $('#cam-status').textContent = state[1];
+  // Say what each hand is doing, by side, so two hands can be told apart.
+  const doing = hands.map(h => {
+    const t = touches.get('h' + h.id);
+    const what = t?.grab?.kind === 'arm' ? `holding ${(fxMode ? EFFECTS : STEMS)[t.grab.arm]}` : 'free';
+    return { side: h.side, held: what !== 'free', text: `${h.side === 'left' ? 'L' : 'R'}: ${what}` };
+  }).sort((a, b) => (a.side === 'left' ? -1 : 1));
+  const anyHeld = doing.some(d => d.held);
+  cam.dataset.state = !hands.length ? 'lost' : anyHeld ? 'held' : 'found';
+  $('#cam-status').textContent = !hands.length ? 'No hand yet. Hold one up to the camera'
+    : hands.length === 1 && !anyHeld ? 'Hand found. Hold still over a strip to take it'
+    : hands.length === 1 ? `Holding ${doing[0].text.split('holding ')[1]}. Slide along it, move off to let go`
+    : doing.map(d => d.text).join(' · ');
+  if (hands.length === 2 && !twoHandsShown) {
+    twoHandsShown = true;
+    say('Two hands: each can hold its own strip at once. Try vocals with one and drums with the other.', 6000);
+  }
 }
 
 // ---------------------------------------------------------------- messages

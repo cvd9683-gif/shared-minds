@@ -401,6 +401,7 @@ export function createDisc(container) {
       c.ring.position.y += 0.001;
       c.ring.scale.setScalar(c.size);
       c.ringMat.opacity = c.ringOpacity;
+      if (t) c.ringMat.color.set(t.tint || '#fff4e8');
       c.ring.visible = c.ringOpacity > 0.005;
     });
 
