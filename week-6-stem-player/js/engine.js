@@ -14,7 +14,6 @@
 export const STEMS = ['vocals', 'drums', 'bass', 'other'];
 // In effects mode the four strips control these instead of the layers' volumes.
 export const EFFECTS = ['echo', 'gate', 'speed', 'feedback'];
-const LOOP = 2;     // seconds held by an instant loop
 
 const LOW = 160;    // Hz: below this is "bass"
 const HIGH = 5000;  // Hz: above this is "drums" (cymbals, hats, the crack of a snare)
@@ -42,7 +41,8 @@ export class StemEngine {
     this.volumeLevel = 0.9;
     this.solo = STEMS.map(() => false);
     this.rate = 1;
-    this.loopAt = null;   // start of the instant loop, in song seconds, or null
+    this.loopAt = null;   // start of the loop, in song seconds, or null
+    this.loopLen = 0;     // its length in song seconds
     this.channels = STEMS.map(() => {
       const tap = this.ctx.createGain();
       const gain = this.ctx.createGain();
@@ -107,7 +107,7 @@ export class StemEngine {
   get position() {
     if (!this.playing) return this.offset;
     const raw = this.startedAt + Math.max(0, this.ctx.currentTime - this.anchorTime) * this.rate;
-    if (this.loopAt !== null && raw >= this.loopAt) return this.loopAt + (raw - this.loopAt) % LOOP;
+    if (this.loopAt !== null && raw >= this.loopAt) return this.loopAt + (raw - this.loopAt) % this.loopLen;
     return raw % this.duration;
   }
 
@@ -128,7 +128,7 @@ export class StemEngine {
       src.buffer = buffer;
       src.loop = true;
       src.playbackRate.value = this.rate;
-      if (this.loopAt !== null) { src.loopStart = this.loopAt; src.loopEnd = this.loopAt + LOOP; }
+      if (this.loopAt !== null) { src.loopStart = this.loopAt; src.loopEnd = this.loopAt + this.loopLen; }
       src.connect(entry);
       src.start(when, this.offset % buffer.duration);
       return src;
@@ -177,17 +177,19 @@ export class StemEngine {
     this.volume.gain.setTargetAtTime(this.volumeLevel ** 2, this.ctx.currentTime, EASE);
   }
 
-  // Instant loop: hold the next two seconds and keep playing them round.
-  toggleLoop() {
-    if (!this.loaded) return false;
+  // Loop: keep playing the stretch from `start` for `length` seconds round and round. Set at
+  // the moment the stretch ends, so playback simply wraps back to its start.
+  setLoop(start, length) {
     this.rebase();
-    if (this.loopAt === null) this.loopAt = Math.min(this.position, this.duration - LOOP);
-    else this.loopAt = null;
-    for (const src of this.sources) {
-      src.loopStart = this.loopAt ?? 0;
-      src.loopEnd = this.loopAt === null ? 0 : this.loopAt + LOOP;
-    }
-    return this.loopAt !== null;
+    this.loopAt = start;
+    this.loopLen = length;
+    for (const src of this.sources) { src.loopStart = start; src.loopEnd = start + length; }
+  }
+
+  clearLoop() {
+    this.rebase();
+    this.loopAt = null;
+    for (const src of this.sources) { src.loopStart = 0; src.loopEnd = 0; }
   }
 
   // value 0..1 for each effect. Speed runs from half to one and a half times, and settles

@@ -40,13 +40,14 @@ webcam and do the same in the air.
 | Slide a strip | That layer's volume | 1–4 mute and unmute |
 | The ring at a strip's end | Solo that layer; solo several to hear only those | Shift + 1–4 |
 | Tap the middle | Play or pause | Space |
-| Hold the middle | Loop the next two seconds | L |
-| LOOP | Loop the next two seconds, or let the loop go | L |
+| Hold the middle | Catch a loop: it runs from where you pressed to where you let go | Hold L |
+| Hold LOOP | The same; LOOP blinks while the loop plays, and pressing it again stops it | Hold L |
 | FX | Effects mode: the strips become echo, gate, speed and feedback; press again to go back | F |
 | The middle, in effects mode | Reset every effect and the loop | R |
 | − and + | Volume | − and + |
 
-Hands do all of it by hovering: hold still over a strip, a key or a strip's end.
+Hands do all of it by hovering: hold still over a strip, a key or a strip's end. To catch a loop,
+hover on LOOP for as long as the loop should be, then move off.
 
 ## Files
 

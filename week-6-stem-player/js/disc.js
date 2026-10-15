@@ -341,8 +341,10 @@ export function createDisc(container) {
 
     // Key names read like printing on the body; a key that is on lights up instead.
     keys.forEach(k => {
-      const on = (k.name === 'fx' && state.fxMode) || (k.name === 'loop' && state.loop);
-      const want = on ? 1 : 0;
+      // LOOP shines steadily while a loop is being caught, and blinks while one plays.
+      const on = (k.name === 'fx' && state.fxMode) || (k.name === 'loop' && (state.loop || state.catching));
+      const blink = k.name === 'loop' && state.loop && !state.catching && Math.sin(now / 230) < 0;
+      const want = on && !blink ? 1 : 0;
       k.shown += (want - k.shown) * ease(12);
       INK.copy(state.keyFocus === k.name ? INK_FOCUS : INK_IDLE).lerp(LIT, k.shown);
       k.labelMat.color.copy(INK);

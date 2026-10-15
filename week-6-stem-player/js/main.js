@@ -175,9 +175,10 @@ addEventListener('drop', e => {
 // The controls follow the Stem Player:
 //   strip            slide to set a layer's volume (in effects mode, an effect's amount)
 //   end of a strip   solo that layer; solo several to hear just those
-//   middle           tap to play or pause; hold to loop the next two seconds
+//   middle           tap to play or pause; hold to catch a loop, as long as you hold
 //   FX               effects mode: the strips become echo, gate, speed and feedback
-//   LOOP             loop the next two seconds, or let go of the loop
+//   LOOP             hold to catch a loop as long as you hold; while it loops (LOOP blinks),
+//                    press again to stop
 //   − and +          volume
 
 const touches = new Map();   // id → { x, z, pressed, grab }
@@ -193,8 +194,14 @@ function touch(id, point, pressed, extra) {
     const under = touchAt(t.x, t.z);
     // The middle acts on release, so a long press can mean "loop" instead.
     if (under?.kind === 'button') {
-      const grab = t.grab = { kind: 'button' };
-      setTimeout(() => { if (t.grab === grab && t.pressed && !fxMode) { grab.looped = true; toggleLoop(); } }, HOLD);
+      const grab = t.grab = { kind: 'button', from: engine.position };
+      setTimeout(() => {
+        if (t.grab === grab && t.pressed && !fxMode) { grab.looped = true; startLoop(grab.from); }
+      }, HOLD);
+    }
+    else if (under?.kind === 'key' && under.name === 'loop') {
+      t.grab = { kind: 'loop' };
+      startLoop();
     }
     else if (under?.kind === 'arm') { t.grab = under; setStrip(under.arm, under.level); }
     else if (under) soon(() => activate(under));
@@ -204,6 +211,7 @@ function touch(id, point, pressed, extra) {
   }
   if (!pressed && t.pressed) {
     if (t.grab?.kind === 'button' && !t.grab.looped) soon(pressMiddle);
+    if (t.grab?.kind === 'loop' || t.grab?.looped) endLoop();
     if (t.hand) tick('let go');
   }
   if (!pressed) t.grab = null;
@@ -238,7 +246,7 @@ function pressMiddle() {
 
 function resetFx() {
   EFFECTS.forEach(name => engine.setFx(name, name === 'speed' ? 0.5 : 0));
-  if (engine.loopAt !== null) engine.toggleLoop();
+  if (engine.loopAt !== null) engine.clearLoop();
   say('Effects reset: no echo, gate or feedback, normal speed, no loop.', 2500);
 }
 
@@ -248,17 +256,32 @@ function pressKey(name) {
     document.body.classList.toggle('fx', fxMode);
     say(fxMode ? 'Effects: the strips are now echo, gate, speed and feedback. The middle resets them; FX again goes back.' : 'Back to the layers.', 6000);
   }
-  if (name === 'loop') toggleLoop();
   if (name === 'up' || name === 'down') {
     engine.setVolume(engine.volumeLevel + (name === 'up' ? 0.1 : -0.1));
     say(`Volume ${Math.round(engine.volumeLevel * 100)}%`, 1500);
   }
 }
 
-function toggleLoop() {
-  if (!engine.loaded) return;
-  const on = engine.toggleLoop();
-  say(on ? 'Looping these two seconds. Press LOOP to let go.' : 'Loop off.', 2500);
+// Catching a loop: it starts where you press and ends where you let go. While a loop plays,
+// pressing again stops it.
+let catching = null;   // { from } while a loop is being caught
+
+function startLoop(from = engine.position) {
+  if (engine.loopAt !== null) { engine.clearLoop(); catching = null; return say('Loop off.', 1500); }
+  if (!engine.playing) return say('Play first, then hold LOOP to catch a loop.', 3000);
+  catching = { from };
+  say('Catching a loop… let go to set it.', 10000);
+}
+
+function endLoop() {
+  if (!catching) return;
+  const { from } = catching;
+  catching = null;
+  let length = engine.position - from;
+  if (length < 0) length = engine.duration - from;   // the song wrapped round while holding
+  if (length < 0.25) return say('Hold LOOP a little longer to catch a loop.', 2500);
+  engine.setLoop(from, length);
+  say(`Looping ${length.toFixed(1)} seconds. Press LOOP to stop.`, 3000);
 }
 
 function toggleSolo(i) {
@@ -356,11 +379,13 @@ addEventListener('keydown', e => {
   const n = /^Digit[1-4]$/.test(e.code) ? Number(e.code.slice(5)) - 1 : -1;
   if (n >= 0) e.shiftKey ? toggleSolo(n) : toggleMute(n);
   if (e.code === 'KeyF') pressKey('fx');
-  if (e.code === 'KeyL') toggleLoop();
+  if (e.code === 'KeyL' && !e.repeat) startLoop();
   if (e.code === 'KeyR') resetFx();
   if (e.key === '+' || e.key === '=') pressKey('up');
   if (e.key === '-' || e.key === '_') pressKey('down');
 });
+
+addEventListener('keyup', e => { if (e.code === 'KeyL') endLoop(); });
 
 // ---------------------------------------------------------------- hands
 
@@ -415,6 +440,8 @@ function onHands(hands) {
     const under = touchAt(h.x, h.z);
     const key = !under ? null : under.kind === 'arm' ? under.arm
       : under.kind === 'button' ? 'button' : `${under.kind}:${under.name ?? under.arm}`;
+    // A hand catching a loop lets go of it by moving off the LOOP key.
+    if (d.catching && key !== 'key:loop') { d.catching = false; endLoop(); tick('let go'); }
     let progress = 0;
 
     if (d.held) {
@@ -428,7 +455,8 @@ function onHands(hands) {
         Object.assign(d, { key, since: time, x: h.x, z: h.z });
       } else {
         progress = Math.min(1, (time - d.since) / DWELL);
-        if (progress === 1 && under.kind !== 'arm') { activate(under); tick('grab'); d.done = key; d.key = null; }
+        if (progress === 1 && key === 'key:loop') { startLoop(); d.catching = !!catching; tick('grab'); d.done = key; d.key = null; }
+        else if (progress === 1 && under.kind !== 'arm') { activate(under); tick('grab'); d.done = key; d.key = null; }
         else if (progress === 1) d.held = true;
       }
     }
@@ -436,7 +464,11 @@ function onHands(hands) {
       hand: true, side: h.side, tint: h.tint, closeness: Math.max(h.closeness * 0.6, progress, d.held ? 1 : 0),
     });
   }
-  for (const id of handIds) if (!now.has(id)) { release(id); hovers.delete(id); }
+  for (const id of handIds) if (!now.has(id)) {
+    if (hovers.get(id)?.catching) endLoop();
+    release(id);
+    hovers.delete(id);
+  }
   handIds = now;
   // Say what each hand is doing, by side, so two hands can be told apart.
   const doing = hands.map(h => {
@@ -494,6 +526,7 @@ function frame() {
     fx: EFFECTS.map(name => engine.fx[name]),
     solo: engine.solo,
     loop: engine.loopAt !== null,
+    catching: !!catching,
     separating: !!separating && song === separating,
     separation: separationProgress,
     arrived: (performance.now() - stemsArrived) / 1000,
