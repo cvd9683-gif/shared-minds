@@ -23,12 +23,14 @@ const LIT = new THREE.Color('#ffd3a1').multiplyScalar(2.2);
 const INK = new THREE.Color();
 
 const R = 1;            // disc radius
-const H = 0.13;         // height of the top face at the edge of its flat part
-const FLAT = 0.8;       // the top is a gentle dome out to here, then rolls over the edge
-const DOME = 0.035;
-const BASE = 0.09;      // depth below the waist
+// Proportioned after the real Stem Player: a thick, smooth pebble about a fifth as tall as it
+// is wide, its edge rolled round like a river stone rather than cut square.
+const H = 0.2;          // height of the top face where it starts to roll over the edge
+const FLAT = 0.76;      // the top is a gentle dome out to here, then rolls over the edge
+const DOME = 0.045;
+const BASE = 0.17;      // depth below the waist
 const R0 = 0.27;        // each strip runs from R0 …
-const R1 = 0.84;        // … to R1
+const R1 = 0.78;        // … to R1
 const LEDS = 6;
 const BUTTON = 0.15;
 
