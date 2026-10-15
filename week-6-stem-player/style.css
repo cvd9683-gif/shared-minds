@@ -47,9 +47,12 @@ body {
 .label.muted i { box-shadow: none; }
 
 #hint {
-  position: fixed; left: 50%; bottom: 84px; transform: translate(-50%, 6px);
+  /* Sits on its own solid backing, so it reads cleanly even over a label. */
+  position: fixed; left: 50%; bottom: 76px; transform: translate(-50%, 6px);
   margin: 0; max-width: min(460px, calc(100vw - 32px));
-  text-align: center; color: var(--ink-2); font-size: 13px;
+  padding: 8px 14px; border-radius: 14px;
+  background: rgba(30, 25, 21, 0.94); border: 1px solid var(--line);
+  text-align: center; color: var(--ink); font-size: 13px; z-index: 2;
   opacity: 0; transition: opacity 0.35s, transform 0.35s;
   pointer-events: none;
 }
