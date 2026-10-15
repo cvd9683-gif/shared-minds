@@ -38,12 +38,14 @@ export default async function handler(req, res) {
   res.setHeader('Vary', 'Origin');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  const missing = ['REPLICATE_API_TOKEN', 'BLOB_READ_WRITE_TOKEN'].filter(name => !process.env[name]);
+  const missing = [];
+  if (!replicateToken()) missing.push('REPLICATE_API_TOKEN');
+  if (!process.env.BLOB_READ_WRITE_TOKEN) missing.push('BLOB_READ_WRITE_TOKEN');
   const ready = missing.length === 0;
   try {
     if (req.method === 'GET') {
       const { song, id, upload } = req.query;
-      if (!song && !id) return res.status(200).json({ ready, missing });
+      if (!song && !id) return res.status(200).json({ ready, missing, environment: process.env.VERCEL_ENV || null });
       if (!ready) return res.status(500).json({ error: 'Stem separation is not set up' });
       if (!HASH.test(String(song))) return res.status(400).json({ error: 'Bad song id' });
       if (!id) return res.status(200).json({ stems: await savedStems(song) });
@@ -152,11 +154,20 @@ async function latestVersion() {
 async function replicate(path, init = {}) {
   const r = await fetch(`https://api.replicate.com/v1${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${replicateToken()}`, 'Content-Type': 'application/json' },
   });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`Replicate: ${body.detail || body.title || r.status}`);
   return body;
+}
+
+// The Replicate key, forgiving of how it was saved: under a near-miss name, or with stray
+// spaces or quotes around it. Replicate keys start with r8_, so one saved under any name is found.
+function replicateToken() {
+  const named = ['REPLICATE_API_TOKEN', 'REPLICATE_API_KEY', 'REPLICATE_TOKEN', 'REPLICATE_KEY']
+    .map(name => process.env[name]).find(Boolean);
+  const value = named || Object.values(process.env).find(v => typeof v === 'string' && /^\s*["']?r8_/.test(v)) || '';
+  return value.trim().replace(/^["']|["']$/g, '');
 }
 
 function isOurBlob(url) {

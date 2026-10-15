@@ -14,7 +14,7 @@ export async function available() {
     const r = await fetch(API);
     if (r.status === 404) return { found: false, ready: false, missing: [] };
     const body = await r.json().catch(() => ({ error: `it answered ${r.status}` }));
-    return { found: true, ready: body.ready === true, missing: body.missing || [], error: body.error };
+    return { found: true, ready: body.ready === true, missing: body.missing || [], environment: body.environment, error: body.error };
   } catch {
     return { found: false, ready: false, missing: [] };
   }

@@ -73,6 +73,10 @@ available().then(h => { helper = h; loaded(); });
 trueButton.addEventListener('click', async () => {
   if (!helper.ready) {
     if (!helper.missing.length) return say(`The stem helper isn’t working (${helper.error || 'unknown error'}). Check its logs in Vercel.`, 8000);
+    if (helper.environment === 'preview' && helper.missing.includes('REPLICATE_API_TOKEN')) {
+      return say('This preview can’t see a Replicate key. In Vercel it may be saved for Production only: '
+        + 'add it again with only Preview ticked, then redeploy. Or use the main site, which uses Production.', 10000);
+    }
     return say(`True stems aren’t switched on yet: add ${helper.missing.join(' and ')} in Vercel, then redeploy.`, 8000);
   }
   const file = song;
