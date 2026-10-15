@@ -126,7 +126,14 @@ async function poll(id, song, upload) {
   if (p.status === 'failed' || p.status === 'canceled') {
     return finish(upload, { status: 'failed', error: p.error || 'Separation failed' });
   }
-  return { status: p.status };   // starting | processing
+  // starting: Replicate is waking the model (slow after it has been idle); processing: Demucs is
+  // working, and its log's progress bar says how far along it is.
+  return { status: p.status, progress: p.status === 'processing' ? logProgress(p.logs) : null };
+}
+
+function logProgress(logs) {
+  const all = [...String(logs || '').matchAll(/(\d{1,3})%\|/g)];
+  return all.length ? Math.min(1, Number(all.at(-1)[1]) / 100) : null;
 }
 
 // The uploaded song is only needed until its stems exist.

@@ -83,17 +83,33 @@ trueButton.addEventListener('click', async () => {
   separating = file;
   trueButton.disabled = true;
   const started = Date.now();
+  // Every step says what is happening and, where it can, how far along: in the status line,
+  // on the button, in the tab's title, and on the disc, where the ring round the middle fills.
+  const since = () => `${Math.round((Date.now() - started) / 1000)}s`;
   const steps = {
-    checking: () => 'Looking for stems already made…',
-    uploading: f => `Sending the song… ${Math.round(f * 100)}%`,
-    separating: () => `Separating by instrument… ${Math.round((Date.now() - started) / 1000)}s (usually 1–2 min)`,
+    checking: () => ['Looking for stems already made…', 'Checking…', null],
+    uploading: f => [`Sending the song… ${pct(f)}`, `Sending ${pct(f)}`, f * 0.1],
+    waking: () => [`Waking up the separator… ${since()}. After a quiet spell this can take a few minutes; the song keeps playing.`, 'Waking up…', 0.1],
+    separating: f => f == null
+      ? [`Separating by instrument… ${since()}`, 'Separating…', 0.15]
+      : [`Separating by instrument… ${pct(f)}`, `Separating ${pct(f)}`, 0.15 + f * 0.75],
+    saving: () => ['Saving the stems…', 'Saving…', 0.92],
+    fetching: () => ['Bringing in the stems…', 'Almost there…', 0.97],
   };
-  let phase = '';
-  const tick = setInterval(() => { if (song === file && phase === 'separating') setStatus(steps.separating()); }, 1000);
+  let phase = 'checking', fraction = null;
+  const show = () => {
+    if (song !== file) return;
+    const [line, label, progress] = steps[phase](fraction);
+    setStatus(line);
+    trueButton.textContent = label;
+    separationProgress = progress;
+    document.title = `${label} · Stem Player`;
+  };
+  const tick = setInterval(show, 1000);
   try {
-    const urls = await separate(file, (p, f) => { phase = p; if (song === file) setStatus(steps[p](f)); });
+    const urls = await separate(file, (p, f) => { phase = p; fraction = f ?? null; show(); });
     if (song !== file) return;   // another song was loaded meanwhile
-    setStatus('Bringing in the stems…');
+    phase = 'fetching'; show();
     const buffers = await Promise.all(['vocals', 'drums', 'bass', 'other'].map(async name => {
       const r = await fetch(urls[name]);
       if (!r.ok) throw new Error(`Couldn’t download the ${name} stem.`);
@@ -102,17 +118,41 @@ trueButton.addEventListener('click', async () => {
     if (song !== file) return;
     engine.swapToStems(buffers);
     song = null;
-    say('True stems: the same song, now separated by instrument.');
+    // Done: a chime, a flash along every strip, and a message that stays long enough to read.
+    chime();
+    stemsArrived = performance.now();
+    say('True stems are in. Solo the vocals (the ring at the end of the top strip) to hear just the voice.', 9000);
   } catch (err) {
     console.error(err);
     if (song === file) say(err.message || 'Couldn’t separate this song.', 6000);
   } finally {
     clearInterval(tick);
     if (separating === file) separating = null;
+    separationProgress = null;
+    document.title = 'Stem Player';
     trueButton.disabled = false;
+    trueButton.textContent = 'Find true stems';
     loaded();
   }
 });
+
+let separationProgress = null;   // 0..1 while true stems are being found
+let stemsArrived = -Infinity;    // when they last arrived, for the flash
+const pct = f => `${Math.round(f * 100)}%`;
+
+// Three rising notes: the stems are in.
+function chime() {
+  const ctx = engine.ctx;
+  [880, 1109, 1319].forEach((frequency, k) => {
+    const t = ctx.currentTime + k * 0.11;
+    const osc = new OscillatorNode(ctx, { type: 'sine', frequency });
+    const amp = new GainNode(ctx, { gain: 0 });
+    amp.gain.linearRampToValueAtTime(0.08, t + 0.01);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    osc.connect(amp).connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.65);
+  });
+}
 
 function commonName(files) {
   const base = files[0].name.replace(/[-_ ]*(vocals?|drums?|bass|other)[^/]*$/i, '');
@@ -444,6 +484,8 @@ function frame() {
     solo: engine.solo,
     loop: engine.loopAt !== null,
     separating: !!separating && song === separating,
+    separation: separationProgress,
+    arrived: (performance.now() - stemsArrived) / 1000,
     touches: list.slice(0, 3),
     lean: lead && Math.hypot(lead.x, lead.z) < 1.15 ? { x: lead.x, z: lead.z, pressed: !!pressed } : null,
   });

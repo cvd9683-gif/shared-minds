@@ -20,7 +20,8 @@ export async function available() {
   }
 }
 
-// onStep(phase, fraction?): 'checking' | 'uploading' (0..1) | 'separating' | 'saving'
+// onStep(phase, fraction?): 'checking' | 'uploading' (0..1) | 'waking' | 'separating' (0..1 or null)
+//                          | 'saving'
 // Resolves to { vocals, drums, bass, other } — the address of each stem.
 export async function separate(file, onStep) {
   onStep('checking');
@@ -41,7 +42,7 @@ export async function separate(file, onStep) {
   r = await call(API, { method: 'POST', body: JSON.stringify({ song, upload: blob.url }) });
   if (r.stems) return r.stems;
 
-  onStep('separating');
+  onStep('waking');
   const started = Date.now();
   const url = `${API}?id=${encodeURIComponent(r.id)}&song=${song}&upload=${encodeURIComponent(blob.url)}`;
   while (Date.now() - started < GIVE_UP) {
@@ -49,7 +50,9 @@ export async function separate(file, onStep) {
     r = await call(url);
     if (r.status === 'succeeded') return r.stems;
     if (r.status === 'failed') throw new Error(r.error);
-    if (r.status === 'processing') onStep('separating');
+    if (r.status === 'starting') onStep('waking');
+    // Past the end of the progress bar, the stems are being written out and stored.
+    if (r.status === 'processing') onStep(r.progress >= 0.99 ? 'saving' : 'separating', r.progress);
   }
   throw new Error('Separation is taking too long. Try again in a minute.');
 }

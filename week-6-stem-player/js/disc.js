@@ -324,15 +324,20 @@ export function createDisc(container) {
         // While true stems are being found, a slow wave of light runs out along every strip.
         if (state.separating) want += 0.45 * Math.max(0, Math.sin(now / 420 - k * 0.7 - i * 0.9)) ** 6;
         if (!state.fxMode && anySolo && !state.solo[i]) want *= 0.22;
+        // When true stems arrive, a flash runs out along every strip.
+        if (state.arrived < 1.2) want += 1.6 * Math.max(0, 1 - Math.abs(state.arrived * 6 - k - i * 0.15) / 1.5);
         led.shown += (want - led.shown) * ease(state.playing ? 30 : 10);
         led.mat.color.copy(state.fxMode ? WHITE : led.base).multiplyScalar(led.shown);
       });
     });
 
-    const progress = state.loaded ? state.progress : 0;
+    // The ring round the middle shows where the song is; while true stems are being found it
+    // shows how far along that is instead, in amber, breathing so it reads as "working".
+    const finding = state.separation != null;
+    const progress = finding ? state.separation : state.loaded ? state.progress : 0;
     ringGeo.setDrawRange(0, Math.floor(progress * 96) * 6);
-    ringMat.opacity = state.playing ? 0.95 : 0.4;
-    ringMat.color.set(state.loop ? '#ffc98f' : '#fff4e8');
+    ringMat.opacity = finding ? 0.75 + 0.25 * Math.sin(now / 300) : state.playing ? 0.95 : 0.4;
+    ringMat.color.set(finding ? '#ffb877' : state.loop ? '#ffc98f' : '#fff4e8');
 
     // Key names read like printing on the body; a key that is on lights up instead.
     keys.forEach(k => {
