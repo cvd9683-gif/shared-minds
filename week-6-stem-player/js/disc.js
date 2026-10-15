@@ -91,7 +91,8 @@ export function levelOnArm(i, x, z) {
 
 export function createDisc(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  // 1.5× is sharp on any screen and much cheaper to draw than 2×, which keeps taps responsive.
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 0.95;
   container.appendChild(renderer.domElement);

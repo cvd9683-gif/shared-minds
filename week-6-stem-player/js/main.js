@@ -157,17 +157,27 @@ function touch(id, point, pressed, extra) {
       setTimeout(() => { if (t.grab === grab && t.pressed) { grab.looped = true; toggleLoop(); } }, HOLD);
     }
     else if (under?.kind === 'arm') { t.grab = under; setStrip(under.arm, under.level); }
-    else if (under) activate(under);
+    else if (under) soon(() => activate(under));
     if (t.hand) tick(under ? 'grab' : 'miss');
   } else if (pressed && t.grab?.kind === 'arm') {
     setStrip(t.grab.arm, levelOnArm(t.grab.arm, t.x, t.z));
   }
   if (!pressed && t.pressed) {
-    if (t.grab?.kind === 'button' && !t.grab.looped) togglePlay();
+    if (t.grab?.kind === 'button' && !t.grab.looped) soon(togglePlay);
     if (t.hand) tick('let go');
   }
   if (!pressed) t.grab = null;
   t.pressed = pressed;
+}
+
+// Starting audio and rebuilding sources is the heaviest thing a tap does, so it runs just after
+// the screen has answered the tap, not before: the press shows at once, the sound a frame later.
+// (Never more than 60 ms later, even if the screen is slow to draw.)
+function soon(fn) {
+  let done = false;
+  const run = () => { if (!done) { done = true; fn(); } };
+  requestAnimationFrame(() => setTimeout(run));
+  setTimeout(run, 60);
 }
 
 // One-shot controls: the middle, the keys, and the solo spots.
