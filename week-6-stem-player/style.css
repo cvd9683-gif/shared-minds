@@ -168,18 +168,16 @@ body.intro .top, body.intro .bar, body.intro .labels, body.intro #hint, body.int
 .intro-inner > :nth-child(6) { animation-delay: 0.42s; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
 
-.kicker { font: 12px var(--mono); letter-spacing: 0.04em; color: var(--ink-2); }
 #intro-title {
-  margin-top: 10px;
   font: 800 clamp(52px, 9vw, 112px)/0.92 var(--display);
   letter-spacing: -0.035em;
 }
 .lede { margin-top: 12px; font: 500 clamp(20px, 2.4vw, 26px)/1.25 var(--display); color: #ffd3a1; }
-.about { margin-top: 14px; font-size: 15px; line-height: 1.55; color: var(--ink-2); max-width: 30rem; }
 .actions { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 10px; }
 .actions .btn { padding: 12px 22px; font-size: 15px; }
 .btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .btn.primary:hover { background: #fff; }
+.note:empty { display: none; }
 .note { margin-top: 16px; font: 12px/1.5 var(--mono); color: var(--ink-2); }
 .note.error { color: #ff9478; }
 
