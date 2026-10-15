@@ -11,8 +11,8 @@ webcam and do the same in the air.
 
 ## How it works
 
-- **Any song.** Drop an audio file anywhere, or use *Load a song*. The four layers are
-  carved out of the mix with filters, not separated by an AI model yet. Bass is everything
+- **Any song.** Drop an audio file anywhere, or use *Load a song*. At first the four layers
+  are carved out of the mix with filters, instantly (see *True stems* below for the real thing). Bass is everything
   low, drums is everything high (cymbals, hats, the crack of a snare), and the middle band is
   split by where it sits in the stereo image: the centre, where a lead voice usually is, is
   vocals, and the edges are other. All four at full add back up to the song. It is honest
@@ -41,7 +41,34 @@ Keys: Space plays and pauses, 1–4 mute and unmute a layer.
 - `js/demo.js`: the demo loop, synthesised as four parts.
 - `js/main.js`: ties them together. Mouse, fingers and hands all become the same kind of touch.
 
-## Next
+## True stems
 
-True stems for any song, by sending the upload to a hosted Demucs model (on Replicate,
-a few cents a song) through a small Vercel function like `api/genius.js`.
+On the hosted site, an uploaded song gets a **Find true stems** button. It sends the song to
+Demucs on Replicate, which separates it by instrument in a minute or two, for a few cents.
+The song keeps playing carved meanwhile, and a slow wave of light runs along the strips;
+when the stems arrive they take over at the same moment, at the same levels. Stems are kept,
+so a song you have already split comes back straight away and free.
+
+How it travels: the browser uploads the song straight to Vercel Blob (songs are too big to
+pass through a function), [`api/stems.js`](../api/stems.js) hands its address to Replicate,
+the browser checks back every few seconds, and the finished stems are copied into Blob under
+`stems/<fingerprint>/`. The uploaded song is deleted once it has been split.
+
+### Setting it up
+
+1. **Replicate.** Sign up at replicate.com, add billing, and make a token at
+   replicate.com/account/api-tokens.
+2. **Vercel Blob.** In the Vercel project, open *Storage*, create a **Blob** store with public
+   access, and connect it to the project for Production and Preview. That adds
+   `BLOB_READ_WRITE_TOKEN` for you.
+3. **The token.** In *Settings → Environment Variables*, add `REPLICATE_API_TOKEN` for
+   Production and Preview.
+4. **Redeploy**, so the new variables reach the function.
+
+The button only appears when `/api/stems` answers that both are set, so the page still works
+anywhere else, just without true stems. Anyone with the link can spend Replicate credit, so
+keep a small balance or a spending limit on the account. `ALLOWED_ORIGIN` keeps other websites
+from calling the helper.
+
+- `js/separate.js`: the browser side of true stems.
+- `js/vendor/blob-client.js`: Vercel Blob's upload code (`@vercel/blob` 2.8.0), bundled for the browser.

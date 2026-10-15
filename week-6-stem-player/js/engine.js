@@ -60,6 +60,14 @@ export class StemEngine {
     this.mode = 'stems';
   }
 
+  // Swap in true stems for the song that is playing, without losing your place or levels.
+  swapToStems(buffers) {
+    const at = this.position, wasPlaying = this.playing;
+    this.loadStems(buffers);
+    this.offset = at % this.duration;
+    if (wasPlaying) this.play();
+  }
+
   get loaded() { return this.tracks.length > 0; }
 
   get position() {

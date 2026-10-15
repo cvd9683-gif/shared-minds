@@ -237,6 +237,8 @@ export function createDisc(container) {
         const ghost = state.loaded ? 0.05 + 0.12 * meter * (state.playing ? 1 : 0) : 0.05 + 0.05 * meter;
         let want = lit * pulse * 1.25 + (1 - lit) * ghost;
         if (state.focus === i) want += 0.12;
+        // While true stems are being found, a slow wave of light runs out along every strip.
+        if (state.separating) want += 0.45 * Math.max(0, Math.sin(now / 420 - k * 0.7 - i * 0.9)) ** 6;
         led.shown += (want - led.shown) * ease(state.playing ? 30 : 10);
         led.mat.color.copy(led.base).multiplyScalar(led.shown);
       });

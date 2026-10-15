@@ -1,6 +1,7 @@
 import { StemEngine, STEMS, matchStemFiles } from './engine.js';
 import { createDisc, touchAt, levelOnArm } from './disc.js';
 import { renderDemo } from './demo.js';
+import { available, separate } from './separate.js';
 
 const $ = s => document.querySelector(s);
 const engine = new StemEngine();
@@ -14,6 +15,8 @@ const hint = $('#hint');
 // ---------------------------------------------------------------- loading
 
 let title = '';
+let song = null;          // the uploaded file, while it is playing carved
+let separating = null;    // the file being split into true stems, if any
 
 async function loadDemo() {
   setStatus('Making the demo loop…');
@@ -33,10 +36,12 @@ async function loadFiles(fileList) {
       const buffers = await Promise.all(matchStemFiles(files).map(async f => engine.decode(await f.arrayBuffer())));
       engine.loadStems(buffers);
       title = commonName(files) || 'Your stems';
+      song = null;
     } else {
       setStatus(`Reading ${files[0].name}…`);
       engine.loadSong(await engine.decode(await files[0].arrayBuffer()));
       title = files[0].name.replace(/\.[^.]+$/, '');
+      song = files[0];
     }
   } catch (err) {
     console.error(err);
@@ -53,7 +58,53 @@ async function loadFiles(fileList) {
 function loaded() {
   setStatus(engine.mode === 'carved' ? `${title} · carved from the mix` : `${title} · four stems`);
   document.body.classList.toggle('carved', engine.mode === 'carved');
+  trueButton.hidden = !(canSeparate && song && engine.mode === 'carved');
 }
+
+// ---------------------------------------------------------------- true stems
+//
+// While a song plays carved from the mix, it can be sent off to be truly separated.
+// It keeps playing meanwhile; when the stems arrive they take over at the same moment.
+
+const trueButton = $('#true-stems');
+let canSeparate = false;
+available().then(ok => { canSeparate = ok; loaded(); });
+
+trueButton.addEventListener('click', async () => {
+  const file = song;
+  separating = file;
+  trueButton.disabled = true;
+  const started = Date.now();
+  const steps = {
+    checking: () => 'Looking for stems already made…',
+    uploading: f => `Sending the song… ${Math.round(f * 100)}%`,
+    separating: () => `Separating by instrument… ${Math.round((Date.now() - started) / 1000)}s (usually 1–2 min)`,
+  };
+  let phase = '';
+  const tick = setInterval(() => { if (song === file && phase === 'separating') setStatus(steps.separating()); }, 1000);
+  try {
+    const urls = await separate(file, (p, f) => { phase = p; if (song === file) setStatus(steps[p](f)); });
+    if (song !== file) return;   // another song was loaded meanwhile
+    setStatus('Bringing in the stems…');
+    const buffers = await Promise.all(['vocals', 'drums', 'bass', 'other'].map(async name => {
+      const r = await fetch(urls[name]);
+      if (!r.ok) throw new Error(`Couldn’t download the ${name} stem.`);
+      return engine.decode(await r.arrayBuffer());
+    }));
+    if (song !== file) return;
+    engine.swapToStems(buffers);
+    song = null;
+    say('True stems: the same song, now separated by instrument.');
+  } catch (err) {
+    console.error(err);
+    if (song === file) say(err.message || 'Couldn’t separate this song.', 6000);
+  } finally {
+    clearInterval(tick);
+    if (separating === file) separating = null;
+    trueButton.disabled = false;
+    loaded();
+  }
+});
 
 function commonName(files) {
   const base = files[0].name.replace(/[-_ ]*(vocals?|drums?|bass|other)[^/]*$/i, '');
@@ -220,6 +271,7 @@ function frame() {
     playing: engine.playing,
     loaded: engine.loaded,
     focus,
+    separating: !!separating && song === separating,
     touches: list.slice(0, 3),
     lean: lead && Math.hypot(lead.x, lead.z) < 1.15 ? { x: lead.x, z: lead.z, pressed: !!pressed } : null,
   });
