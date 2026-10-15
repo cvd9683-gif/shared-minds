@@ -25,9 +25,11 @@ webcam and do the same in the air.
   what that layer is playing. A layer turned all the way down still breathes faintly, so you
   can see it is there before you bring it back.
 - **Hands.** *Use hands* turns on the webcam. Hand tracking (MediaPipe) runs entirely in the
-  browser; no video leaves the computer. The point between your thumb and index finger is
-  your fingertip, and pinching is touching: pinch on a strip and slide. Pinch the middle to
-  play or pause. Two hands can hold two strips at once.
+  browser; no video leaves the computer. Hover: hold your hand still over a strip and a ring
+  closes in on it; after a moment the strip is yours. Slide along it, then move off to the
+  side to let go. Hover over the middle to play or pause. A pinch takes hold instantly, for
+  anyone who prefers it. Soft clicks mark taking hold and letting go, and a faint tick marks
+  each light a level passes. Two hands can hold two strips at once.
 - **The object.** The disc tilts a little toward whatever is touching it and dips when you
   press, and a ring round the middle button fills as the song plays.
 

@@ -31,6 +31,10 @@ export async function startHands(video, preview, onHands) {
     baseOptions: { modelAssetPath: MODEL, delegate: 'GPU' },
     runningMode: 'VIDEO',
     numHands: 2,
+    // A little more forgiving than the defaults, so a hand at an angle is not lost.
+    minHandDetectionConfidence: 0.4,
+    minHandPresenceConfidence: 0.4,
+    minTrackingConfidence: 0.4,
   });
 
   const g = preview.getContext('2d');

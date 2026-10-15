@@ -18,10 +18,10 @@ const BODY = '#b89c84';
 const BACKGROUND = '#15120f';
 
 const R = 1;            // disc radius
-const H = 0.1;          // height of the top face at the edge of its flat part
+const H = 0.13;         // height of the top face at the edge of its flat part
 const FLAT = 0.8;       // the top is a gentle dome out to here, then rolls over the edge
-const DOME = 0.025;
-const BASE = 0.07;      // depth below the waist
+const DOME = 0.035;
+const BASE = 0.09;      // depth below the waist
 const R0 = 0.27;        // each strip runs from R0 …
 const R1 = 0.84;        // … to R1
 const LEDS = 6;
@@ -52,6 +52,11 @@ export function touchAt(x, z) {
   return null;
 }
 
+// How far along a strip a point is, and how far off to the side of it.
+export function armDistance(i, x, z) {
+  return { along: x * dirs[i].x + z * dirs[i].z, across: Math.abs(x * dirs[i].z - z * dirs[i].x) };
+}
+
 // Once a strip is held, sliding anywhere keeps controlling it: only distance along it counts.
 export function levelOnArm(i, x, z) {
   const along = x * dirs[i].x + z * dirs[i].z;
@@ -72,7 +77,7 @@ export function createDisc(container) {
   scene.environmentIntensity = 0.42;
 
   const key = new THREE.DirectionalLight('#fff1e2', 1.35);
-  key.position.set(-1.6, 4, -1.2);
+  key.position.set(-2.6, 3.2, -0.8);
   scene.add(key);
 
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
@@ -111,11 +116,11 @@ export function createDisc(container) {
   });
   disc.add(new THREE.Mesh(bodyGeo, bodyMat));
 
-  // The button: a low dome in the middle.
+  // The button: a dome in the middle, raised enough to catch the light and read as pressable.
   const buttonGeo = new THREE.LatheGeometry([
-    new THREE.Vector2(BUTTON, -0.01), new THREE.Vector2(BUTTON, 0.004),
-    new THREE.Vector2(BUTTON * 0.93, 0.014), new THREE.Vector2(BUTTON * 0.7, 0.02),
-    new THREE.Vector2(0, 0.023),
+    new THREE.Vector2(BUTTON, -0.01), new THREE.Vector2(BUTTON, 0.01),
+    new THREE.Vector2(BUTTON * 0.95, 0.028), new THREE.Vector2(BUTTON * 0.82, 0.042),
+    new THREE.Vector2(BUTTON * 0.55, 0.052), new THREE.Vector2(0, 0.056),
   ], 64);
   const buttonMat = new THREE.MeshPhysicalMaterial({
     color: BODY, roughness: 0.5, sheen: 0.7, sheenColor: '#fff0e4', clearcoat: 0.2,
@@ -133,7 +138,7 @@ export function createDisc(container) {
     s.moveTo(x - 0.009, 0.032); s.lineTo(x + 0.009, 0.032); s.lineTo(x + 0.009, -0.032); s.lineTo(x - 0.009, -0.032); s.closePath();
     return s;
   });
-  const glyphY = button.position.y + 0.025;
+  const glyphY = button.position.y + 0.058;
   const playGlyph = new THREE.Mesh(new THREE.ShapeGeometry(triangle).rotateX(-Math.PI / 2), glyphMat);
   const pauseGlyph = new THREE.Mesh(new THREE.ShapeGeometry(bars).rotateX(-Math.PI / 2), glyphMat);
   playGlyph.position.y = pauseGlyph.position.y = glyphY;
@@ -199,8 +204,9 @@ export function createDisc(container) {
     camera.aspect = w / h;
     // Keep the whole disc in view, and comfortably large, whatever the window's shape.
     const fit = w / h < 1 ? 1 / (w / h) : 1;
-    const dist = 5.5 * Math.max(1, fit * 0.9);
-    camera.position.set(0, dist * 0.8, dist * 0.6);
+    // Low enough to see the disc's edge and the button standing up from it, so it reads as an object.
+    const dist = 4.7 * Math.max(1, fit * 0.9);
+    camera.position.set(0, dist * 0.68, dist * 0.73);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
   }
@@ -235,6 +241,7 @@ export function createDisc(container) {
   const labelAt = i => toScreen(dirs[i].x * 1.2, dirs[i].z * 1.2, -0.02);
 
   const lean = { x: 0, z: 0, press: 0 };
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let last = performance.now();
 
   // state: { levels[4], meters[4], progress 0..1, playing, loaded, focus (arm or -1),
@@ -281,8 +288,10 @@ export function createDisc(container) {
     lean.z += (want.z - lean.z) * ease(8);
     lean.press += ((want.pressed ? 1 : 0) - lean.press) * ease(12);
     const tilt = 0.035 + 0.035 * lean.press;
-    disc.rotation.x = lean.z * tilt;
-    disc.rotation.z = -lean.x * tilt;
+    // And, left alone, it sways a little, like something resting in a hand.
+    const sway = calm ? 0 : 1;
+    disc.rotation.x = lean.z * tilt + sway * 0.03 * Math.sin(now / 2600);
+    disc.rotation.z = -lean.x * tilt + sway * 0.025 * Math.sin(now / 3400 + 1);
     disc.position.y = -0.012 * lean.press;
 
     cursors.forEach((c, k) => {

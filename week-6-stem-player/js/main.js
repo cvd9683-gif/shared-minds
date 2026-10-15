@@ -1,5 +1,5 @@
 import { StemEngine, STEMS, matchStemFiles } from './engine.js';
-import { createDisc, touchAt, levelOnArm } from './disc.js';
+import { createDisc, touchAt, levelOnArm, armDistance } from './disc.js';
 import { renderDemo } from './demo.js';
 import { available, separate } from './separate.js';
 
@@ -259,18 +259,51 @@ handsButton.addEventListener('click', async () => {
   handsButton.disabled = false;
 });
 
+// A hand takes hold by hovering: hold it still over a strip and, after a moment, the strip is
+// yours; slide along it, then move off to the side to let go. Hovering over the middle plays or
+// pauses once. A pinch does the same instantly, for anyone who finds that easier.
+const DWELL = 700;      // ms of holding still before a hover takes hold
+const STILL = 0.07;     // how far a hand may drift and still count as still (disc radius = 1)
+const LET_GO = 0.26;    // how far off to the side of a held strip lets it go
+const hovers = new Map();
+
 function onHands(hands) {
   const now = new Set();
+  const time = performance.now();
   for (const h of hands) {
-    now.add('h' + h.id);
-    touch('h' + h.id, { x: h.x, z: h.z }, h.pressed, { hand: true, closeness: h.closeness });
+    const id = 'h' + h.id;
+    now.add(id);
+    const d = hovers.get(id) || { key: null, since: 0, x: 0, z: 0, held: false, done: null };
+    hovers.set(id, d);
+    const under = touchAt(h.x, h.z);
+    const key = under ? (under.kind === 'arm' ? under.arm : 'button') : null;
+    let progress = 0;
+
+    if (d.held) {
+      const arm = touches.get(id)?.grab?.arm;
+      const { along, across } = arm === undefined ? {} : armDistance(arm, h.x, h.z);
+      if (arm === undefined || across > LET_GO || along < 0.12) { d.held = false; d.done = key; }
+    } else if (key === null || key !== d.done) {
+      d.done = null;
+      if (key === null) d.key = null;
+      else if (key !== d.key || Math.hypot(h.x - d.x, h.z - d.z) > STILL) {
+        Object.assign(d, { key, since: time, x: h.x, z: h.z });
+      } else {
+        progress = Math.min(1, (time - d.since) / DWELL);
+        if (progress === 1 && key === 'button') { togglePlay(); tick('grab'); d.done = 'button'; d.key = null; }
+        else if (progress === 1) d.held = true;
+      }
+    }
+    touch(id, { x: h.x, z: h.z }, h.pressed || d.held, {
+      hand: true, closeness: Math.max(h.closeness * 0.6, progress, d.held ? 1 : 0),
+    });
   }
-  for (const id of handIds) if (!now.has(id)) release(id);
+  for (const id of handIds) if (!now.has(id)) { release(id); hovers.delete(id); }
   handIds = now;
-  const held = [...touches.values()].find(t => t.hand && t.grab);
+  const held = [...touches.values()].find(t => t.hand && t.grab?.kind === 'arm');
   const state = !hands.length ? ['lost', 'No hand yet. Hold one up to the camera']
-    : held ? ['held', held.grab.kind === 'arm' ? `Holding ${['vocals', 'drums', 'bass', 'other'][held.grab.arm]}` : 'Pressed play']
-    : ['found', 'Hand found. Pinch to take hold'];
+    : held ? ['held', `Holding ${['vocals', 'drums', 'bass', 'other'][held.grab.arm]}. Slide along it, move off to let go`]
+    : ['found', 'Hand found. Hold still over a strip to take it'];
   cam.dataset.state = state[0];
   $('#cam-status').textContent = state[1];
 }
