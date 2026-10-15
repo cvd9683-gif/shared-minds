@@ -67,15 +67,3 @@ islands to leave each other plants. Finish a habit for a week and you grow somet
 
 **[Grow your island](week-5-my-dancing-trees/)**
 · [Source and write-up](week-5-my-dancing-trees/)
-
----
-
-## Week 6 — Stem Player
-
-A song held in your hand. A soft disc with four strips of light, one for each layer of the
-song: vocals, drums, bass and everything else. Slide along a strip to bring a layer up or
-take it away, with your mouse, your finger, or your hand in the air in front of the webcam.
-Drop in any song and it is carved into four layers.
-
-**[Hold the song](week-6-stem-player/)**
-· [Source and write-up](week-6-stem-player/)
