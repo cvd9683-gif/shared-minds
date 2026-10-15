@@ -5,7 +5,7 @@
 
 const API = '/api/stems';
 const POLL = 3000;
-const GIVE_UP = 15 * 60 * 1000;
+const GIVE_UP = 10 * 60 * 1000;
 
 // Is the helper there, and set up? → { found, ready, missing: [setting names] }
 // Not found when the page is served without it (locally, or on a plain static host).
