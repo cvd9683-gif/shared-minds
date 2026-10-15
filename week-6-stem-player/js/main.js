@@ -80,7 +80,9 @@ trueButton.addEventListener('click', async () => {
       return say('This preview can’t see a Replicate key. In Vercel it may be saved for Production only: '
         + 'add it again with only Preview ticked, then redeploy. Or use the main site, which uses Production.', 10000);
     }
-    return say(`True stems aren’t switched on yet: add ${helper.missing.join(' and ')} in Vercel, then redeploy.`, 8000);
+    // Name the environment, since Production and Preview keep separate settings in Vercel.
+    const where = helper.environment === 'production' ? ' for Production (the public site)' : '';
+    return say(`True stems aren’t switched on yet: add ${helper.missing.join(' and ')} in Vercel${where}, then redeploy.`, 8000);
   }
   const file = song;
   separating = file;
