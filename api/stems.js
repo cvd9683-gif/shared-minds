@@ -114,7 +114,9 @@ async function poll(id, song, upload) {
     await Promise.all(STEMS.map(async name => {
       const audio = await fetch(found[name]);
       if (!audio.ok) throw new Error(`Couldn’t fetch the ${name} stem`);
-      const blob = await put(`stems/${song}/${name}.mp3`, audio.body, {
+      // Read it whole before storing: simpler and sturdier than streaming one service into another.
+      const body = Buffer.from(await audio.arrayBuffer());
+      const blob = await put(`stems/${song}/${name}.mp3`, body, {
         access: 'public', contentType: 'audio/mpeg', allowOverwrite: true,
       });
       stems[name] = blob.url;

@@ -143,21 +143,20 @@ export function createDisc(container) {
   });
   disc.add(new THREE.Mesh(bodyGeo, bodyMat));
 
-  // The button: a dome in the middle, raised enough to catch the light and read as pressable.
-  const buttonGeo = new THREE.LatheGeometry([
-    new THREE.Vector2(BUTTON, -0.01), new THREE.Vector2(BUTTON, 0.01),
-    new THREE.Vector2(BUTTON * 0.95, 0.028), new THREE.Vector2(BUTTON * 0.82, 0.042),
-    new THREE.Vector2(BUTTON * 0.55, 0.052), new THREE.Vector2(0, 0.056),
-  ], 64);
+  // The button: like the Stem Player's, a hollow pressed into the body, not a bump on it.
+  // The light catching its far wall and shadowing its near one is what reads as "inward".
+  // A touch darker than the body: less light reaches the bottom of a hollow.
   const buttonMat = new THREE.MeshPhysicalMaterial({
-    color: BODY, roughness: 0.5, sheen: 0.7, sheenColor: '#fff0e4', clearcoat: 0.2,
+    color: '#a28670', roughness: 0.6, sheen: 0.6, sheenColor: '#fff0e4', clearcoat: 0.1,
   });
-  const button = new THREE.Mesh(buttonGeo, buttonMat);
-  button.position.y = surfaceY(0) - 0.006;
+  const BUTTON_DEPTH = 0.07;
+  const button = new THREE.Mesh(dishGeometry(BUTTON, BUTTON_DEPTH), buttonMat);
+  button.position.y = surfaceY(BUTTON) + 0.0008;
+  button.renderOrder = 1;
   disc.add(button);
 
   // A play or pause mark on the button, so the middle says what pressing it will do.
-  const glyphMat = new THREE.MeshBasicMaterial({ color: '#fff1e2', transparent: true, depthWrite: false });
+  const glyphMat = new THREE.MeshBasicMaterial({ color: '#fff1e2', transparent: true, depthWrite: false, depthTest: false });
   const triangle = new THREE.Shape();
   triangle.moveTo(-0.026, 0.034); triangle.lineTo(0.036, 0); triangle.lineTo(-0.026, -0.034); triangle.closePath();
   const bars = [-0.017, 0.017].map(x => {
@@ -165,11 +164,15 @@ export function createDisc(container) {
     s.moveTo(x - 0.009, 0.032); s.lineTo(x + 0.009, 0.032); s.lineTo(x + 0.009, -0.032); s.lineTo(x - 0.009, -0.032); s.closePath();
     return s;
   });
-  const glyphY = button.position.y + 0.058;
+  const glyphY = button.position.y - BUTTON_DEPTH * 0.9;
   const playGlyph = new THREE.Mesh(new THREE.ShapeGeometry(triangle).rotateX(-Math.PI / 2), glyphMat);
   const pauseGlyph = new THREE.Mesh(new THREE.ShapeGeometry(bars).rotateX(-Math.PI / 2), glyphMat);
-  playGlyph.position.y = pauseGlyph.position.y = glyphY;
-  disc.add(playGlyph, pauseGlyph);
+  // In effects mode the middle resets every effect, and shows a turn-back arrow to say so.
+  const resetMat = new THREE.MeshBasicMaterial({ map: resetTexture(), transparent: true, depthWrite: false, depthTest: false });
+  const resetGlyph = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.11).rotateX(-Math.PI / 2), resetMat);
+  playGlyph.position.y = pauseGlyph.position.y = resetGlyph.position.y = glyphY;
+  playGlyph.renderOrder = pauseGlyph.renderOrder = resetGlyph.renderOrder = 2;
+  disc.add(playGlyph, pauseGlyph, resetGlyph);
 
   // A ring of light round the button that fills clockwise as the song plays.
   const ringGeo = new THREE.RingGeometry(BUTTON + 0.016, BUTTON + 0.026, 96, 1, Math.PI / 2, Math.PI * 2);
@@ -191,18 +194,18 @@ export function createDisc(container) {
     return { mesh: led, mat, base: new THREE.Color(COLORS[i]), shown: 0 };
   }));
 
-  // The keys: small domes, each with its name lit on top.
-  const keyGeo = new THREE.LatheGeometry([
-    new THREE.Vector2(KEY_SIZE, -0.01), new THREE.Vector2(KEY_SIZE, 0.006),
-    new THREE.Vector2(KEY_SIZE * 0.9, 0.018), new THREE.Vector2(KEY_SIZE * 0.5, 0.026), new THREE.Vector2(0, 0.028),
-  ], 40);
+  // The keys: small hollows like the middle one, each with its name printed in the bottom.
+  const KEY_DEPTH = 0.026;
+  const keyGeo = dishGeometry(KEY_SIZE, KEY_DEPTH);
   const keys = KEYS.map(k => {
     const mesh = new THREE.Mesh(keyGeo, buttonMat.clone());
-    const y = surfaceY(KEY_R) - 0.004;
+    const y = surfaceY(KEY_R) + 0.0008;
     mesh.position.set(k.x, y, k.z);
-    const labelMat = new THREE.MeshBasicMaterial({ map: textTexture(k.label), transparent: true, depthWrite: false });
+    mesh.renderOrder = 1;
+    const labelMat = new THREE.MeshBasicMaterial({ map: textTexture(k.label), transparent: true, depthWrite: false, depthTest: false });
     const label = new THREE.Mesh(new THREE.PlaneGeometry(KEY_SIZE * 1.6, KEY_SIZE * 0.8).rotateX(-Math.PI / 2), labelMat);
-    label.position.set(k.x, y + 0.03, k.z);
+    label.position.set(k.x, y - KEY_DEPTH * 0.85, k.z);
+    label.renderOrder = 2;
     disc.add(mesh, label);
     return { ...k, mesh, labelMat, shown: 0.6 };
   });
@@ -346,8 +349,10 @@ export function createDisc(container) {
       s.mat.opacity = Math.min(1, s.shown);
     });
     buttonMat.emissive.set(state.playing ? '#2a1d12' : '#000000');
-    playGlyph.visible = !state.playing;
-    pauseGlyph.visible = state.playing;
+    playGlyph.visible = !state.fxMode && !state.playing;
+    pauseGlyph.visible = !state.fxMode && state.playing;
+    resetGlyph.visible = state.fxMode;
+    resetMat.opacity = glyphMat.opacity;
     // Paused, the play mark breathes, asking to be pressed; playing, the pause mark sits quietly.
     const glyphWant = !state.loaded ? 0.25
       : state.playing ? (state.buttonFocus ? 0.85 : 0.4)
@@ -427,6 +432,12 @@ function paintGrooves() {
     g.beginPath();
     g.arc(...at(0, 0), px(BUTTON + 0.021), 0, Math.PI * 2);
     g.stroke();
+    // A soft edge round each key's hollow.
+    for (const k of KEYS) {
+      g.beginPath();
+      g.arc(...at(k.x, k.z), px(KEY_SIZE + 0.004), 0, Math.PI * 2);
+      g.stroke();
+    }
     return canvas;
   };
   const color = new THREE.CanvasTexture(make('#ffffff', '#e2d6cb', 10));
@@ -434,6 +445,38 @@ function paintGrooves() {
   color.anisotropy = 4;
   const bump = new THREE.CanvasTexture(make('#ffffff', '#000000', 22));
   return { color, bump };
+}
+
+// A shallow bowl, rim at y = 0 and bottom at −depth, its sides curving gently in from the rim.
+// It is drawn over the body (which it would otherwise sit inside) rather than cut into it.
+function dishGeometry(radius, depth) {
+  const points = [];
+  for (let k = 0; k <= 16; k++) {
+    const t = k / 16;
+    points.push(new THREE.Vector2(radius * (1 - t), -depth * Math.sin(t * Math.PI / 2) ** 0.8));
+  }
+  return new THREE.LatheGeometry(points, 48);
+}
+
+function resetTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const g = canvas.getContext('2d');
+  g.strokeStyle = g.fillStyle = '#ffffff';
+  g.lineWidth = 13;
+  g.lineCap = 'round';
+  const a0 = -Math.PI * 0.35, a1 = Math.PI * 1.35;
+  g.beginPath();
+  g.arc(64, 64, 38, a0, a1);
+  g.stroke();
+  // The arrowhead, at the start of the arc, pointing back the way it came.
+  const x = 64 + 38 * Math.cos(a0), y = 64 + 38 * Math.sin(a0);
+  g.beginPath();
+  g.moveTo(x + 18, y - 4); g.lineTo(x - 6, y - 16); g.lineTo(x - 2, y + 12); g.closePath();
+  g.fill();
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
 
 function textTexture(text) {

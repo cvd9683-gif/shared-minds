@@ -154,7 +154,7 @@ function touch(id, point, pressed, extra) {
     // The middle acts on release, so a long press can mean "loop" instead.
     if (under?.kind === 'button') {
       const grab = t.grab = { kind: 'button' };
-      setTimeout(() => { if (t.grab === grab && t.pressed) { grab.looped = true; toggleLoop(); } }, HOLD);
+      setTimeout(() => { if (t.grab === grab && t.pressed && !fxMode) { grab.looped = true; toggleLoop(); } }, HOLD);
     }
     else if (under?.kind === 'arm') { t.grab = under; setStrip(under.arm, under.level); }
     else if (under) soon(() => activate(under));
@@ -163,7 +163,7 @@ function touch(id, point, pressed, extra) {
     setStrip(t.grab.arm, levelOnArm(t.grab.arm, t.x, t.z));
   }
   if (!pressed && t.pressed) {
-    if (t.grab?.kind === 'button' && !t.grab.looped) soon(togglePlay);
+    if (t.grab?.kind === 'button' && !t.grab.looped) soon(pressMiddle);
     if (t.hand) tick('let go');
   }
   if (!pressed) t.grab = null;
@@ -182,7 +182,7 @@ function soon(fn) {
 
 // One-shot controls: the middle, the keys, and the solo spots.
 function activate(under) {
-  if (under.kind === 'button') togglePlay();
+  if (under.kind === 'button') pressMiddle();
   if (under.kind === 'solo') toggleSolo(under.arm);
   if (under.kind === 'key') pressKey(under.name);
 }
@@ -191,11 +191,22 @@ const HOLD = 500;   // ms: holding the middle this long loops instead of play/pa
 let fxMode = false;
 const EFFECT_NAMES = ['Echo', 'Gate', 'Speed', 'Feedback'];
 
+// The middle plays and pauses; in effects mode, like the Stem Player's, it clears the effects.
+function pressMiddle() {
+  if (fxMode) resetFx(); else togglePlay();
+}
+
+function resetFx() {
+  EFFECTS.forEach(name => engine.setFx(name, name === 'speed' ? 0.5 : 0));
+  if (engine.loopAt !== null) engine.toggleLoop();
+  say('Effects reset: no echo, gate or feedback, normal speed, no loop.', 2500);
+}
+
 function pressKey(name) {
   if (name === 'fx') {
     fxMode = !fxMode;
     document.body.classList.toggle('fx', fxMode);
-    say(fxMode ? 'Effects: the strips are now echo, gate, speed and feedback. Press FX again to go back.' : 'Back to the layers.');
+    say(fxMode ? 'Effects: the strips are now echo, gate, speed and feedback. The middle resets them; FX again goes back.' : 'Back to the layers.', 6000);
   }
   if (name === 'loop') toggleLoop();
   if (name === 'up' || name === 'down') {
@@ -213,6 +224,10 @@ function toggleLoop() {
 function toggleSolo(i) {
   engine.toggleSolo(i);
   const soloed = STEMS.filter((_, k) => engine.solo[k]);
+  // On the quick split, a soloed layer is a slice of the mix, so say why it isn't clean.
+  if (soloed.length && engine.mode === 'carved') {
+    return say(`Solo: ${soloed.join(', ')}. This is the quick split, so other instruments bleed through; Find true stems separates them properly.`, 6000);
+  }
   say(soloed.length ? `Solo: ${soloed.join(', ')}` : 'Solo off: every layer back.', 2000);
 }
 
@@ -302,6 +317,7 @@ addEventListener('keydown', e => {
   if (n >= 0) e.shiftKey ? toggleSolo(n) : toggleMute(n);
   if (e.code === 'KeyF') pressKey('fx');
   if (e.code === 'KeyL') toggleLoop();
+  if (e.code === 'KeyR') resetFx();
   if (e.key === '+' || e.key === '=') pressKey('up');
   if (e.key === '-' || e.key === '_') pressKey('down');
 });

@@ -43,6 +43,7 @@ webcam and do the same in the air.
 | Hold the middle | Loop the next two seconds | L |
 | LOOP | Loop the next two seconds, or let the loop go | L |
 | FX | Effects mode: the strips become echo, gate, speed and feedback; press again to go back | F |
+| The middle, in effects mode | Reset every effect and the loop | R |
 | − and + | Volume | − and + |
 
 Hands do all of it by hovering: hold still over a strip, a key or a strip's end.
