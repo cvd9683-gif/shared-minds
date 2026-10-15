@@ -1,4 +1,4 @@
-import { StemEngine, STEMS, matchStemFiles } from './engine.js';
+import { StemEngine, STEMS, EFFECTS, matchStemFiles } from './engine.js';
 import { createDisc, touchAt, levelOnArm, armDistance } from './disc.js';
 import { renderDemo } from './demo.js';
 import { available, separate } from './separate.js';
@@ -132,6 +132,13 @@ addEventListener('drop', e => {
 //
 // Mouse, fingers and hands all become "touches" on the disc, and they all behave the same:
 // press on a strip to grab it, slide along it to set the level, press the middle to play.
+// The controls follow the Stem Player:
+//   strip            slide to set a layer's volume (in effects mode, an effect's amount)
+//   end of a strip   solo that layer; solo several to hear just those
+//   middle           tap to play or pause; hold to loop the next two seconds
+//   FX               effects mode: the strips become echo, gate, speed and feedback
+//   LOOP             loop the next two seconds, or let go of the loop
+//   − and +          volume
 
 const touches = new Map();   // id → { x, z, pressed, grab }
 
@@ -144,16 +151,71 @@ function touch(id, point, pressed, extra) {
 
   if (pressed && !t.pressed) {
     const under = touchAt(t.x, t.z);
-    if (under?.kind === 'button') { togglePlay(); t.grab = { kind: 'button' }; }
-    if (under?.kind === 'arm') { t.grab = under; setLevel(under.arm, under.level); }
+    // The middle acts on release, so a long press can mean "loop" instead.
+    if (under?.kind === 'button') {
+      const grab = t.grab = { kind: 'button' };
+      setTimeout(() => { if (t.grab === grab && t.pressed) { grab.looped = true; toggleLoop(); } }, HOLD);
+    }
+    else if (under?.kind === 'arm') { t.grab = under; setStrip(under.arm, under.level); }
+    else if (under) activate(under);
     if (t.hand) tick(under ? 'grab' : 'miss');
   } else if (pressed && t.grab?.kind === 'arm') {
-    setLevel(t.grab.arm, levelOnArm(t.grab.arm, t.x, t.z));
+    setStrip(t.grab.arm, levelOnArm(t.grab.arm, t.x, t.z));
   }
-  if (!pressed && t.pressed && t.hand) tick('let go');
+  if (!pressed && t.pressed) {
+    if (t.grab?.kind === 'button' && !t.grab.looped) togglePlay();
+    if (t.hand) tick('let go');
+  }
   if (!pressed) t.grab = null;
   t.pressed = pressed;
 }
+
+// One-shot controls: the middle, the keys, and the solo spots.
+function activate(under) {
+  if (under.kind === 'button') togglePlay();
+  if (under.kind === 'solo') toggleSolo(under.arm);
+  if (under.kind === 'key') pressKey(under.name);
+}
+
+const HOLD = 500;   // ms: holding the middle this long loops instead of play/pause
+let fxMode = false;
+const EFFECT_NAMES = ['Echo', 'Gate', 'Speed', 'Feedback'];
+
+function pressKey(name) {
+  if (name === 'fx') {
+    fxMode = !fxMode;
+    document.body.classList.toggle('fx', fxMode);
+    say(fxMode ? 'Effects: the strips are now echo, gate, speed and feedback. Press FX again to go back.' : 'Back to the layers.');
+  }
+  if (name === 'loop') toggleLoop();
+  if (name === 'up' || name === 'down') {
+    engine.setVolume(engine.volumeLevel + (name === 'up' ? 0.1 : -0.1));
+    say(`Volume ${Math.round(engine.volumeLevel * 100)}%`, 1500);
+  }
+}
+
+function toggleLoop() {
+  if (!engine.loaded) return;
+  const on = engine.toggleLoop();
+  say(on ? 'Looping these two seconds. Press LOOP to let go.' : 'Loop off.', 2500);
+}
+
+function toggleSolo(i) {
+  engine.toggleSolo(i);
+  const soloed = STEMS.filter((_, k) => engine.solo[k]);
+  say(soloed.length ? `Solo: ${soloed.join(', ')}` : 'Solo off: every layer back.', 2000);
+}
+
+// A strip means a volume, or in effects mode an effect's amount.
+function setStrip(i, value) {
+  if (fxMode) {
+    const step = v => Math.round(v * LIGHTS);
+    if (step(value) !== step(engine.fx[EFFECTS[i]]) && handHolds(i)) tick('detent');
+    engine.setFx(EFFECTS[i], value);
+  } else setLevel(i, value);
+}
+
+const handHolds = i => [...touches.values()].some(t => t.hand && t.grab?.arm === i);
 
 function release(id) {
   const t = touches.get(id);
@@ -199,7 +261,7 @@ canvas.addEventListener('pointerleave', e => { if (!e.buttons) release('p' + e.p
 const LIGHTS = 6;
 function setLevel(i, value) {
   const step = v => Math.round(v * LIGHTS);
-  if (step(value) !== step(engine.levels[i]) && [...touches.values()].some(t => t.hand && t.grab?.arm === i)) tick('detent');
+  if (step(value) !== step(engine.levels[i]) && handHolds(i)) tick('detent');
   engine.setLevel(i, value);
   sliders[i].value = Math.round(value * 100);
   sliders[i].setAttribute('aria-valuetext', `${Math.round(value * 100)} percent`);
@@ -226,8 +288,12 @@ playButton.addEventListener('click', togglePlay);
 addEventListener('keydown', e => {
   if (e.target.closest('input, button, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-  const n = Number(e.key);
-  if (n >= 1 && n <= 4) toggleMute(n - 1);
+  const n = /^Digit[1-4]$/.test(e.code) ? Number(e.code.slice(5)) - 1 : -1;
+  if (n >= 0) e.shiftKey ? toggleSolo(n) : toggleMute(n);
+  if (e.code === 'KeyF') pressKey('fx');
+  if (e.code === 'KeyL') toggleLoop();
+  if (e.key === '+' || e.key === '=') pressKey('up');
+  if (e.key === '-' || e.key === '_') pressKey('down');
 });
 
 // ---------------------------------------------------------------- hands
@@ -280,7 +346,8 @@ function onHands(hands) {
     const d = hovers.get(id) || { key: null, since: 0, x: 0, z: 0, held: false, done: null };
     hovers.set(id, d);
     const under = touchAt(h.x, h.z);
-    const key = under ? (under.kind === 'arm' ? under.arm : 'button') : null;
+    const key = !under ? null : under.kind === 'arm' ? under.arm
+      : under.kind === 'button' ? 'button' : `${under.kind}:${under.name ?? under.arm}`;
     let progress = 0;
 
     if (d.held) {
@@ -294,7 +361,7 @@ function onHands(hands) {
         Object.assign(d, { key, since: time, x: h.x, z: h.z });
       } else {
         progress = Math.min(1, (time - d.since) / DWELL);
-        if (progress === 1 && key === 'button') { togglePlay(); tick('grab'); d.done = 'button'; d.key = null; }
+        if (progress === 1 && under.kind !== 'arm') { activate(under); tick('grab'); d.done = key; d.key = null; }
         else if (progress === 1) d.held = true;
       }
     }
@@ -306,7 +373,7 @@ function onHands(hands) {
   handIds = now;
   const held = [...touches.values()].find(t => t.hand && t.grab?.kind === 'arm');
   const state = !hands.length ? ['lost', 'No hand yet. Hold one up to the camera']
-    : held ? ['held', `Holding ${['vocals', 'drums', 'bass', 'other'][held.grab.arm]}. Slide along it, move off to let go`]
+    : held ? ['held', `Holding ${(fxMode ? EFFECTS : STEMS)[held.grab.arm]}. Slide along it, move off to let go`]
     : ['found', 'Hand found. Hold still over a strip to take it'];
   cam.dataset.state = state[0];
   $('#cam-status').textContent = state[1];
@@ -344,6 +411,12 @@ function frame() {
     loaded: engine.loaded,
     focus,
     buttonFocus: list.some(t => touchAt(t.x, t.z)?.kind === 'button'),
+    keyFocus: list.map(t => touchAt(t.x, t.z)).find(u => u?.kind === 'key')?.name,
+    soloFocus: list.map(t => touchAt(t.x, t.z)).find(u => u?.kind === 'solo')?.arm ?? -1,
+    fxMode,
+    fx: EFFECTS.map(name => engine.fx[name]),
+    solo: engine.solo,
+    loop: engine.loopAt !== null,
     separating: !!separating && song === separating,
     touches: list.slice(0, 3),
     lean: lead && Math.hypot(lead.x, lead.z) < 1.15 ? { x: lead.x, z: lead.z, pressed: !!pressed } : null,
@@ -359,12 +432,16 @@ function frame() {
     el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
     el.classList.toggle('focus', focus === i);
     el.classList.toggle('muted', engine.levels[i] < 0.02);
-    el.querySelector('.pct').textContent = Math.round(engine.levels[i] * 100);
+    const value = fxMode ? engine.fx[EFFECTS[i]] : engine.levels[i];
+    el.querySelector('.name').textContent = fxMode ? EFFECT_NAMES[i] : STEMS[i][0].toUpperCase() + STEMS[i].slice(1);
+    el.querySelector('.pct').textContent = fxMode && i === 2 ? `${(engine.rate).toFixed(2)}×` : Math.round(value * 100);
+    el.classList.toggle('solo', engine.solo[i]);
+    el.classList.toggle('silenced', !fxMode && engine.solo.some(Boolean) && !engine.solo[i]);
   });
 
   if (engine.loaded) $('#time').textContent = `${clock(engine.position)} / ${clock(engine.duration)}`;
   canvas.style.cursor = list.some(t => touchAt(t.x, t.z)) ? 'pointer' : 'default';
 }
 
-loadDemo().then(() => say('Press the middle to play. Drag along a strip to turn a layer up or down.', 6000));
+loadDemo().then(() => say('Press the middle to play, or hold it to loop. Drag along a strip to turn a layer up or down; its far end solos it.', 7000));
 requestAnimationFrame(frame);

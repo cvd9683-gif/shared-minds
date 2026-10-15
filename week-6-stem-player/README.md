@@ -33,7 +33,19 @@ webcam and do the same in the air.
 - **The object.** The disc tilts a little toward whatever is touching it and dips when you
   press, and a ring round the middle button fills as the song plays.
 
-Keys: Space plays and pauses, 1–4 mute and unmute a layer.
+## Controls, after the Stem Player
+
+| On the disc | What it does | Key |
+| --- | --- | --- |
+| Slide a strip | That layer's volume | 1–4 mute and unmute |
+| The ring at a strip's end | Solo that layer; solo several to hear only those | Shift + 1–4 |
+| Tap the middle | Play or pause | Space |
+| Hold the middle | Loop the next two seconds | L |
+| LOOP | Loop the next two seconds, or let the loop go | L |
+| FX | Effects mode: the strips become echo, gate, speed and feedback; press again to go back | F |
+| − and + | Volume | − and + |
+
+Hands do all of it by hovering: hold still over a strip, a key or a strip's end.
 
 ## Files
 

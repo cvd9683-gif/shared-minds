@@ -16,6 +16,11 @@ export const ARM_ANGLES = [90, 0, 270, 180];   // vocals up, drums right, bass d
 export const COLORS = ['#ffd3a1', '#ff9478', '#8eaeff', '#a4ecbf'];
 const BODY = '#b89c84';
 const BACKGROUND = '#15120f';
+const WHITE = new THREE.Color('#fff4e8');
+const INK_IDLE = new THREE.Color('#6b5444');
+const INK_FOCUS = new THREE.Color('#2e2018');
+const LIT = new THREE.Color('#ffd3a1').multiplyScalar(2.2);
+const INK = new THREE.Color();
 
 const R = 1;            // disc radius
 const H = 0.13;         // height of the top face at the edge of its flat part
@@ -38,14 +43,35 @@ function surfaceY(r) {
   return H * Math.sqrt(Math.max(0, 1 - d * d));
 }
 
-// What is under a point on the disc: the button, a strip (and the level that spot means), or nothing.
+// Four small keys in the quarters between the strips, like the Stem Player's side buttons:
+// effects mode, instant loop, and volume down and up.
+export const KEYS = [
+  { name: 'fx', angle: 45, label: 'FX' },
+  { name: 'loop', angle: 135, label: 'LOOP' },
+  { name: 'down', angle: 225, label: '−' },
+  { name: 'up', angle: 315, label: '+' },
+];
+const KEY_R = 0.62;
+const KEY_SIZE = 0.075;
+const TIP = R1 + 0.09;   // the solo spot at the outer end of each strip
+for (const k of KEYS) {
+  const t = THREE.MathUtils.degToRad(k.angle);
+  k.x = Math.cos(t) * KEY_R;
+  k.z = -Math.sin(t) * KEY_R;
+}
+
+// What is under a point on the disc: the button, a key, a strip's solo spot, a strip (and the
+// level that spot means), or nothing.
 export function touchAt(x, z) {
   const r = Math.hypot(x, z);
   if (r < BUTTON + 0.04) return { kind: 'button' };
+  const key = KEYS.find(k => Math.hypot(x - k.x, z - k.z) < KEY_SIZE + 0.035);
+  if (key) return { kind: 'key', name: key.name };
   for (let i = 0; i < 4; i++) {
     const along = x * dirs[i].x + z * dirs[i].z;
     const across = Math.abs(x * dirs[i].z - z * dirs[i].x);
-    if (along > R0 - 0.1 && along < R1 + 0.12 && across < 0.1) {
+    if (along >= R1 + 0.03 && along < R1 + 0.16 && across < 0.09) return { kind: 'solo', arm: i };
+    if (along > R0 - 0.1 && along < R1 + 0.03 && across < 0.1) {
       return { kind: 'arm', arm: i, level: levelOnArm(i, x, z) };
     }
   }
@@ -164,6 +190,32 @@ export function createDisc(container) {
     return { mesh: led, mat, base: new THREE.Color(COLORS[i]), shown: 0 };
   }));
 
+  // The keys: small domes, each with its name lit on top.
+  const keyGeo = new THREE.LatheGeometry([
+    new THREE.Vector2(KEY_SIZE, -0.01), new THREE.Vector2(KEY_SIZE, 0.006),
+    new THREE.Vector2(KEY_SIZE * 0.9, 0.018), new THREE.Vector2(KEY_SIZE * 0.5, 0.026), new THREE.Vector2(0, 0.028),
+  ], 40);
+  const keys = KEYS.map(k => {
+    const mesh = new THREE.Mesh(keyGeo, buttonMat.clone());
+    const y = surfaceY(KEY_R) - 0.004;
+    mesh.position.set(k.x, y, k.z);
+    const labelMat = new THREE.MeshBasicMaterial({ map: textTexture(k.label), transparent: true, depthWrite: false });
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(KEY_SIZE * 1.6, KEY_SIZE * 0.8).rotateX(-Math.PI / 2), labelMat);
+    label.position.set(k.x, y + 0.03, k.z);
+    disc.add(mesh, label);
+    return { ...k, mesh, labelMat, shown: 0.6 };
+  });
+
+  // The solo spot at the end of each strip: a small ring, lit in the strip's colour when soloed.
+  const soloShape = new THREE.RingGeometry(0.026, 0.036, 32).rotateX(-Math.PI / 2);
+  const solos = dirs.map((d, i) => {
+    const mat = new THREE.MeshBasicMaterial({ color: '#fff4e8', transparent: true, depthWrite: false, opacity: 0.35 });
+    const mesh = new THREE.Mesh(soloShape, mat);
+    mesh.position.set(d.x * TIP, surfaceY(TIP) + 0.002, d.z * TIP);
+    disc.add(mesh);
+    return { mat, base: new THREE.Color(COLORS[i]), shown: 0 };
+  });
+
   // Where a finger or a hand is: a ring that closes as the fingers close, and a patch of light
   // when it touches. So you can see a hand being found, getting ready, and taking hold.
   const glowTex = radialTexture([[0, 'rgba(255,255,255,1)'], [0.35, 'rgba(255,255,255,0.35)'], [1, 'rgba(255,255,255,0)']]);
@@ -254,8 +306,10 @@ export function createDisc(container) {
 
     // Lights. Each LED fills as the level passes it; lit ones pulse with the music;
     // unlit ones keep a faint breath of their layer so you can tell it is still there.
+    // In effects mode the strips show the effect amounts, in white, so the change of meaning shows.
+    const anySolo = state.solo.some(Boolean);
     leds.forEach((row, i) => {
-      const level = state.levels[i];
+      const level = state.fxMode ? state.fx[i] : state.levels[i];
       const meter = state.loaded ? state.meters[i] : 0.5 + 0.5 * Math.sin(now / 900 + i * 1.3);
       row.forEach((led, k) => {
         const lit = THREE.MathUtils.clamp(level * LEDS - k, 0, 1);
@@ -265,14 +319,31 @@ export function createDisc(container) {
         if (state.focus === i) want += 0.12;
         // While true stems are being found, a slow wave of light runs out along every strip.
         if (state.separating) want += 0.45 * Math.max(0, Math.sin(now / 420 - k * 0.7 - i * 0.9)) ** 6;
+        if (!state.fxMode && anySolo && !state.solo[i]) want *= 0.22;
         led.shown += (want - led.shown) * ease(state.playing ? 30 : 10);
-        led.mat.color.copy(led.base).multiplyScalar(led.shown);
+        led.mat.color.copy(state.fxMode ? WHITE : led.base).multiplyScalar(led.shown);
       });
     });
 
     const progress = state.loaded ? state.progress : 0;
     ringGeo.setDrawRange(0, Math.floor(progress * 96) * 6);
     ringMat.opacity = state.playing ? 0.95 : 0.4;
+    ringMat.color.set(state.loop ? '#ffc98f' : '#fff4e8');
+
+    // Key names read like printing on the body; a key that is on lights up instead.
+    keys.forEach(k => {
+      const on = (k.name === 'fx' && state.fxMode) || (k.name === 'loop' && state.loop);
+      const want = on ? 1 : 0;
+      k.shown += (want - k.shown) * ease(12);
+      INK.copy(state.keyFocus === k.name ? INK_FOCUS : INK_IDLE).lerp(LIT, k.shown);
+      k.labelMat.color.copy(INK);
+    });
+    solos.forEach((s, i) => {
+      const want = state.solo[i] ? 1.8 : state.soloFocus === i ? 0.9 : 0.35;
+      s.shown += (want - s.shown) * ease(12);
+      s.mat.color.copy(state.solo[i] ? s.base : WHITE).multiplyScalar(s.shown);
+      s.mat.opacity = Math.min(1, s.shown);
+    });
     buttonMat.emissive.set(state.playing ? '#2a1d12' : '#000000');
     playGlyph.visible = !state.playing;
     pauseGlyph.visible = state.playing;
@@ -295,7 +366,9 @@ export function createDisc(container) {
     disc.position.y = -0.012 * lean.press;
 
     cursors.forEach((c, k) => {
-      const t = state.touches[k];
+      let t = state.touches[k];
+      // A mouse off the disc needs no mark; the pointer is enough.
+      if (t && !t.hand && Math.hypot(t.x, t.z) > R * 1.02) t = null;
       const wantOpacity = t ? (t.pressed ? 0.55 : 0.12) : 0;
       // The ring: wide and faint when a hand is just found, tighter as the pinch closes, gone into
       // a bright point on touch. A mouse gets a fainter ring, since the pointer already shows.
@@ -360,6 +433,21 @@ function paintGrooves() {
   color.anisotropy = 4;
   const bump = new THREE.CanvasTexture(make('#ffffff', '#000000', 22));
   return { color, bump };
+}
+
+function textTexture(text) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 64;
+  const g = canvas.getContext('2d');
+  g.fillStyle = '#ffffff';
+  g.font = `700 ${text.length > 2 ? 34 : 52}px "Bricolage Grotesque", system-ui, sans-serif`;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(text, 64, 34);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
 }
 
 function radialTexture(stops) {

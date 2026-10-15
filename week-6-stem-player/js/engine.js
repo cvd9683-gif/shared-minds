@@ -7,8 +7,14 @@
 //
 // Each layer has a meter that listens *before* its volume, so a layer you have turned
 // all the way down can still show that it is there.
+//
+// Like the Stem Player, it can also solo layers, loop a moment, change speed, and run the
+// whole mix through three effects: echo, feedback and gate.
 
 export const STEMS = ['vocals', 'drums', 'bass', 'other'];
+// In effects mode the four strips control these instead of the layers' volumes.
+export const EFFECTS = ['echo', 'gate', 'speed', 'feedback'];
+const LOOP = 2;     // seconds held by an instant loop
 
 const LOW = 160;    // Hz: below this is "bass"
 const HIGH = 5000;  // Hz: above this is "drums" (cymbals, hats, the crack of a snare)
@@ -17,8 +23,26 @@ const EASE = 0.06;  // seconds: how quickly a volume change settles, so moves fe
 export class StemEngine {
   constructor() {
     this.ctx = new AudioContext();
-    this.master = this.ctx.createGain();
-    this.master.connect(this.ctx.destination);
+    // layers → mix → gate → volume → speakers, with echo and feedback sent off the gate.
+    const ctx = this.ctx;
+    this.master = ctx.createGain();
+    this.gate = new GainNode(ctx, { gain: 1 });
+    this.volume = new GainNode(ctx, { gain: 0.9 });
+    this.master.connect(this.gate).connect(this.volume).connect(ctx.destination);
+    // Gate: a square wave chops the sound on and off, eight times a second.
+    this.gateLfo = new OscillatorNode(ctx, { type: 'square', frequency: 8 });
+    this.gateDepth = new GainNode(ctx, { gain: 0 });
+    this.gateLfo.connect(this.gateDepth).connect(this.gate.gain);
+    this.gateLfo.start();
+    // Echo: a dotted-eighth-ish repeat that fades.
+    this.echo = this.sendLoop(0.33, 0.45);
+    // Feedback: a very short repeat fed back on itself, a metallic ring.
+    this.feedback = this.sendLoop(0.011, 0.86);
+    this.fx = { echo: 0, gate: 0, speed: 0.5, feedback: 0 };
+    this.volumeLevel = 0.9;
+    this.solo = STEMS.map(() => false);
+    this.rate = 1;
+    this.loopAt = null;   // start of the instant loop, in song seconds, or null
     this.channels = STEMS.map(() => {
       const tap = this.ctx.createGain();
       const gain = this.ctx.createGain();
@@ -37,6 +61,15 @@ export class StemEngine {
     this.startedAt = 0;
     this.duration = 0;
     this.mode = null;   // 'carved' | 'stems'
+  }
+
+  sendLoop(time, feedback) {
+    const delay = new DelayNode(this.ctx, { delayTime: time, maxDelayTime: 1 });
+    const back = new GainNode(this.ctx, { gain: feedback });
+    const wet = new GainNode(this.ctx, { gain: 0 });
+    this.gate.connect(delay).connect(back).connect(delay);
+    delay.connect(wet).connect(this.volume);
+    return wet;
   }
 
   async decode(arrayBuffer) {
@@ -70,9 +103,19 @@ export class StemEngine {
 
   get loaded() { return this.tracks.length > 0; }
 
+  // Where the song is, in seconds: speed changes how fast it moves, and a loop folds it back.
   get position() {
     if (!this.playing) return this.offset;
-    return Math.max(0, this.ctx.currentTime - this.startedAt) % this.duration;
+    const raw = this.startedAt + Math.max(0, this.ctx.currentTime - this.anchorTime) * this.rate;
+    if (this.loopAt !== null && raw >= this.loopAt) return this.loopAt + (raw - this.loopAt) % LOOP;
+    return raw % this.duration;
+  }
+
+  // Re-anchor the clock at the current moment, before changing speed or loop.
+  rebase() {
+    if (!this.playing) return;
+    this.startedAt = this.position;
+    this.anchorTime = this.ctx.currentTime;
   }
 
   play() {
@@ -84,11 +127,14 @@ export class StemEngine {
       const src = this.ctx.createBufferSource();
       src.buffer = buffer;
       src.loop = true;
+      src.playbackRate.value = this.rate;
+      if (this.loopAt !== null) { src.loopStart = this.loopAt; src.loopEnd = this.loopAt + LOOP; }
       src.connect(entry);
       src.start(when, this.offset % buffer.duration);
       return src;
     });
-    this.startedAt = when - this.offset;
+    this.startedAt = this.offset;
+    this.anchorTime = when;
     this.playing = true;
   }
 
@@ -110,8 +156,58 @@ export class StemEngine {
 
   setLevel(i, value) {
     this.levels[i] = value;
-    // Squared, because loudness is heard roughly that way: halfway up sounds like halfway.
-    this.channels[i].gain.gain.setTargetAtTime(value * value, this.ctx.currentTime, EASE);
+    this.applyGain(i);
+  }
+
+  // Squared, because loudness is heard roughly that way: halfway up sounds like halfway.
+  // While any layer is soloed, the others fall silent but keep their levels.
+  applyGain(i) {
+    const silenced = this.solo.some(Boolean) && !this.solo[i];
+    const value = silenced ? 0 : this.levels[i] * this.levels[i];
+    this.channels[i].gain.gain.setTargetAtTime(value, this.ctx.currentTime, EASE);
+  }
+
+  toggleSolo(i) {
+    this.solo[i] = !this.solo[i];
+    STEMS.forEach((_, k) => this.applyGain(k));
+  }
+
+  setVolume(value) {
+    this.volumeLevel = Math.min(1, Math.max(0, value));
+    this.volume.gain.setTargetAtTime(this.volumeLevel ** 2, this.ctx.currentTime, EASE);
+  }
+
+  // Instant loop: hold the next two seconds and keep playing them round.
+  toggleLoop() {
+    if (!this.loaded) return false;
+    this.rebase();
+    if (this.loopAt === null) this.loopAt = Math.min(this.position, this.duration - LOOP);
+    else this.loopAt = null;
+    for (const src of this.sources) {
+      src.loopStart = this.loopAt ?? 0;
+      src.loopEnd = this.loopAt === null ? 0 : this.loopAt + LOOP;
+    }
+    return this.loopAt !== null;
+  }
+
+  // value 0..1 for each effect. Speed runs from half to one and a half times, and settles
+  // on exactly normal around the middle so it is easy to find again.
+  setFx(name, value) {
+    this.fx[name] = value;
+    const now = this.ctx.currentTime;
+    if (name === 'echo') this.echo.gain.setTargetAtTime(value * 0.8, now, EASE);
+    if (name === 'feedback') this.feedback.gain.setTargetAtTime(value * 0.5, now, EASE);
+    if (name === 'gate') {
+      this.gate.gain.setTargetAtTime(1 - value / 2, now, EASE);
+      this.gateDepth.gain.setTargetAtTime(value / 2, now, EASE);
+    }
+    if (name === 'speed') {
+      let rate = 0.5 + value;
+      if (Math.abs(rate - 1) < 0.05) rate = 1;
+      this.rebase();
+      this.rate = rate;
+      for (const src of this.sources) src.playbackRate.setTargetAtTime(rate, now, 0.02);
+    }
   }
 
   // 0..1: how much is happening in a layer right now, whatever its volume.
@@ -136,6 +232,7 @@ export class StemEngine {
     this.stopSources();
     this.playing = false;
     this.offset = 0;
+    this.loopAt = null;
     for (const n of this.nodes) n.disconnect();
     this.nodes = [];
     for (const c of this.channels) c.peak = 0.05;
