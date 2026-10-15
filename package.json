@@ -2,8 +2,5 @@
   "name": "shared-minds",
   "private": true,
   "type": "module",
-  "description": "Class site: static pages, plus Vercel functions: api/genius.js (Music Map) and api/stems.js (Stem Player).",
-  "dependencies": {
-    "@vercel/blob": "2.8.0"
-  }
+  "description": "Class site: static pages, plus api/genius.js (a Vercel function used by Music Map)."
 }
