@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stem Player</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<div id="stage" aria-hidden="true"></div>
+
+<div class="labels" aria-hidden="true">
+  <span class="label" style="--c:#ffd3a1"><i></i>Vocals <span class="pct">100</span></span>
+  <span class="label" style="--c:#ff9478"><i></i>Drums <span class="pct">100</span></span>
+  <span class="label" style="--c:#8eaeff"><i></i>Bass <span class="pct">100</span></span>
+  <span class="label" style="--c:#a4ecbf"><i></i>Other <span class="pct">100</span></span>
+</div>
+
+<header class="top">
+  <h1>Stem Player</h1>
+  <p id="status" role="status">Loading…</p>
+</header>
+
+<p id="hint" role="status" aria-live="polite"></p>
+
+<div class="drop" aria-hidden="true"><p>Drop a song to hold it in your hand<br><small>or four stems, named vocals, drums, bass and other</small></p></div>
+
+<footer class="bar">
+  <button id="play" type="button" aria-pressed="false">Play</button>
+  <span id="time">0:00 / 0:00</span>
+  <span class="spacer"></span>
+  <label class="btn" for="file">Load a song</label>
+  <input id="file" type="file" accept="audio/*" multiple class="sr-only">
+  <button id="hands" type="button" aria-pressed="false">Use hands</button>
+</footer>
+
+<aside id="cam" hidden>
+  <video id="video" playsinline muted></video>
+  <canvas id="preview" width="320" height="240"></canvas>
+  <p id="cam-status"></p>
+</aside>
+
+<fieldset class="levels sr-only">
+  <legend>Layer volumes (keys 1 to 4 mute and unmute)</legend>
+  <label>Vocals <input type="range" min="0" max="100" value="100"></label>
+  <label>Drums <input type="range" min="0" max="100" value="100"></label>
+  <label>Bass <input type="range" min="0" max="100" value="100"></label>
+  <label>Other <input type="range" min="0" max="100" value="100"></label>
+</fieldset>
+
+</body>
+</html>
