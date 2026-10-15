@@ -261,10 +261,24 @@ export function createDisc(container) {
     // Keep the whole disc in view, and comfortably large, whatever the window's shape.
     const fit = w / h < 1 ? 1 / (w / h) : 1;
     // Low enough to see the disc's edge and the button standing up from it, so it reads as an object.
-    const dist = 4.7 * Math.max(1, fit * 0.9);
-    camera.position.set(0, dist * 0.68, dist * 0.73);
-    camera.lookAt(0, 0, 0);
+    baseDist = 4.7 * Math.max(1, fit * 0.9);
+    aspect = w / h;
+    placeCamera();
     camera.updateProjectionMatrix();
+  }
+
+  // The entry screen: the disc further off and higher in the frame, turning slowly in the dark.
+  // Leaving it, the disc comes forward to where it can be held.
+  // On a wide screen it sits to the right of the words; on a tall one, above them.
+  let baseDist = 4.7, aspect = 1.6;
+  let intro = 1, introTarget = 1;
+  function placeCamera() {
+    const dist = baseDist * (1 + 0.5 * intro);
+    const wide = aspect > 1.2;
+    const x = wide ? -0.75 * intro : 0;
+    const z = (wide ? 0.3 : 1.15) * intro * (baseDist / 4.7);
+    camera.position.set(x, dist * 0.68, dist * 0.73);
+    camera.lookAt(x, 0, z);
   }
   new ResizeObserver(resize).observe(container);
   resize();
@@ -376,6 +390,9 @@ export function createDisc(container) {
     const sway = calm ? 0 : 1;
     disc.rotation.x = lean.z * tilt + sway * 0.03 * Math.sin(now / 2600);
     disc.rotation.z = -lean.x * tilt + sway * 0.025 * Math.sin(now / 3400 + 1);
+    intro += (introTarget - intro) * ease(introTarget ? 6 : 2.4);
+    disc.rotation.y = sway * intro * 0.55 * Math.sin(now / 3200);
+    placeCamera();
     disc.position.y = -0.012 * lean.press;
 
     cursors.forEach((c, k) => {
@@ -410,7 +427,8 @@ export function createDisc(container) {
     composer.render();
   }
 
-  return { render, toDisc, labelAt, canvas: renderer.domElement };
+  const setIntro = on => { introTarget = on ? 1 : 0; };
+  return { render, toDisc, labelAt, setIntro, canvas: renderer.domElement };
 }
 
 // The grooves the strips sit in, painted onto the top face: a colour map (slightly darker

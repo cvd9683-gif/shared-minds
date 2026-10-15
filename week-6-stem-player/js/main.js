@@ -27,7 +27,8 @@ async function loadDemo() {
 
 async function loadFiles(fileList) {
   const files = [...fileList].filter(f => f.type.startsWith('audio/') || /\.(mp3|wav|m4a|aac|ogg|flac|aiff?)$/i.test(f.name));
-  if (!files.length) return say('That doesn’t look like an audio file.');
+  if (!files.length) return inIntro() ? introNote('That doesn’t look like an audio file.') : say('That doesn’t look like an audio file.');
+  if (inIntro()) introNote('Reading the song…');
   const wasPlaying = engine.playing;
   engine.pause();
   try {
@@ -46,9 +47,11 @@ async function loadFiles(fileList) {
   } catch (err) {
     console.error(err);
     loaded();
+    if (inIntro()) return introNote('Couldn’t read that file. Try an MP3 or WAV.');
     return say('Couldn’t read that file. Try an MP3 or WAV.');
   }
   loaded();
+  if (inIntro()) return enter();
   if (wasPlaying) engine.play();
   say(engine.mode === 'carved'
     ? 'Split by sound, not by instrument: each strip is a slice of the mix.'
@@ -374,7 +377,7 @@ function togglePlay() {
 playButton.addEventListener('click', togglePlay);
 
 addEventListener('keydown', e => {
-  if (e.target.closest('input, button, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest('input, button, select, textarea') || e.metaKey || e.ctrlKey || e.altKey || inIntro()) return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   const n = /^Digit[1-4]$/.test(e.code) ? Number(e.code.slice(5)) - 1 : -1;
   if (n >= 0) e.shiftKey ? toggleSolo(n) : toggleMute(n);
@@ -555,5 +558,32 @@ function frame() {
   canvas.style.cursor = list.some(t => touchAt(t.x, t.z)) ? 'pointer' : 'default';
 }
 
-loadDemo().then(() => say('Press the middle to play, or hold it to loop. Drag along a strip to turn a layer up or down; its far end solos it.', 7000));
+// ---------------------------------------------------------------- the way in
+//
+// The entry screen: the disc turning slowly in the dark, a few lines, and two ways in.
+// Going in, the disc comes forward, light runs out along its strips with a chime, and it plays.
+
+const demoReady = loadDemo();
+const inIntro = () => document.body.classList.contains('intro');
+const introNote = (text, error = true) => {
+  const note = $('#intro-note');
+  note.textContent = text;
+  note.classList.toggle('error', error && !/^Reading/.test(text));
+};
+
+async function enter() {
+  if (!inIntro()) return;
+  document.body.classList.remove('intro');
+  disc.setIntro(false);
+  engine.ctx.resume();
+  setTimeout(() => { stemsArrived = performance.now(); chime(); }, 450);
+  setTimeout(() => { if (!engine.playing) togglePlay(); }, 900);
+  setTimeout(() => say('Drag along a strip to turn a layer up or down; its far end solos it. Tap the middle to pause, hold LOOP to catch a loop.', 8000), 1300);
+}
+
+$('#intro-demo').addEventListener('click', async () => { await demoReady; enter(); });
+$('#intro-song').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#file').click(); }
+});
+$('#intro-demo').focus({ preventScroll: true });
 requestAnimationFrame(frame);
