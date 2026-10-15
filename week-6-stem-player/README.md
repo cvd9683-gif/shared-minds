@@ -40,6 +40,7 @@ webcam and do the same in the air.
 | Slide a strip | That layer's volume | 1–4 mute and unmute |
 | The ring at a strip's end | Solo that layer; solo several to hear only those | Shift + 1–4 |
 | Tap the middle | Play or pause | Space |
+| Drag round the ring around the middle | Move through the song, like a jog wheel; the timeline in the bar does the same | ← and → (5 s), with Shift 15 s |
 | Hold the middle | Catch a loop: it runs from where you pressed to where you let go | Hold L |
 | Hold LOOP | The same; LOOP blinks while the loop plays, and pressing it again stops it | Hold L |
 | FX | Effects mode: the strips become echo, gate, speed and feedback; press again to go back | F |

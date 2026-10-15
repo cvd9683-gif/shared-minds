@@ -57,7 +57,7 @@
 <footer class="bar">
   <button id="play" type="button" aria-pressed="false">Play</button>
   <span id="time">0:00 / 0:00</span>
-  <span class="spacer"></span>
+  <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in the song">
   <button id="true-stems" type="button" hidden>Find true stems</button>
   <label class="btn" for="file">Load a song</label>
   <input id="file" type="file" accept="audio/*" multiple class="sr-only">
@@ -71,7 +71,7 @@
 </aside>
 
 <fieldset class="levels sr-only">
-  <legend>Layer volumes. Keys: 1 to 4 mute, Shift with 1 to 4 solos, F effects, R reset effects, hold L to catch a loop, plus and minus volume, Space play</legend>
+  <legend>Layer volumes. Keys: 1 to 4 mute, Shift with 1 to 4 solos, F effects, R reset effects, hold L to catch a loop, left and right arrows move through the song, plus and minus volume, Space play</legend>
   <label>Vocals <input type="range" min="0" max="100" value="100"></label>
   <label>Drums <input type="range" min="0" max="100" value="100"></label>
   <label>Bass <input type="range" min="0" max="100" value="100"></label>

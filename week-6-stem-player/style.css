@@ -67,6 +67,25 @@ body {
   padding: 16px 24px calc(16px + env(safe-area-inset-bottom));
 }
 .spacer { flex: 1; }
+
+/* The timeline: a thin line that fills as the song plays; drag anywhere on it to move. */
+#scrub {
+  flex: 1; min-width: 80px; height: 24px; margin: 0 6px;
+  -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
+  --p: 0%;
+}
+#scrub::-webkit-slider-runnable-track {
+  height: 3px; border-radius: 3px;
+  background: linear-gradient(to right, var(--ink) var(--p), rgba(242, 232, 222, 0.18) var(--p));
+}
+#scrub::-moz-range-track { height: 3px; border-radius: 3px; background: rgba(242, 232, 222, 0.18); }
+#scrub::-moz-range-progress { height: 3px; border-radius: 3px; background: var(--ink); }
+#scrub::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px; margin-top: -5px; border-radius: 50%;
+  background: var(--ink); border: none; transition: transform 0.12s;
+}
+#scrub::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--ink); border: none; }
+#scrub:hover::-webkit-slider-thumb, #scrub:active::-webkit-slider-thumb { transform: scale(1.25); }
 #time { font: 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
 button, .btn {
@@ -168,6 +187,10 @@ body.intro .top, body.intro .bar, body.intro .labels, body.intro #hint, body.int
   .top { padding: 16px; }
   .bar { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); gap: 8px; }
   #time { display: none; }
+  .bar { flex-wrap: wrap; }
+  #scrub { order: -1; flex-basis: 100%; margin: 0 0 4px; }
+  #hint { bottom: 112px; }
+  #cam { bottom: 112px; }
   #cam { right: 16px; bottom: 64px; width: 140px; }
 }
 

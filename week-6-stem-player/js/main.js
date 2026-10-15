@@ -1,5 +1,5 @@
 import { StemEngine, STEMS, EFFECTS, matchStemFiles } from './engine.js';
-import { createDisc, touchAt, levelOnArm, armDistance } from './disc.js';
+import { createDisc, touchAt, levelOnArm, armDistance, ringFraction, offRing } from './disc.js';
 import { renderDemo } from './demo.js';
 import { available, separate } from './separate.js';
 
@@ -207,10 +207,13 @@ function touch(id, point, pressed, extra) {
       startLoop();
     }
     else if (under?.kind === 'arm') { t.grab = under; setStrip(under.arm, under.level); }
+    else if (under?.kind === 'ring') { t.grab = under; seekTo(under.fraction * engine.duration); }
     else if (under) soon(() => activate(under));
     if (t.hand) tick(under ? 'grab' : 'miss');
   } else if (pressed && t.grab?.kind === 'arm') {
     setStrip(t.grab.arm, levelOnArm(t.grab.arm, t.x, t.z));
+  } else if (pressed && t.grab?.kind === 'ring') {
+    seekTo(ringFraction(t.x, t.z) * engine.duration);
   }
   if (!pressed && t.pressed) {
     if (t.grab?.kind === 'button' && !t.grab.looped) soon(pressMiddle);
@@ -264,6 +267,31 @@ function pressKey(name) {
     say(`Volume ${Math.round(engine.volumeLevel * 100)}%`, 1500);
   }
 }
+
+// ---------------------------------------------------------------- moving through the song
+//
+// Three ways: the timeline in the bar, the ring round the middle (drag round it like a jog
+// wheel, or hold it with a hand), and the arrow keys. Scrubbing restarts the audio at most
+// every 90 ms, so a quick drag sounds like a needle skipping across a record, not a stutter.
+
+const scrub = $('#scrub');
+let scrubbing = false;
+let seekTimer = null, seekWant = null;
+
+function seekTo(seconds) {
+  if (!engine.loaded) return;
+  seekWant = Math.max(0, Math.min(engine.duration - 0.05, seconds));
+  if (engine.loopAt !== null) { engine.clearLoop(); catching = null; }
+  if (seekTimer) return;
+  applySeek();
+  seekTimer = setTimeout(() => { seekTimer = null; if (seekWant !== null) applySeek(); }, 90);
+}
+function applySeek() { engine.seek(seekWant); seekWant = null; }
+
+scrub.addEventListener('pointerdown', () => { scrubbing = true; });
+addEventListener('pointerup', () => { scrubbing = false; });
+scrub.addEventListener('input', () => seekTo((scrub.value / 1000) * engine.duration));
+scrub.addEventListener('change', () => { scrubbing = false; });
 
 // Catching a loop: it starts where you press and ends where you let go. While a loop plays,
 // pressing again stops it.
@@ -384,6 +412,11 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyF') pressKey('fx');
   if (e.code === 'KeyL' && !e.repeat) startLoop();
   if (e.code === 'KeyR') resetFx();
+  if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+    e.preventDefault();
+    const step = (e.shiftKey ? 15 : 5) * (e.code === 'ArrowLeft' ? -1 : 1);
+    seekTo(engine.position + step);
+  }
   if (e.key === '+' || e.key === '=') pressKey('up');
   if (e.key === '-' || e.key === '_') pressKey('down');
 });
@@ -448,9 +481,12 @@ function onHands(hands) {
     let progress = 0;
 
     if (d.held) {
-      const arm = touches.get(id)?.grab?.arm;
+      const grab = touches.get(id)?.grab;
+      const arm = grab?.arm;
       const { along, across } = arm === undefined ? {} : armDistance(arm, h.x, h.z);
-      if (arm === undefined || across > LET_GO || along < 0.12) { d.held = false; d.done = key; }
+      const off = grab?.kind === 'ring' ? offRing(h.x, h.z)
+        : arm === undefined || across > LET_GO || along < 0.12;
+      if (off) { d.held = false; d.done = key; }
     } else if (key === null || key !== d.done) {
       d.done = null;
       if (key === null) d.key = null;
@@ -459,7 +495,7 @@ function onHands(hands) {
       } else {
         progress = Math.min(1, (time - d.since) / DWELL);
         if (progress === 1 && key === 'key:loop') { startLoop(); d.catching = !!catching; tick('grab'); d.done = key; d.key = null; }
-        else if (progress === 1 && under.kind !== 'arm') { activate(under); tick('grab'); d.done = key; d.key = null; }
+        else if (progress === 1 && under.kind !== 'arm' && under.kind !== 'ring') { activate(under); tick('grab'); d.done = key; d.key = null; }
         else if (progress === 1) d.held = true;
       }
     }
@@ -476,13 +512,15 @@ function onHands(hands) {
   // Say what each hand is doing, by side, so two hands can be told apart.
   const doing = hands.map(h => {
     const t = touches.get('h' + h.id);
-    const what = t?.grab?.kind === 'arm' ? `holding ${(fxMode ? EFFECTS : STEMS)[t.grab.arm]}` : 'free';
+    const what = t?.grab?.kind === 'arm' ? `holding ${(fxMode ? EFFECTS : STEMS)[t.grab.arm]}`
+      : t?.grab?.kind === 'ring' ? 'scrubbing' : 'free';
     return { side: h.side, held: what !== 'free', text: `${h.side === 'left' ? 'L' : 'R'}: ${what}` };
   }).sort((a, b) => (a.side === 'left' ? -1 : 1));
   const anyHeld = doing.some(d => d.held);
   cam.dataset.state = !hands.length ? 'lost' : anyHeld ? 'held' : 'found';
   $('#cam-status').textContent = !hands.length ? 'No hand yet. Hold one up to the camera'
     : hands.length === 1 && !anyHeld ? 'Hand found. Hold still over a strip to take it'
+    : hands.length === 1 && doing[0].text.endsWith('scrubbing') ? 'Scrubbing. Move round the ring; move away to let go'
     : hands.length === 1 ? `Holding ${doing[0].text.split('holding ')[1]}. Slide along it, move off to let go`
     : doing.map(d => d.text).join(' · ');
   if (hands.length === 2 && !twoHandsShown) {
@@ -523,6 +561,7 @@ function frame() {
     loaded: engine.loaded,
     focus,
     buttonFocus: list.some(t => touchAt(t.x, t.z)?.kind === 'button'),
+    ringFocus: list.some(t => t.grab?.kind === 'ring' || touchAt(t.x, t.z)?.kind === 'ring'),
     keyFocus: list.map(t => touchAt(t.x, t.z)).find(u => u?.kind === 'key')?.name,
     soloFocus: list.map(t => touchAt(t.x, t.z)).find(u => u?.kind === 'solo')?.arm ?? -1,
     fxMode,
@@ -554,7 +593,12 @@ function frame() {
     el.classList.toggle('silenced', !fxMode && engine.solo.some(Boolean) && !engine.solo[i]);
   });
 
-  if (engine.loaded) $('#time').textContent = `${clock(engine.position)} / ${clock(engine.duration)}`;
+  if (engine.loaded) {
+    $('#time').textContent = `${clock(engine.position)} / ${clock(engine.duration)}`;
+    if (!scrubbing) scrub.value = Math.round((engine.position / engine.duration) * 1000);
+    scrub.style.setProperty('--p', `${scrub.value / 10}%`);
+    scrub.setAttribute('aria-valuetext', `${clock(engine.position)} of ${clock(engine.duration)}`);
+  }
   canvas.style.cursor = list.some(t => touchAt(t.x, t.z)) ? 'pointer' : 'default';
 }
 
@@ -578,7 +622,7 @@ async function enter() {
   engine.ctx.resume();
   setTimeout(() => { stemsArrived = performance.now(); chime(); }, 450);
   setTimeout(() => { if (!engine.playing) togglePlay(); }, 900);
-  setTimeout(() => say('Drag along a strip to turn a layer up or down; its far end solos it. Tap the middle to pause, hold LOOP to catch a loop.', 8000), 1300);
+  setTimeout(() => say('Drag along a strip to turn a layer up or down; its far end solos it. Tap the middle to pause; drag round the ring around it to move through the song.', 8000), 1300);
 }
 
 $('#intro-demo').addEventListener('click', async () => { await demoReady; enter(); });

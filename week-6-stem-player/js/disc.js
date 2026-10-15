@@ -60,11 +60,24 @@ for (const k of KEYS) {
   k.z = -Math.sin(t) * KEY_R;
 }
 
+// The ring round the middle is also a scrub wheel: where you touch it is where in the song
+// you go, clockwise from the top, just as it fills while the song plays.
+const RING_IN = BUTTON + 0.005;
+const RING_OUT = BUTTON + 0.07;
+export function ringFraction(x, z) {
+  return (Math.atan2(x, -z) / (Math.PI * 2) + 1) % 1;
+}
+export function offRing(x, z) {
+  const r = Math.hypot(x, z);
+  return r < RING_IN - 0.08 || r > RING_OUT + 0.14;
+}
+
 // What is under a point on the disc: the button, a key, a strip's solo spot, a strip (and the
 // level that spot means), or nothing.
 export function touchAt(x, z) {
   const r = Math.hypot(x, z);
-  if (r < BUTTON + 0.04) return { kind: 'button' };
+  if (r < RING_IN) return { kind: 'button' };
+  if (r < RING_OUT) return { kind: 'ring', fraction: ringFraction(x, z) };
   const key = KEYS.find(k => Math.hypot(x - k.x, z - k.z) < KEY_SIZE + 0.035);
   if (key) return { kind: 'key', name: key.name };
   for (let i = 0; i < 4; i++) {
@@ -350,7 +363,8 @@ export function createDisc(container) {
     const finding = state.separation != null;
     const progress = finding ? state.separation : state.loaded ? state.progress : 0;
     ringGeo.setDrawRange(0, Math.floor(progress * 96) * 6);
-    ringMat.opacity = finding ? 0.75 + 0.25 * Math.sin(now / 300) : state.playing ? 0.95 : 0.4;
+    ringMat.opacity = finding ? 0.75 + 0.25 * Math.sin(now / 300) : state.ringFocus ? 1 : state.playing ? 0.95 : 0.4;
+    ring.scale.setScalar(state.ringFocus && !finding ? 1.06 : 1);
     ringMat.color.set(finding ? '#ffb877' : state.loop ? '#ffc98f' : '#fff4e8');
 
     // Key names read like printing on the body; a key that is on lights up instead.
