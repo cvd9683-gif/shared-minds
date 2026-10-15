@@ -82,7 +82,7 @@ trueButton.addEventListener('click', async () => {
   const steps = {
     checking: () => 'Looking for stems already made…',
     uploading: f => `Sending the song… ${Math.round(f * 100)}%`,
-    separating: () => `Separating by instrument… ${Math.round((Date.now() - started) / 1000)}s (usually 1–2 min)`,
+    separating: () => `Separating by instrument… ${Math.round((Date.now() - started) / 1000)}s (usually 3–6 min)`,
   };
   let phase = '';
   const tick = setInterval(() => { if (song === file && phase === 'separating') setStatus(steps.separating()); }, 1000);

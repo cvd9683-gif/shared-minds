@@ -46,7 +46,9 @@ Keys: Space plays and pauses, 1–4 mute and unmute a layer.
 ## True stems
 
 On the hosted site, an uploaded song gets a **Find true stems** button. It sends the song to
-Demucs on Replicate, which separates it by instrument in a minute or two, for a few cents.
+Demucs on Replicate, which separates it by instrument. It uses the fine-tuned model
+(`htdemucs_ft`), the cleanest Demucs offers, so it takes a few minutes and around 15–20 cents
+a song; set `DEMUCS_MODEL` to `htdemucs` in Vercel for about a quarter of the time and cost.
 The song keeps playing carved meanwhile, and a slow wave of light runs along the strips;
 when the stems arrive they take over at the same moment, at the same levels. Stems are kept,
 so a song you have already split comes back straight away and free.

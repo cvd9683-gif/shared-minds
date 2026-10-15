@@ -17,6 +17,7 @@
 //   REPLICATE_API_TOKEN     (required) from replicate.com/account/api-tokens
 //   BLOB_READ_WRITE_TOKEN   (required) added for you when you connect a Blob store
 //   REPLICATE_MODEL         (optional) defaults to ryan5453/demucs
+//   DEMUCS_MODEL            (optional) defaults to htdemucs_ft; htdemucs is ~4× faster, a little rougher
 //   ALLOWED_ORIGIN          (optional) limits which other sites may call it
 
 import { put, list, del } from '@vercel/blob';
@@ -25,6 +26,8 @@ import { handleUpload } from '@vercel/blob/client';
 export const config = { maxDuration: 60 };
 
 const MODEL = process.env.REPLICATE_MODEL || 'ryan5453/demucs';
+// The fine-tuned Demucs: the cleanest separation it offers, at about four times the time and cost.
+const DEMUCS = process.env.DEMUCS_MODEL || 'htdemucs_ft';
 const STEMS = ['vocals', 'drums', 'bass', 'other'];
 const HASH = /^[0-9a-f]{64}$/;
 const MAX_BYTES = 60 * 1024 * 1024;
@@ -94,7 +97,7 @@ async function savedStems(song) {
 async function separate(audio) {
   const prediction = await replicate('/predictions', {
     method: 'POST',
-    body: JSON.stringify({ version: await latestVersion(), input: { audio, output_format: 'mp3' } }),
+    body: JSON.stringify({ version: await latestVersion(), input: { audio, model: DEMUCS, output_format: 'mp3', mp3_bitrate: 320 } }),
   });
   return prediction.id;
 }
