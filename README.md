@@ -67,3 +67,15 @@ islands to leave each other plants. Finish a habit for a week and you grow somet
 
 **[Grow your island](week-5-my-dancing-trees/)**
 · [Source and write-up](week-5-my-dancing-trees/)
+
+---
+
+## Week 6 — Eyes Closed
+
+Close your eyes, then write down whatever was there. Each thought takes its place in a field
+arranged only by meaning, beside other thoughts, yours and other people's, that mean
+something close. **Eyes open** turns the same thoughts into a feed ordered by time, and every
+thread between them disappears.
+
+**[Close your eyes](week-6-eyes-closed/)**
+· [Source and write-up](week-6-eyes-closed/)
