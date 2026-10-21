@@ -108,9 +108,17 @@ sup { font-size: .62em; line-height: 0; }
 .of { margin-top: 6px; font-size: 14px; color: #8a9b82; }
 .seed { display: inline-block; margin-top: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #8a9b82; border-bottom: 1px dotted #5c8a5e; cursor: help; }
 .seed:hover, .seed:focus-visible, .seed[aria-expanded="true"] { color: #e0dcd4; }
-/* the explanation's space is always there, so showing it doesn't move the seed out from under the cursor */
-.why { margin-top: 6px; opacity: 0; font-size: 13px; line-height: 1.5; color: #a9a49a; transition: opacity .25s ease; }
-.seed:hover + .why, .seed:focus-visible + .why, .seed[aria-expanded="true"] + .why { opacity: 1; }
+/* the seed and the note, side by side; either one's explanation floats just under them, over the
+   thumbnails, so showing it moves nothing */
+.meta { position: relative; display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; }
+.meta .seed { margin-top: 0; }
+.why {
+  position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 2;
+  padding: 10px 12px; background: #0e1117; border: 1px solid #2a2f3a; border-radius: 4px;
+  font-size: 13px; line-height: 1.5; color: #c3bfb6;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.why.shown { opacity: 1; }
 .note { font-size: 14px; line-height: 1.5; color: #a9a49a; }
 .prompt { font-size: 16px; line-height: 1.45; font-style: italic; color: #c3bfb6; }
 .digits {
@@ -251,8 +259,11 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
     </div>
     <div>
       <p class="prompt" id="prompt"></p>
-      <button class="seed" id="seed" aria-describedby="seedWhy"></button>
-      <p class="why" id="seedWhy">Stable Diffusion starts every picture from random static. The seed is the number that picked which static; it then cleaned that static up toward the prompt. Same prompt and seed, same picture.</p>
+      <div class="meta">
+        <button class="seed" id="seed" aria-describedby="why"></button>
+        <button class="seed" id="note" aria-describedby="why"></button>
+        <p class="why" id="why" role="tooltip"></p>
+      </div>
     </div>
     <div class="near" id="near"></div>
     <div class="ways">
@@ -284,7 +295,7 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
     <div class="line" id="introLine"></div>
     <div style="text-align:center"><button class="enter" id="enter" hidden>Look closer</button></div>
   </div>
-  <div class="foot"><span id="introStep"></span><button class="link" id="skip">skip</button></div>
+  <div class="foot"><button class="link" id="prev" hidden>back</button><span id="introStep"></span><button class="link" id="skip">skip</button></div>
 </div>
 
 <script>
@@ -540,7 +551,9 @@ function open(c, via) {
   document.getElementById('digits').textContent = '';
   document.getElementById('prompt').textContent = `“${it.prompt.trim()}”`;
   document.getElementById('seed').textContent = `seed ${it.seed}`;
-  document.getElementById('seed').setAttribute('aria-expanded', 'false');
+  document.getElementById('note').textContent = `♪ ${sound.noteName(it)} · ${REGIONS[it.region]?.name ?? ''}`;
+  document.getElementById('note').dataset.id = it.id;
+  explain(null);
   document.getElementById('upBtn').hidden = !trail.length;
   const near = document.getElementById('near'); near.innerHTML = '';
   (it.nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
@@ -757,6 +770,8 @@ const sound = (() => {
   const SCALE = [0, 2, 4, 7, 9];
   // each region of the map has its own root note; within a region, where a picture sits picks a note of its scale
   const ROOTS = [0, 3, 5, 7, 10, 12, 15, 17];
+  const NAMES = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
+  const semitones = it => ROOTS[(it.region ?? Math.round(it.map[0] * 7)) % ROOTS.length] + SCALE[Math.round(it.map[1] * 4)];
   const pitchOf = it => {
     const root = ROOTS[(it.region ?? Math.round(it.map[0] * 7)) % ROOTS.length], step = Math.round(it.map[1] * 4);
     return 130.8 * Math.pow(2, (root + SCALE[step]) / 12);
@@ -806,6 +821,7 @@ const sound = (() => {
       });
     },
     close() {},
+    noteName(it) { return NAMES[semitones(it) % 12]; },
   };
 })();
 const soundBtn = document.getElementById('soundBtn');
@@ -843,20 +859,39 @@ function frame(now) {
    ================================================================ */
 const intro = document.getElementById('intro'), introLine = document.getElementById('introLine');
 let step = -1;
-function nextLine() {
-  if (step >= INTRO.length - 1) return;
-  step++;
+function nextLine() { if (step < INTRO.length - 1) showLine(step + 1); }
+function prevLine() { if (step > 0) showLine(step - 1); }
+function showLine(n) {
+  step = n;
   introLine.innerHTML = INTRO[step];
   introLine.style.animation = 'none'; void introLine.offsetWidth; introLine.style.animation = '';
   intro.classList.toggle('thin', step === 6);
   if (step === 6 && !sound.on) { sound.set(true); showSound(); }     // let them hear the static here
   document.getElementById('introStep').textContent = `${step + 1} / ${INTRO.length}`;
   document.getElementById('enter').hidden = step !== INTRO.length - 1;
+  document.getElementById('prev').hidden = step === 0;
 }
-// tapping the seed shows what it is (hovering does too)
-document.getElementById('seed').onclick = e => {
-  const b = e.currentTarget; b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') !== 'true');
+// hovering, focusing or tapping the seed or the note explains it; the note also plays its chord again
+const WHY = {
+  seed: 'Stable Diffusion starts every picture from random static. The seed is the number that picked which static; the model then cleaned it up toward the prompt. Same prompt and seed, same picture.',
+  note: 'The static is white noise: every frequency at once. Rest the lens on a dot and the noise narrows to one note. Each region of the map has its own key, and where a picture sits in its region picks the note, so similar pictures sound alike. Click to hear its chord again.',
 };
+function explain(which) {
+  const el = document.getElementById('why');
+  if (which) el.textContent = WHY[which];
+  el.classList.toggle('shown', !!which);
+}
+for (const which of ['seed', 'note']) {
+  const b = document.getElementById(which);
+  b.addEventListener('mouseenter', () => explain(which));
+  b.addEventListener('mouseleave', () => explain(null));
+  b.addEventListener('focus', () => explain(which));
+  b.addEventListener('blur', () => explain(null));
+  b.addEventListener('click', () => {
+    explain(which);
+    if (which === 'note') { sound.wake(); sound.open(byId.get(b.dataset.id)); }
+  });
+}
 
 // the title replays the introduction from the start
 document.getElementById('replay').onclick = () => {
@@ -869,12 +904,14 @@ function finishIntro() {
   tv.focus({ preventScroll: true });
   drawMaps();
 }
-intro.addEventListener('click', e => { sound.wake(); if (e.target.closest('#skip') || e.target.closest('#enter')) return; nextLine(); });
+intro.addEventListener('click', e => { sound.wake(); if (e.target.closest('#skip') || e.target.closest('#enter') || e.target.closest('#prev')) return; nextLine(); });
+document.getElementById('prev').onclick = prevLine;
 document.getElementById('enter').onclick = finishIntro;
 document.getElementById('skip').onclick = finishIntro;
 addEventListener('keydown', e => {
   if (intro.hidden) return;
   if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); step === INTRO.length - 1 ? finishIntro() : nextLine(); }
+  if (e.key === 'ArrowLeft' || e.key === 'Backspace') { e.preventDefault(); prevLine(); }
   if (e.key === 'Escape') finishIntro();
 });
 

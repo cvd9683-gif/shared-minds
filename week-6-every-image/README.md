@@ -43,7 +43,8 @@ the corner opens the full map of meaning.
 - **Sound.** White noise is the sound version of static: every frequency at once. Moving the lens,
   you hear the noise. Rest it on a dot and the noise narrows into one tone, the way attention narrows
   static into a picture. Each region of the map has its own root note, and a picture's place in its
-  region picks a note of that scale, so pictures of similar things sound alike. Opening a picture silences the static and plays its chord; inside a
+  region picks a note of that scale, so pictures of similar things sound alike. An opened picture shows its note and region (hover it for how the sound is mapped; click it to
+  hear the chord again). Opening a picture silences the static and plays its chord; inside a
   picture there's no noise, only the tones of the pixels under the lens.
 
 ## Building the atlas
