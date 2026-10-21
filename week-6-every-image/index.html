@@ -685,22 +685,26 @@ const sound = (() => {
     tone.connect(toneGain); toneGain.connect(master); tone.start();
   }
   const set = (p, v, tc = .08) => p.setTargetAtTime(v, ac.currentTime, tc);
+  let chordUntil = 0;     // while a picture's chord rings, everything else stays out of its way
   return {
     get on() { return on; },
     set(v) { if (v && !ac) { try { build(); } catch { return; } } on = v; if (!on && ac) { set(wideGain.gain, 0); set(narrowGain.gain, 0); set(toneGain.gain, 0); } },
     wake() { if (ac && ac.state === 'suspended') ac.resume(); },
-    listen(it, focus, speed, quiet) {
-      if (!ac || !on) return;
-      const base = quiet ? .015 : .05;
-      if (!it) { set(wideGain.gain, base, .3); set(narrowGain.gain, 0, .3); set(toneGain.gain, 0, .3); return; }
+    listen(it, focus, speed, inPicture) {
+      if (!ac || !on || performance.now() < chordUntil) return;
+      // over the static: noise that narrows into a tone. Inside a picture: no noise, only the tones of its pixels.
+      if (!it) { set(wideGain.gain, inPicture ? 0 : .05, .3); set(narrowGain.gain, 0, .3); set(toneGain.gain, 0, .3); return; }
       const f = pitchOf(it);
       set(narrow.frequency, f * 2, .05); set(tone.frequency, f, .05);
-      set(wideGain.gain, (quiet ? .03 : .09) * (1 - focus) + .03 * speed, .1);
-      set(narrowGain.gain, 1.6 * focus, .1);
+      set(wideGain.gain, inPicture ? 0 : .09 * (1 - focus) + .03 * speed, .1);
+      set(narrowGain.gain, (inPicture ? .8 : 1.6) * focus, .1);
       set(toneGain.gain, .07 * focus * focus, .15);
     },
     open(it) {
       if (!ac || !on) return;
+      // the static goes quiet so the chord is the only thing you hear
+      set(wideGain.gain, 0, .03); set(narrowGain.gain, 0, .03); set(toneGain.gain, 0, .03);
+      chordUntil = performance.now() + 2200;
       const t = ac.currentTime, f = pitchOf(it);
       [[f, 0], [f * 1.25, .1], [f * 1.5, .2], [f * 2, .3]].forEach(([fr, dl]) => {
         const o = ac.createOscillator(), gn = ac.createGain(); o.frequency.value = fr;
