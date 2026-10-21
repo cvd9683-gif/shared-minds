@@ -70,12 +70,13 @@ islands to leave each other plants. Finish a habit for a week and you grow somet
 
 ---
 
-## Week 6 — Eyes Closed
+## Week 6 — Every Image
 
-Close your eyes, then write down whatever was there. Each thought takes its place in a field
-arranged only by meaning, beside other thoughts, yours and other people's, that mean
-something close. **Eyes open** turns the same thoughts into a feed ordered by time, and every
-thread between them disappears.
+A square of static where every pixel is a whole picture, averaged down to one dot. Click a pixel
+to fall into it. Almost everything inside is more static, but a few pixels hold AI-generated
+pictures from DiffusionDB, mapped by meaning with CLIP and UMAP. A sound guide hisses over static
+and clears into a tone near meaning.
 
-**[Close your eyes](week-6-eyes-closed/)**
-· [Source and write-up](week-6-eyes-closed/)
+**[Fall into the static](week-6-every-image/)**
+· [Source and write-up](week-6-every-image/)
+· Earlier sketch: [Eyes Closed](week-6-eyes-closed/)
