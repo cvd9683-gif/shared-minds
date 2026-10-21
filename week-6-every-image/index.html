@@ -434,6 +434,8 @@ const noiseCv = document.createElement('canvas'), ng = noiseCv.getContext('2d');
 let noiseImg = null;
 
 function resize() {
+  // a page inside a frame can start with no size at all; wait until it has one
+  if (!innerWidth || !innerHeight) return false;
   dpr = Math.min(2, devicePixelRatio || 1);
   W = innerWidth; H = innerHeight;
   CELL = W < 640 ? 5 : 6;
@@ -444,6 +446,7 @@ function resize() {
   noiseImg = ng.createImageData(cols, rows);
   freshNoise();
   if (!view.hidden) sizePic();
+  return true;
 }
 
 function freshNoise() {
@@ -839,6 +842,9 @@ function rest(l, now) {
   l.focus += ((resting ? 1 : 0) - l.focus) * (resting ? .025 : .2);
 }
 function frame(now) {
+  // catch the window's real size even if no resize event ever arrives
+  if (innerWidth !== W || innerHeight !== H) { if (resize()) drawMaps(); }
+  if (!noiseImg) { requestAnimationFrame(frame); return; }
   if (!reduce && now - lastNoise > 80) { lastNoise = now; freshNoise(); }
   rest(lens, now); rest(picLens, now);
   if (!mapView.hidden) drawBigMap(now);
