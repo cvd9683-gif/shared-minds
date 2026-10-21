@@ -36,9 +36,9 @@ average colour. **See its pixels** shows the picture as a mosaic of them.
 
 ## Building the atlas
 
-Until the atlas is built, the page runs on a small demo set of drawings placed by colour. To fill it
-with real AI pictures, run this once on your own machine (it downloads a DiffusionDB part of several
-hundred MB and the CLIP model, about 350 MB):
+The atlas in `atlas/` holds 400 pictures from DiffusionDB part 1. If it's missing, the page runs on a
+small demo set of drawings placed by colour. To rebuild it, or build a bigger one, run this (it
+downloads a DiffusionDB part of several hundred MB and the CLIP model, about 350 MB):
 
 ```sh
 cd week-6-every-image/tools

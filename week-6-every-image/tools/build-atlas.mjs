@@ -37,7 +37,7 @@ const LIMIT = Number(opt('limit', 400));
 const PARTS = opt('parts', '1').split(',').map(Number);
 const FROM = opt('from', null);
 
-const BLOCKED_WORDS = /\b(nude|naked|nsfw|nipple|breast|boob|sexy|sex|erotic|porn|lingerie|bikini|topless|gore|gory|blood|bloody|corpse|dead body|decapitat|murder|torture|suicide|swastika|nazi)\b/i;
+const BLOCKED_WORDS = /\b(nude|naked|nsfw|lolita|loli|teen|seductive|temptress|nipple|breast|boob|sexy|sex|erotic|porn|lingerie|bikini|topless|gore|gory|blood|bloody|corpse|dead body|decapitat|murder|torture|suicide|swastika|nazi)\b/i;
 const exclude = new Set(fs.existsSync(path.join(HERE, 'exclude.txt'))
   ? fs.readFileSync(path.join(HERE, 'exclude.txt'), 'utf8').split('\n').map(s => s.trim()).filter(Boolean) : []);
 
