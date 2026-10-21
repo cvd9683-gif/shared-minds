@@ -10,7 +10,8 @@
 /* ------------------------------------------------
    Every Image.
    The whole screen is static. The cursor is a lens: under it the dots swell and turn out to be
-   pictures. Same dark ground and serif as the rest of the Shared Minds pieces.
+   pictures, and every picture's pixels are pictures too. Same dark ground and serif as the rest
+   of the Shared Minds pieces.
    ------------------------------------------------ */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,15 +42,34 @@ button:focus-visible, canvas:focus-visible { outline: 1px solid #8a9b82; outline
   font-size: 14px;
   color: #a9a49a;
   padding: 6px 10px;
-  background: rgba(7, 8, 11, .82);
+  background: rgba(7, 8, 11, .85);
   border-radius: 4px;
 }
 
 .edge.tl { top: calc(env(safe-area-inset-top, 0px) + 14px); left: max(14px, env(safe-area-inset-left, 0px)); color: #e0dcd4; font-size: 15px; }
 .edge.tr { top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); display: flex; gap: 16px; }
-.edge.bl { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: max(14px, env(safe-area-inset-left, 0px)); }
-.edge.br { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); }
+.edge.bc { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.edge.br { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); max-width: 300px; }
 .edge b { font-weight: normal; color: #e0dcd4; }
+
+/* the small map, bottom left: click it to open the big one */
+.mini {
+  position: fixed;
+  z-index: 3;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  left: max(14px, env(safe-area-inset-left, 0px));
+  padding: 8px;
+  background: rgba(7, 8, 11, .9);
+  border: 1px solid #2a2f3a;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.mini canvas { width: 140px; height: 140px; display: block; }
+.mini span { font-size: 12px; color: #8a9b82; }
+.mini:hover span { color: #e0dcd4; }
 
 .link { color: #8a9b82; border-bottom: 1px solid transparent; }
 .link:hover, .link[aria-pressed="true"] { color: #e0dcd4; border-bottom-color: #5c8a5e; }
@@ -64,7 +84,7 @@ sup { font-size: .62em; line-height: 0; }
   position: fixed;
   inset: 0;
   z-index: 4;
-  background: rgba(7, 8, 11, .9);
+  background: rgba(7, 8, 11, .92);
   display: grid;
   grid-template-columns: auto minmax(0, 380px);
   gap: 40px;
@@ -77,8 +97,9 @@ sup { font-size: .62em; line-height: 0; }
 
 .view.shown { opacity: 1; }
 
-.view .frame { width: min(62vh, 52vw); aspect-ratio: 1 / 1; }
-.view .frame img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.frame { width: min(62vh, 52vw); aspect-ratio: 1 / 1; position: relative; }
+#pic { width: 100%; height: 100%; display: block; cursor: none; touch-action: none; }
+.frame .tip { position: absolute; left: 0; right: 0; bottom: -26px; text-align: center; font-size: 13px; color: #8a9b82; }
 
 .about { display: flex; flex-direction: column; gap: 22px; max-height: 80vh; overflow-y: auto; }
 .label { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #5c8a5e; margin-bottom: 6px; }
@@ -100,31 +121,29 @@ sup { font-size: .62em; line-height: 0; }
 .near { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .near button { aspect-ratio: 1 / 1; overflow: hidden; border: 1px solid #2a2f3a; }
 .near img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.view .close { align-self: start; }
+.ways { display: flex; gap: 18px; flex-wrap: wrap; font-size: 15px; }
 
 .flying { position: fixed; z-index: 5; object-fit: cover; pointer-events: none; transition: all .6s cubic-bezier(.2, .7, .1, 1); }
 
 /* ------------------------------------------------
-   THE MAP OF MEANING (opens from the right)
+   THE BIG MAP
    ------------------------------------------------ */
 
-.mappanel {
+.mapview {
   position: fixed;
-  top: 0; right: 0; bottom: 0;
-  z-index: 2;
-  width: min(360px, 100vw);
-  padding: calc(env(safe-area-inset-top, 0px) + 64px) 20px 20px;
-  background: rgba(14, 17, 23, .96);
-  border-left: 1px solid #2a2f3a;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
+  inset: 0;
+  z-index: 5;
+  background: rgba(7, 8, 11, .95);
+  display: grid;
+  grid-template-columns: auto minmax(0, 300px);
+  gap: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px 32px;
 }
-
-.mappanel h2 { font-weight: normal; font-size: 19px; }
-.mappanel p { font-size: 14px; line-height: 1.5; color: #a9a49a; }
-#map { width: 100%; aspect-ratio: 1 / 1; display: block; background: #07080b; border: 1px solid #2a2f3a; cursor: crosshair; }
+.mapview canvas { width: min(80vh, 60vw); height: min(80vh, 60vw); display: block; border: 1px solid #2a2f3a; cursor: crosshair; }
+.mapview h2 { font-weight: normal; font-size: 22px; margin-bottom: 10px; }
+.mapview p { font-size: 15px; line-height: 1.55; color: #a9a49a; margin-bottom: 12px; }
 
 /* ------------------------------------------------
    THE INTRO
@@ -150,7 +169,6 @@ sup { font-size: .62em; line-height: 0; }
   font-size: clamp(22px, 3.4vw, 34px);
   line-height: 1.35;
   text-wrap: balance;
-  text-shadow: 0 1px 14px #000, 0 0 2px #000;
   padding: 18px 24px;
   border-radius: 8px;
   background: rgba(7, 8, 11, .72);
@@ -174,7 +192,7 @@ sup { font-size: .62em; line-height: 0; }
 .intro .enter { margin-top: 28px; font-size: 18px; padding: 10px 26px; border: 1px solid #5c8a5e; background: #2e4a30; border-radius: 6px; }
 .intro .enter:hover { background: #3b5e3d; }
 
-body.intro-open .edge { visibility: hidden; }
+body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
 
 @keyframes arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
@@ -184,10 +202,12 @@ body.intro-open .edge { visibility: hidden; }
 }
 
 @media (max-width: 760px) {
-  .view { display: block; overflow-y: auto; padding-top: 64px; }
-  .view .frame { width: 100%; margin-bottom: 22px; }
+  .view, .mapview { display: block; overflow-y: auto; padding-top: 64px; }
+  .frame { width: 100%; margin-bottom: 40px; }
   .about { max-height: none; padding-bottom: 40px; }
-  .edge.bl { display: none; }
+  .mapview canvas { width: 100%; height: auto; aspect-ratio: 1 / 1; margin-bottom: 20px; }
+  .edge.br, .edge.bc { display: none; }
+  .mini canvas { width: 90px; height: 90px; }
 }
 </style>
 </head>
@@ -198,14 +218,17 @@ body.intro-open .edge { visibility: hidden; }
 <div class="edge tl">Every Image</div>
 <div class="edge tr">
   <span id="foundCount"></span>
-  <button class="link" id="mapBtn" aria-pressed="false">map</button>
   <button class="link" id="soundBtn" aria-pressed="false">sound off</button>
 </div>
-<div class="edge bl">16,777,216<sup>1,024</sup> ≈ 10<sup>7,398</sup> possible pictures</div>
+<div class="edge bc">16,777,216<sup>1,024</sup> ≈ 10<sup>7,398</sup> possible pictures</div>
 <div class="edge br" id="hint">Move across the static. Rest on a dot to hear it. Click to open it.</div>
+<button class="mini" id="mini" aria-label="Open the map of meaning"><canvas id="miniMap"></canvas><span>map of meaning</span></button>
 
 <section class="view" id="view" hidden aria-label="An opened picture">
-  <div class="frame"><img id="viewImg" alt=""></div>
+  <div class="frame">
+    <canvas id="pic" tabindex="0" aria-label="The opened picture. Every pixel of it is another picture; move over it to look closer and click to open one."></canvas>
+    <p class="tip">Its pixels are pictures too. Move over it, and click one.</p>
+  </div>
   <div class="about">
     <div>
       <p class="label">Its number among every possible picture</p>
@@ -223,16 +246,23 @@ body.intro-open .edge { visibility: hidden; }
       <p class="label">Closest in meaning</p>
       <div class="near" id="near"></div>
     </div>
-    <button class="link close" id="closeBtn">back to the static</button>
+    <div class="ways">
+      <button class="link" id="upBtn" hidden>back</button>
+      <button class="link" id="closeBtn">back to the static</button>
+    </div>
   </div>
 </section>
 
-<aside class="mappanel" id="mapPanel" hidden>
-  <h2>A map of meaning</h2>
-  <p>Every picture in the static, placed by CLIP and UMAP: pictures that show similar things sit near each other, and sound alike. The ones you've opened show as thumbnails.</p>
+<section class="mapview" id="mapView" hidden aria-label="Map of meaning">
   <canvas id="map" aria-label="Map of every picture; opened ones appear as thumbnails. Click one to open it."></canvas>
-  <p id="source"></p>
-</aside>
+  <div>
+    <h2>A map of meaning</h2>
+    <p>Every picture in the static, placed by what it shows. An AI model called CLIP turned each one into 512 numbers; UMAP laid those numbers out flat, so pictures that mean similar things sit near each other. They also sound alike.</p>
+    <p>Pictures you've opened show up here. Click one to open it again.</p>
+    <p id="source" style="font-size:13px"></p>
+    <button class="link" id="mapClose">close the map</button>
+  </div>
+</section>
 
 <div class="intro" id="intro" role="dialog" aria-label="Introduction">
   <div>
@@ -248,15 +278,15 @@ body.intro-open .edge { visibility: hidden; }
    What stayed with me from Total Pixel Space, one line at a time.
    ================================================================ */
 const INTRO = [
-  'Every picture that could ever exist already exists.',
+  'Every picture that could ever be made already exists, as a pattern of pixels waiting to be found.',
   'Take a small square: 32 pixels across, 32 down. That’s 1,024 pixels.',
-  'Each pixel mixes red, green and blue light, 256 levels of each.<small>256 × 256 × 256 = 16,777,216 possible colours, for every single pixel.</small>',
-  'Any pixel can be any colour, whatever its neighbours are. So the pictures this square can hold number 16,777,216 × 16,777,216 × 16,777,216 × … one thousand and twenty-four times.',
-  '<span class="big">10<sup>7,398</sup></span>A 1 followed by 7,398 zeros.<small>There are about 10<sup>80</sup> atoms in the observable universe.</small>',
-  'In there is every moment of your life, every face that has ever lived, every one that never will, and every painting no one has painted yet.',
-  'Almost all of it looks like this.<small>And sounds like this: white noise is every frequency at once, the way static is every colour at once.</small>',
-  'AI image models don’t make pictures out of nothing. They search this space for the tiny corner that looks like what we’ve already seen.',
-  'Every dot of this static is one of those pictures, squeezed down to its average colour. Look closer.',
+  'Each pixel can be one of 16,777,216 colours.<small>Red, green and blue, 256 levels each: 256 × 256 × 256.</small>',
+  'To count every picture the square can show, multiply 16,777,216 by itself once for every pixel: 1,024 times.',
+  '<span class="big">10<sup>7,398</sup></span>That’s a 1 followed by 7,398 zeros.<small>There are only about 10<sup>80</sup> atoms in the observable universe.</small>',
+  'Somewhere in there is a picture of every moment of your life, and of every moment that never happened.',
+  'But almost every one of them looks like this: static.<small>It sounds like this too. White noise is every frequency at once, the way static is every colour at once.</small>',
+  'AI image models search this space for the rare pictures that look like something.',
+  'In this static, every dot is one of those pictures, shrunk down to a single colour. Move to look closer.',
 ];
 
 
@@ -273,10 +303,10 @@ async function loadAtlas() {
   ATLAS = data.items.map((it, i) => ({ ...it, i, src: 'atlas/' + it.file }));
   ATLAS.forEach(it => byId.set(it.id, it));
   sprite = { ...data.sprite, img: new Image() };
-  sprite.img.onload = () => { sprite.ready = true; drawMap(); };
+  sprite.img.onload = () => { sprite.ready = true; drawMaps(); };
   sprite.img.src = 'atlas/' + data.sprite.file;
   document.getElementById('source').textContent =
-    `${ATLAS.length} pictures from ${data.source}, made with Stable Diffusion in 2022 and shared on a public Discord. Prompts and seeds as their makers wrote them.`;
+    `${ATLAS.length} pictures from ${data.source}, made with Stable Diffusion in 2022 and shared on a public Discord.`;
 }
 
 function thumb(g, it, x, y, w, h) {
@@ -284,28 +314,92 @@ function thumb(g, it, x, y, w, h) {
   g.drawImage(sprite.img, (it.i % sprite.cols) * n, Math.floor(it.i / sprite.cols) * n, n, n, x, y, w, h);
 }
 
+const colorDist = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+function hash(a, b) { let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x632be5ab, 0xc2b2ae35); h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; return h >>> 0; }
+
 
 /* ================================================================
    WHICH PICTURE IS WHICH DOT
-   The screen is a grid of dots. Every block of 20 × 20 dots holds all 400 pictures once, shuffled
-   differently in every block, so neighbouring dots never repeat. Under the lens, a dot shows its
-   picture's real average colour; elsewhere it's live static.
+   In the static: every block of 20 × 20 dots holds all 400 pictures once, shuffled differently in
+   every block, so neighbouring dots never repeat.
+   In a picture: each of its 32 × 32 pixels is a picture whose average colour is close to that pixel's.
    ================================================================ */
-function hash(a, b) { let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x632be5ab, 0xc2b2ae35); h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; return h >>> 0; }
 let perm = [];
-function pictureAt(i, j) {
+function staticPicture(i, j) {
   const B = 20, n = ATLAS.length;
-  const k = (i % B) + B * (j % B) + hash(Math.floor(i / B), Math.floor(j / B));
-  return ATLAS[perm[k % n]];
+  return ATLAS[perm[((i % B) + B * (j % B) + hash(Math.floor(i / B), Math.floor(j / B))) % n]];
+}
+
+function tilesFor(it, px) {
+  // px: the picture's 32 × 32 colours. The answer for each pixel: one of the four closest pictures.
+  const tiles = [];
+  for (let cell = 0; cell < 1024; cell++) {
+    const col = [px[cell * 4], px[cell * 4 + 1], px[cell * 4 + 2]];
+    let best = [];
+    for (const o of ATLAS) {
+      if (o === it) continue;
+      const d = colorDist(o.avg, col);
+      if (best.length < 4 || d < best[3][0]) { best.push([d, o]); best.sort((a, b) => a[0] - b[0]); best.length = Math.min(4, best.length); }
+    }
+    tiles.push(best[hash(it.i, cell) % best.length][1]);
+  }
+  return tiles;
 }
 
 
 /* ================================================================
-   THE STATIC AND THE LENS
+   THE LENS
+   A fisheye over a grid of dots: dots near the middle swell, dots near the rim squeeze, and the rim
+   meets the dots outside it. The same lens works on the static and on an opened picture.
+   ================================================================ */
+function lensDots(cx, cy, R, cell, ncols, nrows, K) {
+  const ci = Math.floor(cx / cell), cj = Math.floor(cy / cell), rc = Math.ceil(R / cell) + 1, dots = [];
+  for (let j = cj - rc; j <= cj + rc; j++) {
+    if (j < 0 || j >= nrows) continue;
+    for (let i = ci - rc; i <= ci + rc; i++) {
+      if (i < 0 || i >= ncols) continue;
+      const x0 = (i + .5) * cell, y0 = (j + .5) * cell, dx = x0 - cx, dy = y0 - cy, d = Math.hypot(dx, dy);
+      if (d > R) continue;
+      const t = d / R, m = (K + 1) * t / (K * t + 1);
+      const radial = (K + 1) / (K * t + 1) ** 2, tangential = t ? m / t : K + 1;
+      const u = d ? m * R / d : 0;
+      dots.push({ i, j, x: cx + dx * u, y: cy + dy * u, s: Math.max(radial, tangential) * cell * .94, t });
+    }
+  }
+  return dots.sort((a, b) => a.s - b.s);
+}
+
+// draw the dots: colour first, and the picture itself once a dot is big enough to see it
+function drawLens(g, cx, cy, R, dots, colorOf, pictureOf) {
+  g.fillStyle = '#07080b';
+  g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fill();
+  g.imageSmoothingEnabled = true;
+  for (const p of dots) {
+    g.fillStyle = colorOf(p);
+    g.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+    if (p.s > 22) {
+      g.globalAlpha = Math.min(1, (p.s - 22) / 24);
+      thumb(g, pictureOf(p), p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+      g.globalAlpha = 1;
+    }
+  }
+  const mid = dots[dots.length - 1];
+  if (mid) {
+    g.strokeStyle = 'rgba(224,220,212,.95)'; g.lineWidth = 1.5;
+    g.strokeRect(mid.x - mid.s / 2 - 2, mid.y - mid.s / 2 - 2, mid.s + 4, mid.s + 4);
+  }
+  g.strokeStyle = 'rgba(224,220,212,.18)'; g.lineWidth = 1;
+  g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.stroke();
+  return mid;
+}
+
+
+/* ================================================================
+   THE STATIC
    ================================================================ */
 const tv = document.getElementById('tv'), g = tv.getContext('2d');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let W = 0, H = 0, dpr = 1, CELL = 6, cols = 0, rows = 0, R = 200;
+let W = 0, H = 0, dpr = 1, CELL = 6, cols = 0, rows = 0, R = 150;
 const noiseCv = document.createElement('canvas'), ng = noiseCv.getContext('2d');
 let noiseImg = null;
 
@@ -313,12 +407,13 @@ function resize() {
   dpr = Math.min(2, devicePixelRatio || 1);
   W = innerWidth; H = innerHeight;
   CELL = W < 640 ? 5 : 6;
-  R = Math.round(Math.min(220, Math.max(130, Math.min(W, H) * .24)));
+  R = Math.round(Math.min(150, Math.max(100, Math.min(W, H) * .17)));
   cols = Math.ceil(W / CELL); rows = Math.ceil(H / CELL);
   tv.width = Math.round(W * dpr); tv.height = Math.round(H * dpr);
   noiseCv.width = cols; noiseCv.height = rows;
   noiseImg = ng.createImageData(cols, rows);
   freshNoise();
+  if (!view.hidden) sizePic();
 }
 
 function freshNoise() {
@@ -329,84 +424,172 @@ function freshNoise() {
 
 // where you're looking, and how long you've rested there
 const lens = { x: -1, y: -1, on: false, focus: 0, lastMove: 0, speed: 0 };
-let center = null;      // the dot under the middle of the lens: { i, j, it, x, y, size }
+let center = null;      // the dot in the middle of the lens: { it, x, y, s }, in screen coordinates
 
-function draw(now) {
+function drawStatic() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.imageSmoothingEnabled = false;
   g.drawImage(noiseCv, 0, 0, cols * CELL, rows * CELL);
-
   center = null;
-  if (lens.on && ATLAS.length && sprite?.ready) drawLens();
-}
-
-// a fisheye: dots near the middle swell, dots near the rim squeeze, the rim meets the static
-function drawLens() {
-  const K = 9 + 7 * lens.focus;                    // magnification grows while you rest
-  const ci = Math.floor(lens.x / CELL), cj = Math.floor(lens.y / CELL), rc = Math.ceil(R / CELL) + 1;
-  const dots = [];
-  for (let j = cj - rc; j <= cj + rc; j++) {
-    if (j < 0 || j >= rows) continue;
-    for (let i = ci - rc; i <= ci + rc; i++) {
-      if (i < 0 || i >= cols) continue;
-      const cx = (i + .5) * CELL, cy = (j + .5) * CELL, dx = cx - lens.x, dy = cy - lens.y, d = Math.hypot(dx, dy);
-      if (d > R) continue;
-      const t = d / R, m = (K + 1) * t / (K * t + 1);                 // where it lands, as a share of the radius
-      const radial = (K + 1) / (K * t + 1) ** 2, tangential = t ? m / t : K + 1;
-      const s = Math.max(radial, tangential) * CELL * .94;
-      const u = d ? m * R / d : 0;
-      dots.push({ i, j, x: lens.x + dx * u, y: lens.y + dy * u, s, t });
-    }
-  }
-  dots.sort((a, b) => a.s - b.s);
-  g.fillStyle = '#07080b';
-  g.beginPath(); g.arc(lens.x, lens.y, R, 0, Math.PI * 2); g.fill();
-  g.imageSmoothingEnabled = true;
+  if (!lens.on || !sprite?.ready) return;
+  const dots = lensDots(lens.x, lens.y, R, CELL, cols, rows, 7 + 6 * lens.focus);
   const nd = noiseImg.data;
-  for (const p of dots) {
-    const it = pictureAt(p.i, p.j);
-    // at the rim the dot is still static; toward the middle it settles into its picture's colour
-    const settle = Math.min(1, Math.max(0, (1 - p.t) / .35));
-    const k = (p.j * cols + p.i) * 4;
-    const r = nd[k] + (it.avg[0] - nd[k]) * settle, gg = nd[k + 1] + (it.avg[1] - nd[k + 1]) * settle, b = nd[k + 2] + (it.avg[2] - nd[k + 2]) * settle;
-    g.fillStyle = `rgb(${r | 0},${gg | 0},${b | 0})`;
-    g.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
-    if (p.s > 14) {
-      // big enough to see what it is
-      g.globalAlpha = Math.min(1, (p.s - 14) / 26);
-      thumb(g, it, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
-      g.globalAlpha = 1;
-    }
-  }
-  const last = dots[dots.length - 1];
-  if (last) {
-    center = { ...last, it: pictureAt(last.i, last.j) };
-    g.strokeStyle = 'rgba(224,220,212,.95)'; g.lineWidth = 1.5;
-    g.strokeRect(last.x - last.s / 2 - 2, last.y - last.s / 2 - 2, last.s + 4, last.s + 4);
-  }
-  g.strokeStyle = 'rgba(224,220,212,.18)'; g.lineWidth = 1;
-  g.beginPath(); g.arc(lens.x, lens.y, R, 0, Math.PI * 2); g.stroke();
-}
-
-let lastNoise = 0;
-function frame(now) {
-  if (!reduce && now - lastNoise > 80) { lastNoise = now; freshNoise(); }
-  // attention: the longer the lens rests, the more the dot under it comes into focus
-  const resting = lens.on && now - lens.lastMove > 120;
-  lens.focus += ((resting ? 1 : 0) - lens.focus) * (resting ? .025 : .2);
-  if (view.hidden) draw(now);
-  sound.listen(lens.on ? center?.it : null, lens.focus, lens.speed);
-  lens.speed *= .9;
-  requestAnimationFrame(frame);
+  const mid = drawLens(g, lens.x, lens.y, R, dots,
+    p => {
+      // at the rim a dot is still static; toward the middle it settles into its picture's colour
+      const it = staticPicture(p.i, p.j), k = (p.j * cols + p.i) * 4, s = Math.min(1, Math.max(0, (1 - p.t) / .35));
+      return `rgb(${nd[k] + (it.avg[0] - nd[k]) * s | 0},${nd[k + 1] + (it.avg[1] - nd[k + 1]) * s | 0},${nd[k + 2] + (it.avg[2] - nd[k + 2]) * s | 0})`;
+    },
+    p => staticPicture(p.i, p.j));
+  if (mid) center = { it: staticPicture(mid.i, mid.j), x: mid.x, y: mid.y, s: mid.s };
 }
 
 
 /* ================================================================
-   MOVING THE LENS, OPENING A DOT
+   AN OPENED PICTURE
+   It's drawn on a canvas so the lens can work on it too: its pixels swell into the pictures they
+   stand for, and clicking one opens that picture.
+   ================================================================ */
+const view = document.getElementById('view'), pic = document.getElementById('pic'), pg = pic.getContext('2d');
+const picLens = { x: -1, y: -1, on: false, focus: 0, lastMove: 0 };
+let current = null;           // { it, img, px, tiles }
+let trail = [];               // pictures you came through, for "back"
+let picCenter = null;
+let found = new Set(); try { found = new Set(JSON.parse(localStorage.getItem('every-image-found')) || []); } catch {}
+let openedAt = 0;
+
+function sizePic() {
+  const r = pic.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  pic.width = Math.round(r.width * d); pic.height = Math.round(r.height * d);
+}
+
+function drawPicture() {
+  if (!current) return;
+  const d = Math.min(2, devicePixelRatio || 1), S = pic.width / d;
+  pg.setTransform(d, 0, 0, d, 0, 0);
+  pg.imageSmoothingEnabled = true;
+  if (current.img.ready) pg.drawImage(current.img, 0, 0, S, S);
+  else if (sprite?.ready) thumb(pg, current.it, 0, 0, S, S);
+  picCenter = null;
+  if (!picLens.on || !current.tiles) return;
+  const cell = S / 32, Rp = Math.max(70, S * .2);
+  const dots = lensDots(picLens.x, picLens.y, Rp, cell, 32, 32, 5 + 5 * picLens.focus);
+  const px = current.px;
+  const mid = drawLens(pg, picLens.x, picLens.y, Rp, dots,
+    p => { const k = (p.j * 32 + p.i) * 4; return `rgb(${px[k]},${px[k + 1]},${px[k + 2]})`; },
+    p => current.tiles[p.j * 32 + p.i]);
+  if (mid) {
+    const r = pic.getBoundingClientRect();
+    picCenter = { it: current.tiles[mid.j * 32 + mid.i], x: r.left + mid.x, y: r.top + mid.y, s: mid.s };
+  }
+}
+
+function readPixels() {
+  // the picture's 32 × 32 colours, from the full image once it's here
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const cg = c.getContext('2d'); cg.drawImage(current.img, 0, 0, 32, 32);
+  current.px = cg.getImageData(0, 0, 32, 32).data;
+  current.tiles = tilesFor(current.it, current.px);
+  showNumber(current.px);
+}
+
+// its number: 1,024 pixels × red, green, blue, each 0–255, read as the digits of one number in base 256
+function showNumber(px) {
+  let hex = '';
+  for (let k = 0; k < px.length; k += 4) hex += px[k].toString(16).padStart(2, '0') + px[k + 1].toString(16).padStart(2, '0') + px[k + 2].toString(16).padStart(2, '0');
+  const n = BigInt('0x' + hex).toString();
+  const group = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  document.getElementById('number').textContent = `No. ${group(n.slice(0, 12))}…${n.slice(-6)}`;
+  document.getElementById('numberNote').innerHTML =
+    `A number ${n.length.toLocaleString()} digits long, out of about 10<sup>7,398</sup>. It's this picture's pixels, read as one enormous number. No other picture of this size has it.`;
+  document.getElementById('digits').textContent = n;
+}
+
+function open(c, via) {
+  const it = c.it;
+  if (via === 'down' && current) trail.push(current.it);
+  if (via === 'fresh') trail = [];
+  openedAt = performance.now();
+  if (!found.has(it.id)) { found.add(it.id); try { localStorage.setItem('every-image-found', JSON.stringify([...found])); } catch {} }
+  showFound();
+  sound.open(it);
+
+  const img = new Image();
+  current = { it, img, px: null, tiles: null };
+  img.onload = () => { if (current?.it === it) { img.ready = true; readPixels(); } };
+  img.src = it.src;
+
+  document.getElementById('number').textContent = 'Counting…';
+  document.getElementById('numberNote').textContent = '';
+  document.getElementById('prompt').textContent = `“${it.prompt.trim()}”`;
+  document.getElementById('seed').textContent = `Someone typed this into Stable Diffusion with seed ${it.seed}. The same prompt and seed always lead to this same picture.`;
+  document.getElementById('digits').hidden = true; document.getElementById('digitsBtn').textContent = 'show every digit';
+  document.getElementById('upBtn').hidden = !trail.length;
+  const near = document.getElementById('near'); near.innerHTML = '';
+  (it.nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
+    const b = document.createElement('button'); b.title = n.prompt;
+    const im = document.createElement('img'); im.alt = n.prompt; im.src = n.src; im.loading = 'lazy';
+    b.appendChild(im); b.onclick = () => open({ it: n }, 'down'); near.appendChild(b);
+  });
+
+  const wasHidden = view.hidden;
+  view.hidden = false;
+  sizePic();
+  requestAnimationFrame(() => {
+    view.classList.add('shown');
+    if (reduce || c.x == null) return;
+    // the dot flies up into place
+    const to = pic.getBoundingClientRect();
+    const fly = document.createElement('img'); fly.className = 'flying'; fly.src = it.src;
+    Object.assign(fly.style, { left: c.x - c.s / 2 + 'px', top: c.y - c.s / 2 + 'px', width: c.s + 'px', height: c.s + 'px' });
+    document.body.appendChild(fly); pic.style.visibility = 'hidden';
+    requestAnimationFrame(() => Object.assign(fly.style, { left: to.left + 'px', top: to.top + 'px', width: to.width + 'px', height: to.height + 'px' }));
+    setTimeout(() => { fly.remove(); pic.style.visibility = ''; }, 650);
+  });
+  drawMaps();
+}
+
+function up() { if (trail.length) open({ it: trail.pop() }, 'up'); }
+
+function close() {
+  if (view.hidden) return;
+  view.classList.remove('shown'); sound.close();
+  setTimeout(() => { view.hidden = true; current = null; trail = []; tv.focus({ preventScroll: true }); drawMaps(); }, reduce ? 0 : 400);
+}
+
+document.getElementById('closeBtn').onclick = close;
+document.getElementById('upBtn').onclick = up;
+// a click on the dark around the picture closes it, but not the tail of the tap that opened it
+view.addEventListener('click', e => { if (e.target === view && performance.now() - openedAt > 500) close(); });
+document.getElementById('digitsBtn').onclick = e => {
+  const d = document.getElementById('digits'); d.hidden = !d.hidden;
+  e.target.textContent = d.hidden ? 'show every digit' : 'hide the digits';
+};
+
+function picPoint(e) { const r = pic.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+function movePicLens(x, y) { picLens.x = x; picLens.y = y; picLens.on = true; picLens.lastMove = performance.now(); }
+pic.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons) movePicLens(...picPoint(e)); });
+pic.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') picLens.on = false; });
+pic.addEventListener('pointerdown', e => {
+  sound.wake();
+  if (performance.now() - openedAt < 500) return;
+  if (e.pointerType !== 'mouse') {
+    const [x, y] = picPoint(e);
+    if (!(picLens.on && Math.hypot(x - picLens.x, y - picLens.y) < 30)) { movePicLens(x, y); return; }
+  }
+  if (picCenter) { const c = picCenter; picLens.on = false; open(c, 'down'); }
+});
+
+function showFound() {
+  document.getElementById('foundCount').innerHTML = found.size ? `<b>${found.size}</b> of ${ATLAS.length} opened` : '';
+}
+
+
+/* ================================================================
+   MOVING THE LENS OVER THE STATIC
    ================================================================ */
 function moveLens(x, y) {
-  const dx = x - lens.x, dy = y - lens.y;
-  lens.speed = Math.min(1, lens.speed + Math.hypot(dx, dy) / 80);
+  lens.speed = Math.min(1, lens.speed + Math.hypot(x - lens.x, y - lens.y) / 80);
   lens.x = x; lens.y = y; lens.on = true; lens.lastMove = performance.now();
 }
 
@@ -416,158 +599,82 @@ tv.addEventListener('pointerdown', e => {
   sound.wake();
   if (e.pointerType !== 'mouse') {
     // on a touch screen, the first tap puts the lens there; tapping its middle opens the dot
-    const near = lens.on && Math.hypot(e.clientX - lens.x, e.clientY - lens.y) < 30;
-    if (!near) { moveLens(e.clientX, e.clientY); return; }
+    if (!(lens.on && Math.hypot(e.clientX - lens.x, e.clientY - lens.y) < 30)) { moveLens(e.clientX, e.clientY); return; }
   }
-  if (center) open(center);
+  if (center) open(center, 'fresh');
 });
 
-tv.addEventListener('keydown', e => {
+function keyLens(e, l, move, w, h, step, onOpen) {
   const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   if (moves[e.key]) {
     e.preventDefault();
-    if (!lens.on) { lens.x = W / 2; lens.y = H / 2; }
-    moveLens(Math.min(W - 1, Math.max(0, lens.x + moves[e.key][0] * CELL)), Math.min(H - 1, Math.max(0, lens.y + moves[e.key][1] * CELL)));
-  } else if ((e.key === 'Enter' || e.key === ' ') && center) { e.preventDefault(); open(center); }
+    if (!l.on) { l.x = w / 2; l.y = h / 2; }
+    move(Math.min(w - 1, Math.max(0, l.x + moves[e.key][0] * step)), Math.min(h - 1, Math.max(0, l.y + moves[e.key][1] * step)));
+  } else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); }
+}
+tv.addEventListener('keydown', e => keyLens(e, lens, moveLens, W, H, CELL, () => center && open(center, 'fresh')));
+pic.addEventListener('keydown', e => { const S = pic.clientWidth; keyLens(e, picLens, movePicLens, S, S, S / 32, () => picCenter && open(picCenter, 'down')); });
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!mapView.hidden) closeMap();
+  else if (!view.hidden) close();
 });
 
 
 /* ================================================================
-   AN OPENED PICTURE: its two addresses
-   In pixel space it is one number: its 1,024 pixels, each three values from 0 to 255, written one
-   after another as digits of a number in base 256. That number, in ordinary digits, is up to 7,398
-   digits long, and no other 32 × 32 picture has it.
-   In AI space it is a prompt and a seed: the same two always lead the model to the same picture.
+   THE MAPS: a small one in the corner, a big one when you click it
    ================================================================ */
-const view = document.getElementById('view'), viewImg = document.getElementById('viewImg');
-let found = new Set(); try { found = new Set(JSON.parse(localStorage.getItem('every-image-found')) || []); } catch {}
-let openId = null, openedAt = 0;
-
-function numberOf(it) {
-  const c = document.createElement('canvas'); c.width = c.height = 32;
-  const cg = c.getContext('2d'); cg.drawImage(viewImg, 0, 0, 32, 32);
-  const d = cg.getImageData(0, 0, 32, 32).data;
-  let hex = '';
-  for (let k = 0; k < d.length; k += 4) hex += d[k].toString(16).padStart(2, '0') + d[k + 1].toString(16).padStart(2, '0') + d[k + 2].toString(16).padStart(2, '0');
-  return BigInt('0x' + hex).toString();
-}
-
-function showNumber(it) {
-  const n = numberOf(it);
-  const group = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  document.getElementById('number').textContent = `No. ${group(n.slice(0, 12))}…${n.slice(-6)}`;
-  document.getElementById('numberNote').innerHTML =
-    `A number ${n.length.toLocaleString()} digits long, out of about 10<sup>7,398</sup>. It's this picture's pixels, read as one enormous number. No other picture of this size has it.`;
-  document.getElementById('digits').textContent = n;
-}
-
-function open(c) {
-  const it = c.it;
-  openId = it.id; openedAt = performance.now();
-  if (!found.has(it.id)) { found.add(it.id); try { localStorage.setItem('every-image-found', JSON.stringify([...found])); } catch {} }
-  showFound();
-  sound.open(it);
-  viewImg.src = it.src; viewImg.alt = it.prompt;
-  document.getElementById('prompt').textContent = `“${it.prompt.trim()}”`;
-  document.getElementById('seed').textContent = `Someone typed this into Stable Diffusion with seed ${it.seed}. The same prompt and seed always lead to this same picture.`;
-  document.getElementById('digits').hidden = true; document.getElementById('digitsBtn').textContent = 'show every digit';
-  const near = document.getElementById('near'); near.innerHTML = '';
-  (it.nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
-    const b = document.createElement('button'); b.title = n.prompt;
-    const img = document.createElement('img'); img.alt = n.prompt; img.src = n.src; img.loading = 'lazy';
-    b.appendChild(img); b.onclick = () => open({ it: n }); near.appendChild(b);
-  });
-  // the number is read from the picture's own pixels, once it has loaded
-  document.getElementById('number').textContent = 'Counting…';
-  document.getElementById('numberNote').textContent = '';
-  viewImg.onload = () => { if (openId === it.id) showNumber(it); };
-
-  // the dot flies up into place
-  const wasHidden = view.hidden;
-  view.hidden = false;
-  requestAnimationFrame(() => {
-    view.classList.add('shown');
-    if (!wasHidden || reduce || c.x == null) return;
-    const to = viewImg.getBoundingClientRect();
-    const fly = document.createElement('img'); fly.className = 'flying'; fly.src = it.src;
-    Object.assign(fly.style, { left: c.x - c.s / 2 + 'px', top: c.y - c.s / 2 + 'px', width: c.s + 'px', height: c.s + 'px' });
-    document.body.appendChild(fly); viewImg.style.visibility = 'hidden';
-    requestAnimationFrame(() => Object.assign(fly.style, { left: to.left + 'px', top: to.top + 'px', width: to.width + 'px', height: to.height + 'px' }));
-    setTimeout(() => { fly.remove(); viewImg.style.visibility = ''; }, 650);
-  });
-  drawMap();
-}
-
-function close() {
-  if (view.hidden) return;
-  view.classList.remove('shown'); sound.close();
-  setTimeout(() => { view.hidden = true; tv.focus({ preventScroll: true }); }, reduce ? 0 : 400);
-  openId = null; drawMap();
-}
-
-document.getElementById('closeBtn').onclick = close;
-// a click on the dark around the picture closes it, but not the tail of the tap that opened it
-view.addEventListener('click', e => { if (e.target === view && performance.now() - openedAt > 500) close(); });
-addEventListener('keydown', e => { if (e.key === 'Escape' && !view.hidden) close(); });
-document.getElementById('digitsBtn').onclick = e => {
-  const d = document.getElementById('digits'); d.hidden = !d.hidden;
-  e.target.textContent = d.hidden ? 'show every digit' : 'hide the digits';
-};
-
-function showFound() {
-  document.getElementById('foundCount').innerHTML = found.size ? `<b>${found.size}</b> of ${ATLAS.length} opened` : '';
-}
-
-
-/* ================================================================
-   THE MAP
-   ================================================================ */
-const mapCv = document.getElementById('map');
+const mapView = document.getElementById('mapView');
 let spots = [];
-function drawMap() {
-  if (document.getElementById('mapPanel').hidden || !sprite?.ready) return;
-  const r = Math.min(2, devicePixelRatio || 1), Wm = mapCv.clientWidth;
-  if (mapCv.width !== Math.round(Wm * r)) mapCv.width = mapCv.height = Math.round(Wm * r);
-  const m = mapCv.getContext('2d'); m.setTransform(r, 0, 0, r, 0, 0);
+function drawMapOn(cv, big) {
+  if (!sprite?.ready) return;
+  const r = Math.min(2, devicePixelRatio || 1), Wm = cv.clientWidth;
+  if (!Wm) return;
+  if (cv.width !== Math.round(Wm * r)) cv.width = cv.height = Math.round(Wm * r);
+  const m = cv.getContext('2d'); m.setTransform(r, 0, 0, r, 0, 0);
   m.fillStyle = '#07080b'; m.fillRect(0, 0, Wm, Wm);
-  const pad = 14, s = Wm - pad * 2, T = Math.max(14, Math.min(24, Wm / 14));
-  spots = [];
-  for (const it of ATLAS) if (!found.has(it.id)) { m.fillStyle = `rgba(${it.avg},.55)`; m.beginPath(); m.arc(pad + it.map[0] * s, pad + it.map[1] * s, 1.8, 0, 7); m.fill(); }
+  const pad = big ? 16 : 6, s = Wm - pad * 2, T = big ? Math.max(16, Math.min(30, Wm / 20)) : 7;
+  if (big) spots = [];
+  for (const it of ATLAS) if (!found.has(it.id)) {
+    m.fillStyle = `rgba(${it.avg},.6)`; m.beginPath(); m.arc(pad + it.map[0] * s, pad + it.map[1] * s, big ? 2 : 1, 0, 7); m.fill();
+  }
   for (const it of ATLAS) if (found.has(it.id)) {
     const x = pad + it.map[0] * s - T / 2, y = pad + it.map[1] * s - T / 2;
-    thumb(m, it, x, y, T, T); spots.push([it.id, x, y, T]);
-    if (it.id === openId) { m.strokeStyle = '#e0dcd4'; m.lineWidth = 1.5; m.strokeRect(x - 2, y - 2, T + 4, T + 4); }
+    thumb(m, it, x, y, T, T);
+    if (big) spots.push([it.id, x, y, T]);
+    if (current?.it === it) { m.strokeStyle = '#e0dcd4'; m.lineWidth = 1.5; m.strokeRect(x - 2, y - 2, T + 4, T + 4); }
   }
 }
-mapCv.addEventListener('click', e => {
-  const b = mapCv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+function drawMaps() { drawMapOn(document.getElementById('miniMap'), false); if (!mapView.hidden) drawMapOn(document.getElementById('map'), true); }
+document.getElementById('mini').onclick = () => { mapView.hidden = false; drawMaps(); };
+function closeMap() { mapView.hidden = true; }
+document.getElementById('mapClose').onclick = closeMap;
+mapView.addEventListener('click', e => { if (e.target === mapView) closeMap(); });
+document.getElementById('map').addEventListener('click', e => {
+  const b = e.currentTarget.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
   const hit = spots.find(([, sx, sy, T]) => x >= sx && x <= sx + T && y >= sy && y <= sy + T);
-  if (hit) open({ it: byId.get(hit[0]) });
+  if (hit) { closeMap(); open({ it: byId.get(hit[0]) }, 'fresh'); }
 });
-document.getElementById('mapBtn').onclick = e => {
-  const p = document.getElementById('mapPanel'); p.hidden = !p.hidden;
-  e.target.setAttribute('aria-pressed', !p.hidden); drawMap();
-};
 
 
 /* ================================================================
    SOUND
    White noise is to sound what static is to pictures: every frequency at once.
    While the lens moves you hear the noise. Rest it on a dot and the noise narrows into one tone,
-   the way attention narrows static into a picture. The tone's pitch comes from where that picture sits
-   on the map of meaning, so pictures of similar things sound alike. Opening a picture plays its chord.
+   the way attention narrows static into a picture. The tone's pitch comes from where that picture
+   sits on the map of meaning, so pictures of similar things sound alike. Opening one plays its chord.
    ================================================================ */
 const sound = (() => {
-  let ac = null, on = false, master, wide, wideGain, narrow, narrowGain, tone, toneGain;
+  let ac = null, on = false, master, wideGain, narrow, narrowGain, tone, toneGain;
   const SCALE = [0, 2, 4, 7, 9];
-  const pitchOf = it => { const step = Math.round(it.map[0] * 11); return 147 * Math.pow(2, (SCALE[step % 5] + 12 * Math.floor(step / 5)) / 12) ; };
+  const pitchOf = it => { const step = Math.round(it.map[0] * 11); return 147 * Math.pow(2, (SCALE[step % 5] + 12 * Math.floor(step / 5)) / 12); };
   function build() {
     ac = new AudioContext(); master = ac.createGain(); master.gain.value = .6; master.connect(ac.destination);
     const buf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.start();
     // the whole noise
-    wide = ac.createBiquadFilter(); wide.type = 'lowpass'; wide.frequency.value = 7000;
+    const wide = ac.createBiquadFilter(); wide.type = 'lowpass'; wide.frequency.value = 7000;
     wideGain = ac.createGain(); wideGain.gain.value = 0;
     src.connect(wide); wide.connect(wideGain); wideGain.connect(master);
     // the same noise narrowed to one pitch
@@ -578,23 +685,22 @@ const sound = (() => {
     tone.connect(toneGain); toneGain.connect(master); tone.start();
   }
   const set = (p, v, tc = .08) => p.setTargetAtTime(v, ac.currentTime, tc);
-  let opened = false;
   return {
     get on() { return on; },
     set(v) { if (v && !ac) { try { build(); } catch { return; } } on = v; if (!on && ac) { set(wideGain.gain, 0); set(narrowGain.gain, 0); set(toneGain.gain, 0); } },
     wake() { if (ac && ac.state === 'suspended') ac.resume(); },
-    listen(it, focus, speed) {
-      if (!ac || !on || opened) return;
-      if (!it) { set(wideGain.gain, .05, .3); set(narrowGain.gain, 0, .3); set(toneGain.gain, 0, .3); return; }
+    listen(it, focus, speed, quiet) {
+      if (!ac || !on) return;
+      const base = quiet ? .015 : .05;
+      if (!it) { set(wideGain.gain, base, .3); set(narrowGain.gain, 0, .3); set(toneGain.gain, 0, .3); return; }
       const f = pitchOf(it);
       set(narrow.frequency, f * 2, .05); set(tone.frequency, f, .05);
-      set(wideGain.gain, .09 * (1 - focus) + .03 * speed, .1);
+      set(wideGain.gain, (quiet ? .03 : .09) * (1 - focus) + .03 * speed, .1);
       set(narrowGain.gain, 1.6 * focus, .1);
       set(toneGain.gain, .07 * focus * focus, .15);
     },
     open(it) {
-      if (!ac || !on) return; opened = true;
-      set(wideGain.gain, 0, .2); set(narrowGain.gain, 0, .2); set(toneGain.gain, 0, .2);
+      if (!ac || !on) return;
       const t = ac.currentTime, f = pitchOf(it);
       [[f, 0], [f * 1.25, .1], [f * 1.5, .2], [f * 2, .3]].forEach(([fr, dl]) => {
         const o = ac.createOscillator(), gn = ac.createGain(); o.frequency.value = fr;
@@ -602,12 +708,36 @@ const sound = (() => {
         o.connect(gn); gn.connect(master); o.start(t + dl); o.stop(t + dl + 2.5);
       });
     },
-    close() { opened = false; },
+    close() {},
   };
 })();
 const soundBtn = document.getElementById('soundBtn');
 function showSound() { soundBtn.textContent = sound.on ? 'sound on' : 'sound off'; soundBtn.setAttribute('aria-pressed', sound.on); }
 soundBtn.onclick = () => { sound.set(!sound.on); showSound(); };
+
+
+/* ================================================================
+   EVERY FRAME
+   ================================================================ */
+let lastNoise = 0;
+function rest(l, now) {
+  // attention: the longer a lens rests, the more the dot under it comes into focus
+  const resting = l.on && now - l.lastMove > 120;
+  l.focus += ((resting ? 1 : 0) - l.focus) * (resting ? .025 : .2);
+}
+function frame(now) {
+  if (!reduce && now - lastNoise > 80) { lastNoise = now; freshNoise(); }
+  rest(lens, now); rest(picLens, now);
+  if (view.hidden) {
+    drawStatic();
+    sound.listen(lens.on ? center?.it : null, lens.focus, lens.speed, false);
+  } else {
+    drawPicture();
+    sound.listen(picLens.on ? picCenter?.it : null, picLens.focus, 0, true);
+  }
+  lens.speed *= .9;
+  requestAnimationFrame(frame);
+}
 
 
 /* ================================================================
@@ -630,6 +760,7 @@ function finishIntro() {
   document.body.classList.remove('intro-open');
   if (!sound.on) { sound.set(true); showSound(); }
   tv.focus({ preventScroll: true });
+  drawMaps();
 }
 intro.addEventListener('click', e => { sound.wake(); if (e.target.closest('#skip') || e.target.closest('#enter')) return; nextLine(); });
 document.getElementById('enter').onclick = finishIntro;
@@ -644,7 +775,7 @@ addEventListener('keydown', e => {
 /* ================================================================
    START
    ================================================================ */
-addEventListener('resize', () => { resize(); drawMap(); });
+addEventListener('resize', () => { resize(); drawMaps(); });
 resize();
 nextLine();
 requestAnimationFrame(frame);

@@ -10,7 +10,11 @@ Click the dot in the middle to open it.
 An opened picture shows its two addresses. In pixel space it's one number: its 32 × 32 pixels read
 as a single number in base 256, about 7,398 digits long, and you can see every digit. In AI space
 it's the prompt and seed that led Stable Diffusion to it. Below them are the six pictures closest
-to it in meaning, and **map** shows where everything sits.
+to it in meaning.
+
+The lens works on an opened picture too: its pixels swell into the pictures whose colour they share,
+and clicking one opens it, as far down as you like (**back** climbs out one level). The small map in
+the corner opens the full map of meaning.
 
 ## The numbers
 
@@ -29,7 +33,7 @@ to it in meaning, and **map** shows where everything sits.
 - **The atlas.** The AI pictures come from [DiffusionDB](https://poloclub.github.io/diffusiondb/), about
   14 million Stable Diffusion images shared on a public Discord, each with its prompt and seed.
 - **CLIP and UMAP.** CLIP turns each picture into 512 numbers by what it shows. UMAP flattens those
-  numbers onto the map (the **map** link), so pictures that mean similar things sit together. The map
+  numbers onto the map (bottom left), so pictures that mean similar things sit together. The map
   starts dark; pictures appear on it as you find them. CLIP also picks each picture's six closest
   neighbours in meaning.
 - **Sound.** White noise is the sound version of static: every frequency at once. Moving the lens,
