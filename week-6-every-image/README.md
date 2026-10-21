@@ -5,7 +5,8 @@ from the repo root, then go to `/week-6-every-image/`). It needs no build step t
 
 Live static, 32 × 32 pixels: the way almost every possible picture looks. But every pixel is a whole
 picture squeezed down to one dot. Click any pixel and it zooms open into a picture someone asked an AI to
-make, picked at random from the pictures whose average colour is close to that pixel's.
+make: the closest in colour among the pictures you haven't seen yet, so nothing repeats until
+you've seen all of them.
 
 It opens with a short intro, one line at a time, on how big that space is. Then it's just the static.
 Scroll in or click to open a pixel; scroll out, press Escape, or use **zoom out** to come back, and
