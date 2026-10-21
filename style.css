@@ -137,6 +137,10 @@ h1 {
   color: #8a9b82;
 }
 
+.note a {
+  color: #c3bfb6;
+}
+
 .note code {
   font-family: ui-monospace, Menlo, monospace;
   font-size: 13px;

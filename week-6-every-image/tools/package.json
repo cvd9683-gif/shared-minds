@@ -1,0 +1,13 @@
+{
+  "name": "every-image-tools",
+  "private": true,
+  "type": "module",
+  "description": "Builds atlas/atlas.json for Every Image: CLIP embeddings and a UMAP map of AI-generated pictures.",
+  "scripts": { "build": "node build-atlas.mjs" },
+  "dependencies": {
+    "@huggingface/transformers": "3.0.2",
+    "adm-zip": "0.5.16",
+    "sharp": "0.33.5",
+    "umap-js": "1.4.0"
+  }
+}

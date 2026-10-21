@@ -67,3 +67,16 @@ islands to leave each other plants. Finish a habit for a week and you grow somet
 
 **[Grow your island](week-5-my-dancing-trees/)**
 · [Source and write-up](week-5-my-dancing-trees/)
+
+---
+
+## Week 6 — Every Image
+
+A square of static where every pixel is a whole picture, averaged down to one dot. Click a pixel
+to fall into it. Almost everything inside is more static, but a few pixels hold AI-generated
+pictures from DiffusionDB, mapped by meaning with CLIP and UMAP. A sound guide hisses over static
+and clears into a tone near meaning.
+
+**[Fall into the static](week-6-every-image/)**
+· [Source and write-up](week-6-every-image/)
+· Earlier sketch: [Eyes Closed](week-6-eyes-closed/)

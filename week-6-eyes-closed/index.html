@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Eyes Closed</title>
+<style>
+
+/* Layout: one dark field, edge to edge. The thoughts live on a canvas; the controls sit at the
+   edges in the same palette and serif as the rest of the Shared Minds pages. */
+:root{
+  --bg:#0b0d12; --ink:#e0dcd4; --ink-2:#8f8a80; --line:#262b35;
+  --you:#e0dcd4; --bond:#d9b45a; --green:#5c8a5e;
+  --serif:Georgia,"Iowan Old Style",serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--serif);overflow:hidden;-webkit-font-smoothing:antialiased}
+#field{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+#field.hovering{cursor:pointer}
+button{font-family:var(--serif);color:var(--ink);cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--bond);outline-offset:2px}
+
+.title{position:fixed;top:calc(env(safe-area-inset-top,0px) + 18px);left:20px;pointer-events:none;max-width:40ch}
+.title h1{margin:0;font-weight:normal;font-size:24px;letter-spacing:.01em}
+.title p{margin:4px 0 0;font-size:14px;color:var(--ink-2)}
+
+.controls{position:fixed;top:calc(env(safe-area-inset-top,0px) + 18px);right:20px;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.switch{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:rgba(11,13,18,.8)}
+.switch button{border:0;background:transparent;border-radius:999px;padding:7px 14px;font-size:14px;color:var(--ink-2)}
+.switch button[aria-pressed="true"]{background:#1d222c;color:var(--ink)}
+.toggles{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.toggles button{border:1px solid var(--line);background:rgba(11,13,18,.8);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--ink-2)}
+.toggles button[aria-pressed="true"]{color:var(--ink);border-color:#4a5262}
+
+.minds{position:fixed;left:20px;bottom:calc(env(safe-area-inset-bottom,0px) + 92px);font-size:13px;color:var(--ink-2);max-width:min(340px,calc(100vw - 40px));pointer-events:none}
+.minds ul{list-style:none;margin:0 0 8px;padding:0;display:flex;gap:4px 14px;flex-wrap:wrap}
+.minds li{display:flex;align-items:center;gap:6px}
+.minds i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.minds p{margin:4px 0 0;line-height:1.45}
+.minds b{font-weight:normal;color:var(--ink)}
+.minds .bond{color:var(--bond)}
+
+.write{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);width:min(560px,calc(100vw - 32px))}
+.write form{display:flex;gap:8px}
+.write input{flex:1;min-width:0;background:#12151c;border:1px solid var(--line);border-radius:10px;color:var(--ink);font:17px var(--serif);padding:12px 14px}
+.write input::placeholder{color:#5d5a54;font-style:italic}
+.write button{border:1px solid #3b5e3d;background:#1f3321;border-radius:10px;padding:0 16px;font-size:15px}
+.write button:disabled{opacity:.4;cursor:default}
+.status{margin:7px 2px 0;font-size:12.5px;color:var(--ink-2);min-height:1.2em}
+
+.card{position:fixed;z-index:4;max-width:280px;background:#141821;border:1px solid #303644;border-radius:10px;padding:12px 14px;font-size:15px;line-height:1.4;box-shadow:0 14px 40px -12px rgba(0,0,0,.7)}
+.card .who{display:block;font-size:12px;color:var(--ink-2);margin-bottom:4px}
+.card .near{margin-top:8px;font-size:13px;color:var(--ink-2)}
+.card .near q{color:var(--ink);quotes:"\201C" "\201D"}
+.card button{margin-top:10px;border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 10px;font-size:13px;color:var(--ink-2)}
+
+.intro{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:24px;background:rgba(11,13,18,.94)}
+.intro div{max-width:460px}
+.intro h2{margin:0 0 14px;font-weight:normal;font-size:28px}
+.intro p{margin:0 0 12px;font-size:17px;line-height:1.55;color:#c3bfb6}
+.intro p.small{font-size:14px;color:var(--ink-2)}
+.intro button{margin-top:10px;border:1px solid #5c8a5e;background:#2e4a30;border-radius:8px;padding:11px 22px;font-size:16px}
+
+@media (max-width:640px){
+  .title p{display:none}
+  .controls{top:calc(env(safe-area-inset-top,0px) + 56px);left:16px;right:16px;align-items:stretch}
+  .title{left:16px}
+  .switch{align-self:flex-start}
+  .toggles{justify-content:flex-start}
+  .minds{left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 100px)}
+}
+</style>
+</head>
+<body>
+
+<canvas id="field" aria-label="Your thoughts and other minds' thoughts, placed by meaning"></canvas>
+
+<header class="title">
+  <h1>Eyes Closed</h1>
+  <p>Thoughts placed by what they mean, not when or where they happened.</p>
+</header>
+
+<div class="controls">
+  <div class="switch" role="group" aria-label="View">
+    <button id="closed" aria-pressed="true">Eyes closed</button>
+    <button id="open" aria-pressed="false">Eyes open</button>
+  </div>
+  <div class="toggles">
+    <button id="trace" aria-pressed="false" title="Draw a line through your thoughts in the order you had them">Trace the order</button>
+    <button id="others" aria-pressed="true" title="Show or hide the example minds">Other minds</button>
+    <button id="sound" aria-pressed="true">Sound</button>
+  </div>
+</div>
+
+<aside class="minds" id="minds"></aside>
+
+<div class="write">
+  <form id="form" autocomplete="off">
+    <input id="text" maxlength="140" placeholder="what was there, with your eyes closed" aria-label="A thought">
+    <button id="add" type="submit">Let it in</button>
+  </form>
+  <p class="status" id="status"></p>
+</div>
+
+<div class="card" id="card" hidden></div>
+
+<div class="intro" id="intro">
+  <div>
+    <h2>Close your eyes for ten seconds.</h2>
+    <p>Then write down whatever was there. Not what you saw. What was there.</p>
+    <p>Each thought finds its place by what it means, beside other thoughts, yours and other people's,
+      that mean something close. Nothing here is arranged by time or by where you were.</p>
+    <p class="small">A small language model runs inside this page. What you write stays in your browser.
+      Sound is part of it: close thoughts sound close.</p>
+    <button id="enter">I'm back</button>
+  </div>
+</div>
+
+<script type="module">
+
+/* ------------------------------------------------
+   THE MINDS
+   You, and three example minds so the field isn't empty.
+   They're made up, and labelled as examples on the page.
+   ------------------------------------------------ */
+
+const MINDS = {
+  you:   { name: 'You',   color: '#e0dcd4', wave: 'sine' },
+  ines:  { name: 'Ines',  color: '#7fb2c9', wave: 'triangle' },
+  tomas: { name: 'Tomas', color: '#c99a7f', wave: 'triangle' },
+  wren:  { name: 'Wren',  color: '#9ac97f', wave: 'triangle' },
+};
+
+const DAY = 86400000;
+const EXAMPLES = [
+  ['ines',  'the ocean at night, just the sound of it', 5.2],
+  ['ines',  "my grandmother's kitchen smelled like cardamom", 4.1],
+  ['ines',  'I keep rehearsing a conversation that already happened', 3.3],
+  ['ines',  'orange light coming through my eyelids', 2.6],
+  ['ines',  "a song I can't remember the name of", 1.4],
+  ['ines',  "I'm afraid I'm not as kind as I think I am", 0.5],
+  ['tomas', 'waves breaking somewhere far away', 4.8],
+  ['tomas', 'the deadline on Friday, again', 3.9],
+  ['tomas', 'my father whistling while he cooked', 3.0],
+  ['tomas', 'static, like a TV between channels', 2.2],
+  ['tomas', 'wondering if my friends actually like me', 1.1],
+  ['tomas', 'a melody stuck on loop all morning', 0.3],
+  ['wren',  'nothing at first, then my heartbeat', 5.0],
+  ['wren',  "rain on a tin roof at my aunt's house", 4.4],
+  ['wren',  'a list of everything I forgot to do', 2.9],
+  ['wren',  "colours that don't have names", 2.0],
+  ['wren',  'the warmth of someone sleeping next to me', 1.2],
+  ['wren',  'why does silence feel so loud', 0.2],
+];
+
+const STORE = 'eyes-closed-v1';
+
+
+/* ------------------------------------------------
+   MEANING
+   Each thought becomes a list of 384 numbers (an embedding) from all-MiniLM-L6-v2,
+   running in the browser with transformers.js. Two thoughts that mean similar things
+   get similar lists. If the model can't load, a rough stand-in matches shared words
+   and word pieces instead, and the status line says so.
+   ------------------------------------------------ */
+
+let embedder = null;
+let rough = false;
+
+async function loadModel() {
+  try {
+    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2/dist/transformers.min.js');
+    embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+  } catch (err) {
+    console.warn('Model did not load, using the rough stand-in.', err);
+    rough = true;
+  }
+}
+
+async function embed(texts) {
+  if (embedder) {
+    const out = await embedder(texts, { pooling: 'mean', normalize: true });
+    return out.tolist();
+  }
+  return texts.map(roughEmbed);
+}
+
+const STOP = new Set('a an the and or but of to in on at for with is was are be been i im my me it its this that just like so as by from about into then there what why when how all some'.split(' '));
+
+function roughEmbed(text) {
+  const v = new Float32Array(256);
+  const words = text.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/)
+    .filter(w => w && !STOP.has(w)).map(w => w.replace(/(ing|ed|es|s)$/, ''));
+  const add = (s, w) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); v[(h >>> 0) % 256] += w; };
+  for (const w of words) {
+    add(w, 1);
+    const p = ` ${w} `;
+    for (let i = 0; i < p.length - 2; i++) add(p.slice(i, i + 3), 0.3);
+  }
+  const n = Math.hypot(...v) || 1;
+  return Array.from(v, x => x / n);
+}
+
+const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+
+
+/* ------------------------------------------------
+   STATE
+   ------------------------------------------------ */
+
+const thoughts = [];       // { id, who, text, t, vec, x, y, pitch }
+let sim = [];              // closeness between every pair, 0..1, rescaled to this set
+let neighbors = [];        // for each thought, its nearest few, closest first
+let bonds = [];            // [i, j, strength] pairs worth drawing a thread between
+let eyes = 'closed';
+let closedness = 1;        // eases between 1 (meaning) and 0 (feed)
+let showTrace = false;
+let showOthers = true;
+let soundOn = true;
+let hover = -1;
+let pinned = -1;
+let nextId = 1;
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function visible(t) { return showOthers || t.who === 'you'; }
+
+function saveMine() {
+  try {
+    const mine = thoughts.filter(t => t.who === 'you').map(({ text, t }) => ({ text, t }));
+    localStorage.setItem(STORE, JSON.stringify(mine));
+  } catch {}
+}
+
+function loadMine() {
+  try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch { return []; }
+}
+
+
+/* ------------------------------------------------
+   RELATIONSHIPS
+   Raw closeness between sentences bunches up in a narrow band, so it's rescaled
+   against this set: the loosest pairs read as 0, the tightest as 1.
+   ------------------------------------------------ */
+
+function relate() {
+  const n = thoughts.length;
+  const raw = thoughts.map(a => thoughts.map(b => dot(a.vec, b.vec)));
+  const off = [];
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off.push(raw[i][j]);
+  off.sort((a, b) => a - b);
+  const lo = off[Math.floor(off.length * 0.1)] ?? 0;
+  const hi = off[Math.floor(off.length * 0.97)] ?? 1;
+  sim = raw.map((row, i) => row.map((s, j) => i === j ? 1 : Math.min(1, Math.max(0, (s - lo) / ((hi - lo) || 1)))));
+
+  neighbors = thoughts.map((_, i) =>
+    thoughts.map((_, j) => j).filter(j => j !== i).sort((a, b) => sim[i][b] - sim[i][a]).slice(0, 4));
+
+  const seen = new Set();
+  bonds = [];
+  neighbors.forEach((list, i) => list.slice(0, 2).forEach(j => {
+    const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+    if (!seen.has(key) && sim[i][j] > 0.5) { seen.add(key); bonds.push([i, j, sim[i][j]]); }
+  }));
+
+  thoughts.forEach(measure);
+  pitchByMeaning();
+  updateMinds();
+}
+
+/* How much room a thought's label takes in the eyes-closed view, so the layout can keep
+   labels from sitting on top of each other, not just the dots. */
+const small = () => W < 640;
+const fontFor = t => `${(t.who === 'you' ? 15 : 14) - (small() ? 2 : 0)}px Georgia, serif`;
+const lineH = () => small() ? 15 : 17;
+function measure(t) {
+  ctx.font = fontFor(t);
+  t.lines = wrap(t.text, small() ? 130 : 210, 3);
+  t.w = Math.max(...t.lines.map(l => ctx.measureText(l).width)) + 10;
+  t.h = t.lines.length * lineH();
+}
+
+/* Pitch comes from meaning too: the thoughts are laid along the single direction in which
+   they differ most (the first principal component), and that order is mapped onto a
+   pentatonic scale. Close thoughts land on close notes, and any two notes sound well together. */
+const SCALE = [0, 2, 4, 7, 9];
+function pitchByMeaning() {
+  const n = thoughts.length;
+  if (!n) return;
+  const d = thoughts[0].vec.length;
+  const mean = new Float64Array(d);
+  thoughts.forEach(t => t.vec.forEach((x, k) => mean[k] += x / n));
+  const centered = thoughts.map(t => t.vec.map((x, k) => x - mean[k]));
+  let pc = Array.from({ length: d }, (_, k) => Math.sin(k * 12.9898) );
+  for (let it = 0; it < 30; it++) {
+    const next = new Float64Array(d);
+    centered.forEach(c => { const p = dot(c, pc); c.forEach((x, k) => next[k] += p * x); });
+    const len = Math.hypot(...next) || 1;
+    pc = Array.from(next, x => x / len);
+  }
+  const order = centered.map((c, i) => [dot(c, pc), i]).sort((a, b) => a[0] - b[0]);
+  order.forEach(([, i], rank) => {
+    const step = Math.round(rank / Math.max(1, n - 1) * 9);
+    const semis = SCALE[step % 5] + 12 * Math.floor(step / 5);
+    thoughts[i].pitch = 220 * Math.pow(2, semis / 12);
+  });
+}
+
+
+/* ------------------------------------------------
+   PLACING
+   Eyes closed: every pair of thoughts has an ideal distance, short if they mean
+   something close and long if not, and each frame nudges them toward it.
+   There are no axes; only nearness means anything.
+   Eyes open: the same thoughts drop into a feed, newest first. Order is all that's left.
+   ------------------------------------------------ */
+
+const canvas = document.getElementById('field');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, dpr = 1;
+
+function resize() {
+  dpr = Math.min(2, devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+}
+addEventListener('resize', () => { resize(); thoughts.forEach(measure); });
+resize();
+
+function bounds() {
+  return small()
+    ? { x0: 16, x1: W - 16, y0: 150, y1: H - 270 }
+    : { x0: 120, x1: W - 120, y0: 110, y1: H - 190 };
+}
+
+function settle() {
+  const b = bounds();
+  const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  const span = Math.min(b.x1 - b.x0, b.y1 - b.y0);
+  const near = Math.max(64, span * 0.12), far = span * 0.95;
+  const idx = thoughts.map((t, i) => i).filter(i => visible(thoughts[i]));
+  const push = idx.map(() => [0, 0]);
+
+  for (let a = 0; a < idx.length; a++) {
+    const i = idx[a];
+    for (let c = a + 1; c < idx.length; c++) {
+      const j = idx[c];
+      const dx = thoughts[j].x - thoughts[i].x, dy = thoughts[j].y - thoughts[i].y;
+      const dist = Math.hypot(dx, dy) || 0.01;
+      const ideal = near + (far - near) * Math.pow(1 - sim[i][j], 1.4);
+      // near pairs matter more than far ones, so clusters hold their shape
+      let f = (dist - ideal) * 0.04 * (near / ideal);
+      const ux = dx / dist, uy = dy / dist;
+      push[a][0] += ux * f; push[a][1] += uy * f;
+      push[c][0] -= ux * f; push[c][1] -= uy * f;
+      // labels hang to the right of their dot; if two overlap, slide them apart the short way
+      const A = thoughts[i], B = thoughts[j];
+      const ox = Math.min(A.x + A.w, B.x + B.w) - Math.max(A.x - 8, B.x - 8);
+      const oy = Math.min(A.y + A.h, B.y + B.h) - Math.max(A.y - 14, B.y - 14);
+      if (ox > 0 && oy > 0) {
+        if (oy < ox) { const s = Math.sign(dy) || 1; push[a][1] -= s * oy * 0.3; push[c][1] += s * oy * 0.3; }
+        else { const s = Math.sign(dx) || 1; push[a][0] -= s * ox * 0.3; push[c][0] += s * ox * 0.3; }
+      }
+    }
+  }
+
+  const now = performance.now() / 1000;
+  idx.forEach((i, a) => {
+    const t = thoughts[i];
+    let mx = Math.max(-8, Math.min(8, push[a][0] + (cx - t.x) * 0.002));
+    let my = Math.max(-8, Math.min(8, push[a][1] + (cy - t.y) * 0.002));
+    if (!reduceMotion) { mx += Math.sin(now * 0.4 + t.id) * 0.06; my += Math.cos(now * 0.33 + t.id * 1.7) * 0.06; }
+    t.x = Math.max(b.x0, Math.min(Math.max(b.x0, b.x1 - t.w), t.x + mx));
+    t.y = Math.max(b.y0, Math.min(b.y1, t.y + my));
+  });
+}
+
+function feedTargets() {
+  const b = bounds();
+  const list = thoughts.map((t, i) => i).filter(i => visible(thoughts[i])).sort((a, c) => thoughts[c].t - thoughts[a].t);
+  const gap = Math.min(44, (b.y1 - b.y0 + 60) / Math.max(1, list.length));
+  const x = W < 640 ? b.x0 + 4 : W / 2 - 180;
+  const targets = new Map();
+  list.forEach((i, k) => targets.set(i, [x, b.y0 - (small() ? 0 : 20) + k * gap]));
+  return targets;
+}
+
+function step() {
+  closedness += ((eyes === 'closed' ? 1 : 0) - closedness) * (reduceMotion ? 1 : 0.08);
+  if (eyes === 'closed') settle();
+  else {
+    const targets = feedTargets();
+    thoughts.forEach((t, i) => {
+      const g = targets.get(i);
+      if (!g) return;
+      const k = reduceMotion ? 1 : 0.12;
+      t.x += (g[0] - t.x) * k; t.y += (g[1] - t.y) * k;
+    });
+  }
+}
+
+
+/* ------------------------------------------------
+   DRAWING
+   ------------------------------------------------ */
+
+const boxes = [];   // where each label landed, for hover
+
+function wrap(text, max, lines) {
+  const words = text.split(' ');
+  const out = [];
+  let line = '';
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (ctx.measureText(test).width > max && line) { out.push(line); line = w; }
+    else line = test;
+  }
+  if (line) out.push(line);
+  if (out.length > lines) { out.length = lines; out[lines - 1] = out[lines - 1].replace(/\s*\S*$/, '') + '…'; }
+  return out;
+}
+
+function hex(c, a) {
+  const n = parseInt(c.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const focus = pinned >= 0 ? pinned : hover;
+  const close = focus >= 0 ? new Set([focus, ...neighbors[focus]]) : null;
+
+  // threads between thoughts that mean something close; gold when they cross between people
+  if (closedness > 0.02) {
+    for (const [i, j, s] of bonds) {
+      const a = thoughts[i], b = thoughts[j];
+      if (!visible(a) || !visible(b)) continue;
+      const across = a.who !== b.who;
+      let alpha = (s - 0.5) * 2 * (across ? 0.75 : 0.45) * closedness;
+      if (close) alpha *= (close.has(i) && close.has(j) && (i === focus || j === focus)) ? 2.2 : 0.25;
+      ctx.strokeStyle = across ? hex('#d9b45a', Math.min(1, alpha)) : hex(MINDS[a.who].color, Math.min(1, alpha));
+      ctx.lineWidth = across ? 1.4 : 1;
+      const mx = (a.x + b.x) / 2 + (a.y - b.y) * 0.12, my = (a.y + b.y) / 2 + (b.x - a.x) * 0.12;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(mx, my, b.x, b.y); ctx.stroke();
+    }
+  }
+
+  // the order you thought them, if asked: often a zig-zag across the whole field
+  if (showTrace && closedness > 0.02) {
+    const mine = thoughts.filter(t => t.who === 'you').sort((a, b) => a.t - b.t);
+    ctx.setLineDash([3, 6]);
+    ctx.strokeStyle = hex('#e0dcd4', 0.45 * closedness);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    mine.forEach((t, k) => k ? ctx.lineTo(t.x, t.y) : ctx.moveTo(t.x, t.y));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '11px Georgia, serif';
+    ctx.fillStyle = hex('#e0dcd4', 0.6 * closedness);
+    mine.forEach((t, k) => ctx.fillText(String(k + 1), t.x - 14, t.y - 8));
+  }
+
+  boxes.length = 0;
+  thoughts.forEach((t, i) => {
+    if (!visible(t)) return;
+    const mind = MINDS[t.who];
+    let alpha = t.who === 'you' ? 0.95 : 0.62;
+    if (close && !close.has(i)) alpha *= 0.22;
+    const age = Math.min(1, (performance.now() - (t.born || 0)) / 900);
+    alpha *= age;
+
+    ctx.fillStyle = hex(mind.color, alpha);
+    ctx.beginPath(); ctx.arc(t.x, t.y, i === focus ? 5 : (t.who === 'you' ? 4 : 3), 0, Math.PI * 2); ctx.fill();
+    if (i === focus) {
+      ctx.strokeStyle = hex(mind.color, 0.5);
+      ctx.beginPath(); ctx.arc(t.x, t.y, 10, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    ctx.font = fontFor(t);
+    const lines = closedness > 0.5 ? t.lines : wrap(t.text, small() ? W - 130 : 380, 1);
+    const lx = t.x + 10, ly = t.y - 2;
+    lines.forEach((l, k) => ctx.fillText(l, lx, ly + k * lineH()));
+    const w = Math.max(...lines.map(l => ctx.measureText(l).width));
+    boxes.push([i, t.x - 8, t.y - 14, w + 22, lines.length * lineH() + 8]);
+
+    if (closedness < 0.98) {
+      ctx.fillStyle = hex('#8f8a80', 0.75 * (1 - closedness) * age);
+      ctx.font = '12px Georgia, serif';
+      if (!small()) ctx.fillText(`${mind.name} · ${ago(t.t)}`, lx + w + 12, ly);
+    }
+  });
+}
+
+function ago(t) {
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h ago`;
+  return `${Math.round(h / 24)} d ago`;
+}
+
+function frame() {
+  step();
+  draw();
+  requestAnimationFrame(frame);
+}
+
+
+/* ------------------------------------------------
+   SOUND
+   Touch a thought and you hear it, then its nearest thoughts answer, one by one,
+   the closer ones sooner and louder. Your thoughts are pure tones; other minds
+   have a little more grain.
+   ------------------------------------------------ */
+
+let audio = null;
+
+function startAudio() {
+  if (audio) return;
+  try {
+    audio = new AudioContext();
+    audio.master = audio.createGain();
+    audio.master.gain.value = 0.5;
+    const verb = audio.createDelay(); verb.delayTime.value = 0.23;
+    const fb = audio.createGain(); fb.gain.value = 0.32;
+    const lp = audio.createBiquadFilter(); lp.frequency.value = 1800;
+    audio.master.connect(audio.destination);
+    audio.master.connect(verb); verb.connect(lp); lp.connect(fb); fb.connect(verb); lp.connect(audio.destination);
+  } catch { audio = null; }
+}
+
+function tone(t, delay, level) {
+  if (!audio || !soundOn) return;
+  const at = audio.currentTime + delay;
+  const osc = audio.createOscillator();
+  const g = audio.createGain();
+  const pan = audio.createStereoPanner();
+  osc.type = MINDS[t.who].wave;
+  osc.frequency.value = t.pitch || 220;
+  pan.pan.value = Math.max(-0.8, Math.min(0.8, (t.x / W) * 2 - 1));
+  g.gain.setValueAtTime(0, at);
+  g.gain.linearRampToValueAtTime(0.18 * level, at + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 1.8);
+  osc.connect(g); g.connect(pan); pan.connect(audio.master);
+  osc.start(at); osc.stop(at + 1.9);
+}
+
+function sound(i) {
+  const t = thoughts[i];
+  tone(t, 0, 1);
+  neighbors[i].filter(j => visible(thoughts[j])).slice(0, 3).forEach((j, k) => {
+    tone(thoughts[j], 0.18 + k * 0.16 + (1 - sim[i][j]) * 0.3, 0.25 + sim[i][j] * 0.6);
+  });
+}
+
+
+/* ------------------------------------------------
+   READING THE FIELD
+   Two things a feed can't tell you. Who you're closest to right now, and through what.
+   And how your own mind actually moved: did each thought land near the one before?
+   ------------------------------------------------ */
+
+function updateMinds() {
+  const el = document.getElementById('minds');
+  const present = Object.entries(MINDS).filter(([k]) => k === 'you' || showOthers);
+  let html = '<ul>' + present.map(([k, m]) =>
+    `<li><i style="background:${m.color}"></i>${m.name}${k === 'you' ? '' : ' <span style="opacity:.6">(example)</span>'}</li>`).join('') + '</ul>';
+
+  const mine = thoughts.map((t, i) => i).filter(i => thoughts[i].who === 'you');
+  if (showOthers && mine.length) {
+    let best = null;
+    for (const i of mine) for (let j = 0; j < thoughts.length; j++) {
+      if (thoughts[j].who === 'you') continue;
+      if (!best || sim[i][j] > best[2]) best = [i, j, sim[i][j]];
+    }
+    if (best && best[2] > 0.45) {
+      const other = thoughts[best[1]];
+      html += `<p><span class="bond">Closest to you right now:</span> <b>${MINDS[other.who].name}</b>, through
+        “${esc(thoughts[best[0]].text)}” and “${esc(other.text)}”.</p>`;
+    }
+  }
+
+  if (mine.length >= 3) {
+    const order = mine.slice().sort((a, b) => thoughts[a].t - thoughts[b].t);
+    let nearby = 0;
+    for (let k = 1; k < order.length; k++) {
+      const prev = order[k - 1], cur = order[k];
+      const ownNeighbors = mine.filter(j => j !== cur).sort((a, b) => sim[cur][b] - sim[cur][a]).slice(0, 2);
+      if (ownNeighbors.includes(prev)) nearby++;
+    }
+    const steps = order.length - 1;
+    html += `<p>Of your ${steps} steps from one thought to the next, <b>${nearby}</b> landed near the one before.
+      ${nearby * 2 < steps ? 'The rest jumped across the field.' : ''}</p>`;
+  } else if (!mine.length) {
+    html += '<p>Write what was there. Your thoughts will find their place.</p>';
+  }
+  el.innerHTML = html;
+}
+
+function esc(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+
+
+/* ------------------------------------------------
+   TOUCHING A THOUGHT
+   Hover (or tap) shows it and sounds it. Eyes closed, the card tells you what it's near;
+   eyes open, it tells you when it was. Your own thoughts can be let go.
+   ------------------------------------------------ */
+
+const card = document.getElementById('card');
+
+function hit(x, y) {
+  for (let k = boxes.length - 1; k >= 0; k--) {
+    const [i, bx, by, bw, bh] = boxes[k];
+    if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) return i;
+  }
+  return -1;
+}
+
+function showCard(i) {
+  if (i < 0) { card.hidden = true; return; }
+  const t = thoughts[i];
+  const near = neighbors[i].filter(j => visible(thoughts[j])).slice(0, 2);
+  const nearHtml = eyes === 'closed'
+    ? near.map(j => `<div class="near">near <q>${esc(thoughts[j].text)}</q> · ${MINDS[thoughts[j].who].name}</div>`).join('')
+    : `<div class="near">${new Date(t.t).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}</div>`;
+  card.innerHTML = `<span class="who">${MINDS[t.who].name}${t.who === 'you' ? '' : ' (example)'}</span>${esc(t.text)}${nearHtml}` +
+    (t.who === 'you' ? '<button id="forget">Let it go</button>' : '');
+  card.hidden = false;
+  const r = card.getBoundingClientRect();
+  card.style.left = Math.max(12, Math.min(W - r.width - 12, t.x + 14)) + 'px';
+  card.style.top = Math.max(12, Math.min(H - r.height - 12, t.y + 18)) + 'px';
+  const forget = document.getElementById('forget');
+  if (forget) forget.onclick = () => {
+    thoughts.splice(i, 1);
+    pinned = hover = -1;
+    card.hidden = true;
+    relate(); saveMine();
+  };
+}
+
+canvas.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse') return;
+  const i = hit(e.clientX, e.clientY);
+  canvas.classList.toggle('hovering', i >= 0);
+  if (i !== hover) { hover = i; if (i >= 0) sound(i); }
+});
+
+canvas.addEventListener('click', e => {
+  const i = hit(e.clientX, e.clientY);
+  pinned = i === pinned ? -1 : i;
+  if (pinned >= 0 && e.pointerType !== 'mouse') sound(pinned);
+  showCard(pinned);
+});
+
+
+/* ------------------------------------------------
+   ADDING A THOUGHT
+   It appears among its nearest thoughts rather than at the top of anything,
+   sounds, and its neighbours answer.
+   ------------------------------------------------ */
+
+const form = document.getElementById('form');
+const input = document.getElementById('text');
+const addBtn = document.getElementById('add');
+const status = document.getElementById('status');
+let ready = false;
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const text = input.value.trim().replace(/\s+/g, ' ');
+  if (!text || !ready) return;
+  input.value = '';
+  const [vec] = await embed([text]);
+  const t = { id: nextId++, who: 'you', text, t: Date.now(), vec, born: performance.now() };
+  // start it beside whatever it's closest to, so it doesn't fly in from nowhere
+  let best = -1, bs = -2;
+  thoughts.forEach((o, j) => { const s = dot(vec, o.vec); if (visible(o) && s > bs) { bs = s; best = j; } });
+  const b = bounds();
+  t.x = best >= 0 ? thoughts[best].x + 20 : (b.x0 + b.x1) / 2;
+  t.y = best >= 0 ? thoughts[best].y + 20 : (b.y0 + b.y1) / 2;
+  thoughts.push(t);
+  relate(); saveMine();
+  if (eyes === 'open') { status.textContent = 'Added to the top of the feed. Close your eyes to see where it belongs.'; }
+  setTimeout(() => sound(thoughts.indexOf(t)), 500);
+});
+
+
+/* ------------------------------------------------
+   CONTROLS
+   ------------------------------------------------ */
+
+function setEyes(v) {
+  eyes = v;
+  document.getElementById('closed').setAttribute('aria-pressed', v === 'closed');
+  document.getElementById('open').setAttribute('aria-pressed', v === 'open');
+  document.getElementById('trace').disabled = v === 'open';
+  pinned = -1; card.hidden = true;
+}
+document.getElementById('closed').onclick = () => setEyes('closed');
+document.getElementById('open').onclick = () => setEyes('open');
+
+function toggle(id, get, set) {
+  const b = document.getElementById(id);
+  b.onclick = () => { set(!get()); b.setAttribute('aria-pressed', get()); };
+}
+toggle('trace', () => showTrace, v => showTrace = v);
+toggle('others', () => showOthers, v => { showOthers = v; pinned = -1; card.hidden = true; updateMinds(); });
+toggle('sound', () => soundOn, v => { soundOn = v; startAudio(); });
+
+document.getElementById('enter').onclick = () => {
+  startAudio();
+  document.getElementById('intro').hidden = true;
+  input.focus();
+};
+
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') { pinned = -1; card.hidden = true; }
+});
+
+
+/* ------------------------------------------------
+   START
+   ------------------------------------------------ */
+
+async function start() {
+  addBtn.disabled = true;
+  status.textContent = 'Loading a small language model into this page (about 23 MB, once)…';
+  await loadModel();
+
+  const mine = loadMine();
+  const all = [
+    ...EXAMPLES.map(([who, text, days]) => ({ who, text, t: Date.now() - days * DAY })),
+    ...mine.map(m => ({ who: 'you', text: m.text, t: m.t })),
+  ];
+  const vecs = await embed(all.map(a => a.text));
+  const b = bounds();
+  all.forEach((a, k) => {
+    const ang = k * 2.39996, r = 40 + 14 * Math.sqrt(k);
+    thoughts.push({ ...a, id: nextId++, vec: vecs[k], born: 0,
+      x: (b.x0 + b.x1) / 2 + Math.cos(ang) * r, y: (b.y0 + b.y1) / 2 + Math.sin(ang) * r });
+  });
+  relate();
+
+  // let the field find its shape before anyone looks at it
+  for (let k = 0; k < 400; k++) settle();
+
+  ready = true;
+  addBtn.disabled = false;
+  status.textContent = rough
+    ? 'The language model could not load, so this is matching shared words, not meaning. Try reloading.'
+    : 'Placed by meaning. Hover a thought to hear it and its neighbours.';
+}
+
+requestAnimationFrame(frame);
+start();
+
+</script>
+</body>
+</html>

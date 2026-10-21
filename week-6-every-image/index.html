@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Every Image</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+
+/* Layout: a square of static on the left that you zoom into, pixel by pixel. On the right, the numbers,
+   what you're looking at, and a map of every picture arranged by meaning. Dark, because it's a screen of static. */
+:root{
+  --bg:#0f0e15; --surface:#191723; --fg:#ece9f4; --muted:#9b96b0; --line:#2c2939;
+  --accent:#a593ff; --found:#f0b35a;
+  --display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --body:"Literata",Georgia,serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg)}
+body{color:var(--fg);font:16px/1.6 var(--body);padding:24px max(16px,env(safe-area-inset-right,0px)) 56px max(16px,env(safe-area-inset-left,0px));-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--display);font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.05}
+p{margin:0}
+.lede{color:var(--muted);font-size:17px;max-width:68ch;margin-top:10px}
+.k{font:500 11px/1.3 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+button{font:500 14px var(--display);color:var(--fg);cursor:pointer}
+button:focus-visible,canvas:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.on{border-color:var(--accent);color:var(--accent)}
+
+.main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+.stagecol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.crumbs{flex:1;min-width:0;font:500 12px/1.4 var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage{position:relative;aspect-ratio:1/1;width:100%;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--line)}
+#stage{display:block;width:100%;height:100%;touch-action:manipulation;cursor:zoom-in}
+.peek{position:absolute;pointer-events:none;width:112px;padding:6px;background:rgba(15,14,21,.94);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:5px}
+.peek canvas{width:100px;height:100px;border-radius:4px;image-rendering:pixelated;background:#000}
+.peek span{font:500 10.5px/1.35 var(--mono);color:var(--muted)}
+.hint{font:500 12px/1.5 var(--mono);color:var(--muted)}
+
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.formula{font:700 26px/1.15 var(--display);font-variant-numeric:tabular-nums}
+.formula sup{font-size:.55em}
+.formula small{display:block;font:400 14px/1.45 var(--body);color:var(--muted);margin-top:6px}
+.stats{display:flex;gap:20px;flex-wrap:wrap}
+.stats div{display:flex;flex-direction:column;gap:2px}
+.stats b{font:700 18px/1 var(--display);font-variant-numeric:tabular-nums}
+.what{font-size:15.5px;line-height:1.5}
+.what q{quotes:"\201C" "\201D"}
+.addr{font:500 11.5px/1.5 var(--mono);color:var(--muted);word-break:break-word}
+.near{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.near button{padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#000;aspect-ratio:1/1}
+.near img{width:100%;height:100%;object-fit:cover;display:block}
+#map{width:100%;aspect-ratio:1/1;display:block;border-radius:8px;background:#07060b;cursor:crosshair}
+.note{font-size:13px;color:var(--muted)}
+
+@media (max-width:880px){ .main{grid-template-columns:minmax(0,1fr)} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="k" style="color:var(--accent)">Shared Minds · Week 6</p>
+    <h1 style="margin-top:8px">Every Image</h1>
+    <p class="lede">This square of static is made of 1,024 pixels, and every pixel is a whole picture: the picture's colours
+      averaged down to one dot. Hover to peek inside a pixel. Click to fall into it. Almost everything inside is more static,
+      but a few pixels hold pictures that people asked an AI to make. Turn on the sound guide and listen for them.</p>
+  </header>
+
+  <div class="main">
+    <div class="stagecol">
+      <div class="bar">
+        <button class="btn" id="back" disabled>Zoom out</button>
+        <span class="crumbs" id="crumbs">Static</span>
+        <button class="btn" id="mosaicBtn" hidden aria-pressed="false">See its pixels</button>
+        <button class="btn" id="soundBtn">Sound guide: off</button>
+      </div>
+      <div class="stage">
+        <canvas id="stage" tabindex="0" aria-label="A picture made of 32 by 32 pixels. Each pixel is a picture. Click one, or use the arrow keys and Enter, to zoom into it."></canvas>
+        <div class="peek" id="peek" hidden><canvas id="peekCv" width="32" height="32"></canvas><span id="peekText"></span></div>
+      </div>
+      <p class="hint" id="hint">Click any pixel to zoom in. Arrow keys and Enter work too; Escape zooms out.</p>
+    </div>
+
+    <aside class="side">
+      <div class="box">
+        <span class="k">How many pictures this size could exist</span>
+        <p class="formula">16,777,216<sup>1,024</sup> ≈ 10<sup>7,398</sup>
+          <small>Each of 1,024 pixels can be any of 16,777,216 colours. AI image models reach a sliver of this: about
+          4.3 billion seeds, times every prompt anyone could write.</small></p>
+        <div class="stats">
+          <div><span class="k">Pictures you've opened</span><b id="opened">0</b></div>
+          <div><span class="k">Depth</span><b id="depth">0</b></div>
+          <div><span class="k">AI pictures found</span><b id="found">0</b></div>
+        </div>
+      </div>
+
+      <div class="box">
+        <span class="k" id="whatLabel">You're looking at</span>
+        <p class="what" id="what">Static. Every pixel here is a picture whose colours average out to that pixel's colour.</p>
+        <p class="addr" id="addr"></p>
+        <div id="nearWrap" hidden>
+          <span class="k" id="nearLabel">Closest in meaning (CLIP)</span>
+          <div class="near" id="near" style="margin-top:6px"></div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="bar" style="justify-content:space-between"><span class="k">Every AI picture here, arranged by meaning (UMAP)</span></div>
+        <canvas id="map" aria-label="Map of every AI picture in the atlas. Found ones show as thumbnails; click one to go there."></canvas>
+        <p class="note" id="mapNote">Pictures you find appear on the map. Pictures that mean similar things sit together.</p>
+      </div>
+
+      <p class="note" id="source"></p>
+    </aside>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   THE ATLAS
+   atlas/atlas.json comes from tools/build-atlas.mjs: AI pictures from DiffusionDB with their prompts and seeds,
+   their average colour, a place on the UMAP map, and their nearest neighbours by CLIP.
+   Without it, the page makes a small demo set of pixel drawings so it still works.
+   ========================================================= */
+const G = 32;                       // every picture is 32 × 32 pixels at this level of looking
+let ATLAS = [], byId = new Map(), isDemo = false;
+
+async function loadAtlas(){
+  try{
+    const res = await fetch('atlas/atlas.json', { cache: 'no-cache' });
+    if(!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    ATLAS = data.items.map(it => ({ ...it, src: 'atlas/' + it.file }));
+    document.getElementById('source').textContent =
+      `${ATLAS.length} pictures from ${data.source}, placed by ${data.model.split('/').pop()} and UMAP. Prompts and seeds as their makers wrote them.`;
+  }catch{
+    isDemo = true;
+    ATLAS = demoAtlas();
+    document.getElementById('source').textContent =
+      'Demo set: simple pixel drawings, placed by colour. Run tools/build-atlas.mjs to fill this with real AI pictures, placed by CLIP and UMAP.';
+  }
+  ATLAS.forEach(it => byId.set(it.id, it));
+}
+
+// demo pictures: small scenes drawn in code, in three colourings each
+function demoAtlas(){
+  const scenes = {
+    'a sun in a blue sky': g => { sky(g,'#5fb4ec','#bfe6fb'); circle(g,128,110,46,'#ffd84a'); },
+    'the moon over the sea at night': g => { sky(g,'#0b1030','#1d2a5c'); circle(g,170,80,30,'#f2eccd'); rect(g,0,180,256,76,'#0a1a3a'); },
+    'a single tree on a hill': g => { sky(g,'#a9d8f0','#e6f4fb'); circle(g,128,300,170,'#5d9a3f'); rect(g,120,110,16,60,'#6b4426'); circle(g,128,100,48,'#2f7a3a'); },
+    'a red house with a lit window': g => { sky(g,'#f3d9b0','#f8ead2'); rect(g,0,200,256,56,'#7ea35a'); rect(g,60,110,136,90,'#c4553b'); tri(g,48,112,208,112,128,48,'#7a2e22'); rect(g,110,150,30,50,'#4a2a1a'); rect(g,75,130,24,24,'#ffe48a'); },
+    'waves at sunset': g => { sky(g,'#ff9a5a','#ffd9a0'); circle(g,128,150,40,'#fff1c0'); for(let i=0;i<5;i++) rect(g,0,150+i*22,256,22,i%2?'#2a5f9a':'#2a78b8'); },
+    'a pink flower close up': g => { sky(g,'#e9f3d8','#d6ead0'); for(let a=0;a<6;a++){const t=a/6*Math.PI*2;circle(g,128+Math.cos(t)*44,118+Math.sin(t)*44,32,'#e86aa0');} circle(g,128,118,26,'#ffd34d'); },
+    'a cup of coffee on a table': g => { sky(g,'#f4ead8','#e8d9bf'); rect(g,0,190,256,66,'#b98a5a'); rect(g,80,110,90,80,'#ffffff'); rect(g,88,116,74,16,'#6b3f22'); circle(g,182,150,18,'#ffffff'); circle(g,182,150,9,'#e8d9bf'); },
+    'a city skyline at dusk': g => { sky(g,'#2c2350','#e07a5f'); [[20,120],[60,80],[100,140],[140,60],[190,110],[228,90]].forEach(([x,h])=>rect(g,x-18,256-h-40,36,h+40,'#15122a')); },
+    'a red heart': g => { sky(g,'#2a1320','#3a1a2c'); circle(g,98,110,40,'#e23d5a'); circle(g,158,110,40,'#e23d5a'); tri(g,62,124,194,124,128,200,'#e23d5a'); },
+    'a desert with one cactus': g => { sky(g,'#f6c27a','#fbe3b8'); rect(g,0,180,256,76,'#d9a35f'); rect(g,118,100,20,90,'#3f7a3a'); rect(g,98,130,20,10,'#3f7a3a'); rect(g,98,110,10,30,'#3f7a3a'); },
+    'snow falling in a forest': g => { sky(g,'#9fb4c8','#e8eef4'); for(let i=0;i<5;i++) tri(g,20+i*50,200,60+i*50,200,40+i*50,90,'#2d5a48'); for(let i=0;i<60;i++) circle(g,(i*73)%256,(i*41)%256,2.5,'#ffffff'); },
+  };
+  const tints = [0, 140, 260];
+  const out = [];
+  Object.entries(scenes).forEach(([prompt, draw], si) => tints.forEach((hue, ti) => {
+    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+    draw(g);
+    if(hue){ const t = document.createElement('canvas'); t.width = t.height = 256; const tg = t.getContext('2d'); tg.filter = `hue-rotate(${hue}deg)`; tg.drawImage(c,0,0); g.clearRect(0,0,256,256); g.drawImage(t,0,0); }
+    const avg = averageOf(c);
+    out.push({ id: `d${si}-${ti}`, prompt: hue ? `${prompt}, recoloured` : prompt, seed: si * 1000 + ti, canvas: c, avg, source: 'demo' });
+  }));
+  // a rough map: hue around, brightness across
+  out.forEach(it => { const [h, l] = hueLight(it.avg); it.map = [.08 + .84 * h, .08 + .84 * (1 - l)]; });
+  out.forEach(it => { it.nn = out.filter(o => o !== it).sort((a, b) => colorDist(a.avg, it.avg) - colorDist(b.avg, it.avg)).slice(0, 6).map(o => o.id); });
+  return out;
+  function sky(g,a,b){ const gr=g.createLinearGradient(0,0,0,256); gr.addColorStop(0,a); gr.addColorStop(1,b); g.fillStyle=gr; g.fillRect(0,0,256,256); }
+  function circle(g,x,y,r,c){ g.fillStyle=c; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
+  function rect(g,x,y,w,h,c){ g.fillStyle=c; g.fillRect(x,y,w,h); }
+  function tri(g,x1,y1,x2,y2,x3,y3,c){ g.fillStyle=c; g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.lineTo(x3,y3); g.fill(); }
+}
+
+function averageOf(img){
+  const c = document.createElement('canvas'); c.width = c.height = 1; const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, 1, 1); const d = g.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2]];
+}
+function hueLight([r,g,b]){ r/=255; g/=255; b/=255; const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2; let h=0;
+  if(mx!==mn){ const d=mx-mn; h = mx===r ? (g-b)/d+(g<b?6:0) : mx===g ? (b-r)/d+2 : (r-g)/d+4; h/=6; } return [h, l]; }
+const colorDist = (a, b) => (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2;
+
+// pictures load when first needed
+function pictureOf(it){
+  if(it.canvas) return it.canvas;
+  if(!it.img){ it.img = new Image(); it.img.src = it.src; it.img.onload = () => { it.ready = true; requestDraw(); }; }
+  return it.ready ? it.img : null;
+}
+
+
+/* =========================================================
+   PICTURES INSIDE PIXELS
+   A static picture is made from a seed and a colour: 1,024 random pixels that average out near that colour.
+   A few of its pixels are salted with AI pictures; each sits on a pixel the colour of its own average.
+   An AI picture's pixels are other AI pictures whose average colour matches, so meaning goes all the way down.
+   ========================================================= */
+function hash(a, b){ let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x632be5ab, 0xc2b2ae35); h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; return h >>> 0; }
+function rng(seed){ let s = seed || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; }; }
+
+function staticNode(seed, base, depth){
+  const r = rng(seed), px = new Uint8ClampedArray(G * G * 4);
+  const spread = base ? 115 : 255;
+  for(let i = 0; i < G * G; i++){
+    for(let c = 0; c < 3; c++) px[i*4+c] = base ? base[c] + (r() - .5) * 2 * spread : r() * 256;
+    px[i*4+3] = 255;
+  }
+  // salt the static: at the top, a dozen AI pictures; deeper, one to three that average near this colour
+  const meaning = new Map();
+  const count = depth === 0 ? Math.min(12, ATLAS.length) : 1 + Math.floor(r() * 3);
+  const pool = base ? ATLAS.slice().sort((a, b) => colorDist(a.avg, base) - colorDist(b.avg, base)).slice(0, Math.max(8, ATLAS.length >> 3)) : ATLAS.slice();
+  for(let k = 0; k < count && pool.length; k++){
+    const it = pool.splice(Math.floor(r() * pool.length), 1)[0];
+    let cell; do { cell = Math.floor(r() * G * G); } while(meaning.has(cell));
+    meaning.set(cell, it.id);
+    px.set([...it.avg, 255], cell * 4);
+  }
+  return { type: 'static', seed, base, depth, px, meaning };
+}
+
+function pictureNode(id, depth){ return { type: 'picture', id, depth }; }
+
+// the colour of each of a picture's 1,024 pixels (needs the picture loaded)
+function cellsOf(node){
+  if(node.px) return node.px;
+  const img = pictureOf(byId.get(node.id)); if(!img) return null;
+  const c = document.createElement('canvas'); c.width = c.height = G; const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, G, G); node.px = g.getImageData(0, 0, G, G).data; return node.px;
+}
+
+function childOf(node, cell){
+  if(node.type === 'static'){
+    const id = node.meaning.get(cell);
+    if(id) return pictureNode(id, node.depth + 1);
+    const px = node.px;
+    return staticNode(hash(node.seed, cell), [px[cell*4], px[cell*4+1], px[cell*4+2]], node.depth + 1);
+  }
+  // a picture's pixel opens into an AI picture whose average colour is close to it: one of the nearest four,
+  // chosen by the pixel's position, so neighbouring pixels of the same colour open into different pictures
+  const px = cellsOf(node); if(!px) return null;
+  const col = [px[cell*4], px[cell*4+1], px[cell*4+2]];
+  const close = ATLAS.filter(it => it.id !== node.id).sort((a, b) => colorDist(a.avg, col) - colorDist(b.avg, col)).slice(0, 4);
+  if(!close.length) return null;
+  const pick = close[hash(node.id.length * 7919 + parseInt(node.id.replace(/\D/g, '') || '0', 10), cell) % close.length];
+  return pictureNode(pick.id, node.depth + 1);
+}
+
+// which picture each pixel of a picture opens into, worked out once per picture
+function tilesOf(node){
+  if(node.tiles) return node.tiles;
+  const px = cellsOf(node); if(!px) return null;
+  node.tiles = Array.from({ length: G * G }, (_, cell) => childOf(node, cell).id);
+  return node.tiles;
+}
+
+let mosaic = false;
+const pxCanvas = document.createElement('canvas'); pxCanvas.width = pxCanvas.height = G;
+function drawNode(g, node, x, y, size){
+  if(node.type === 'picture' && mosaic && node === here && !zoom){
+    const tiles = tilesOf(node);
+    if(tiles){ const cs = size / G; g.imageSmoothingEnabled = true;
+      tiles.forEach((id, cell) => { const it = byId.get(id), img = pictureOf(it), cx = x + (cell % G) * cs, cy = y + Math.floor(cell / G) * cs;
+        if(img) g.drawImage(img, cx, cy, cs + .5, cs + .5); else { g.fillStyle = `rgb(${it.avg})`; g.fillRect(cx, cy, cs + .5, cs + .5); } });
+      return; }
+  }
+  if(node.type === 'static'){
+    pxCanvas.getContext('2d').putImageData(new ImageData(node.px, G, G), 0, 0);
+    g.imageSmoothingEnabled = false; g.drawImage(pxCanvas, x, y, size, size);
+  } else {
+    const img = pictureOf(byId.get(node.id));
+    g.imageSmoothingEnabled = true;
+    if(img) g.drawImage(img, x, y, size, size);
+    else { g.fillStyle = `rgb(${byId.get(node.id).avg})`; g.fillRect(x, y, size, size); }
+  }
+}
+
+
+/* =========================================================
+   STATE, DRAWING AND ZOOMING
+   ========================================================= */
+const stage = document.getElementById('stage'), sg = stage.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let path = [], here = null, hover = -1, zoom = null, opened = 0;
+let found = new Set(); try{ found = new Set(JSON.parse(localStorage.getItem('every-image-found')) || []); }catch{}
+let drawQueued = false;
+function requestDraw(){ if(!drawQueued){ drawQueued = true; requestAnimationFrame(draw); } }
+
+function size(){ const dpr = Math.min(2, devicePixelRatio || 1), S = stage.clientWidth;
+  if(stage.width !== Math.round(S * dpr)){ stage.width = stage.height = Math.round(S * dpr); } sg.setTransform(dpr, 0, 0, dpr, 0, 0); return S; }
+
+function draw(){
+  drawQueued = false;
+  const S = size(); sg.fillStyle = '#000'; sg.fillRect(0, 0, S, S);
+  if(!here) return;
+  if(zoom){
+    // the parent grows until the chosen pixel fills the square; the child fades in inside that pixel
+    const t = Math.min(1, (performance.now() - zoom.start) / zoom.ms), e = t < .5 ? 2*t*t : 1 - (-2*t + 2)**2 / 2;
+    const p = zoom.out ? 1 - e : e;
+    const k = Math.pow(G, p), cs = S / G, cx = (zoom.cell % G + .5) * cs, cy = (Math.floor(zoom.cell / G) + .5) * cs;
+    const ox = cx + (S / 2 - cx) * p, oy = cy + (S / 2 - cy) * p;
+    drawNode(sg, zoom.from, ox - cx * k, oy - cy * k, S * k);
+    const cell = cs * k;
+    sg.globalAlpha = Math.min(1, Math.max(0, (p - .35) / .45));
+    drawNode(sg, zoom.to, ox - cell / 2, oy - cell / 2, cell);
+    sg.globalAlpha = 1;
+    if(t < 1) requestDraw();
+    else { const done = zoom; zoom = null; done.finish(); requestDraw(); }
+    return;
+  }
+  drawNode(sg, here, 0, 0, S);
+  if(hover >= 0 && here.type === 'picture' && !mosaic){
+    // a faint grid, so it's clear this picture is made of pixels you can open
+    sg.strokeStyle = 'rgba(255,255,255,.12)'; sg.lineWidth = 1; sg.beginPath();
+    for(let i = 1; i < G; i++){ const v = i * S / G; sg.moveTo(v, 0); sg.lineTo(v, S); sg.moveTo(0, v); sg.lineTo(S, v); }
+    sg.stroke();
+  }
+  if(hover >= 0){
+    const cs = S / G, x = (hover % G) * cs, y = Math.floor(hover / G) * cs;
+    sg.strokeStyle = '#fff'; sg.lineWidth = 2; sg.strokeRect(x - 1, y - 1, cs + 2, cs + 2);
+  }
+}
+
+function enter(node, viaCell){
+  const from = here;
+  if(!from || viaCell == null || reduce){ arrive(node); return; }
+  zoom = { from, to: node, cell: viaCell, start: performance.now(), ms: 900, out: false, finish: () => arrive(node) };
+  sound.whoosh(true); requestDraw();
+}
+function arrive(node){
+  if(here) path.push({ node: here, cell: lastCell });
+  here = node; hover = -1; opened++;
+  if(node.type === 'picture' && !found.has(node.id)){ found.add(node.id); try{ localStorage.setItem('every-image-found', JSON.stringify([...found])); }catch{} sound.found(byId.get(node.id)); }
+  if(node.type === 'picture') pictureOf(byId.get(node.id));
+  refresh();
+}
+let lastCell = null;
+function open(cell){
+  if(zoom || !here) return;
+  const child = childOf(here, cell); if(!child) return;
+  lastCell = cell; hidePeek(); enter(child, cell);
+}
+function back(){
+  if(zoom || !path.length) return;
+  const prev = path.pop(), from = here;
+  const finish = () => { here = prev.node; hover = -1; refresh(); };
+  if(reduce || prev.cell == null){ finish(); return; }
+  zoom = { from: prev.node, to: from, cell: prev.cell, start: performance.now(), ms: 700, out: true, finish };
+  sound.whoosh(false); requestDraw();
+}
+function jump(id){ if(zoom) return; lastCell = null; arrive(pictureNode(id, (here?.depth || 0) + 1)); }
+
+stage.addEventListener('pointermove', e => {
+  if(zoom || !here) return;
+  const r = stage.getBoundingClientRect(), cell = Math.floor((e.clientY - r.top) / r.height * G) * G + Math.floor((e.clientX - r.left) / r.width * G);
+  if(cell !== hover){ hover = cell; requestDraw(); showPeek(cell, e.clientX - r.left, e.clientY - r.top); sound.listen(here, cell); }
+});
+stage.addEventListener('pointerleave', () => { hover = -1; hidePeek(); requestDraw(); sound.listen(null); });
+stage.addEventListener('click', e => {
+  sound.wake();
+  const r = stage.getBoundingClientRect(), cell = Math.floor((e.clientY - r.top) / r.height * G) * G + Math.floor((e.clientX - r.left) / r.width * G);
+  open(cell);
+});
+stage.addEventListener('keydown', e => {
+  if(!here) return;
+  if(hover < 0) hover = (G / 2) * G + G / 2;
+  const x = hover % G, y = Math.floor(hover / G);
+  const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if(moves[e.key]){ e.preventDefault(); const [dx, dy] = moves[e.key]; hover = Math.min(G - 1, Math.max(0, y + dy)) * G + Math.min(G - 1, Math.max(0, x + dx));
+    const S = stage.clientWidth, cs = S / G; showPeek(hover, (hover % G + .5) * cs, (Math.floor(hover / G) + .5) * cs); sound.listen(here, hover); requestDraw(); }
+  else if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); sound.wake(); open(hover); }
+  else if(e.key === 'Escape' || e.key === 'Backspace'){ e.preventDefault(); back(); }
+});
+document.getElementById('back').onclick = back;
+
+
+/* =========================================================
+   PEEKING: what's inside the pixel under your cursor
+   ========================================================= */
+const peek = document.getElementById('peek'), peekCv = document.getElementById('peekCv'), pg = peekCv.getContext('2d');
+function showPeek(cell, x, y){
+  const child = childOf(here, cell); if(!child){ hidePeek(); return; }
+  if(child.type === 'static'){ peekCv.width = peekCv.height = G; pg.putImageData(new ImageData(child.px, G, G), 0, 0); peekCv.style.imageRendering = 'pixelated'; }
+  else { peekCv.width = peekCv.height = 200; const img = pictureOf(byId.get(child.id)); pg.fillStyle = `rgb(${byId.get(child.id).avg})`; pg.fillRect(0, 0, 200, 200); if(img) pg.drawImage(img, 0, 0, 200, 200); peekCv.style.imageRendering = 'auto'; }
+  const it = child.type === 'picture' ? byId.get(child.id) : null;
+  document.getElementById('peekText').textContent = it ? (found.has(it.id) ? short(it.prompt, 60) : 'Something with meaning') : 'Static';
+  const W = stage.clientWidth;
+  peek.style.left = Math.min(W - 124, x + 16) + 'px';
+  peek.style.top = Math.min(W - 150, y + 16) + 'px';
+  peek.hidden = false;
+}
+function hidePeek(){ peek.hidden = true; }
+const short = (s, n) => !s ? '' : s.length > n ? s.slice(0, n - 1) + '…' : s;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+
+/* =========================================================
+   THE SIDE: what you're looking at, its address, its neighbours, the map
+   ========================================================= */
+function refresh(){
+  document.getElementById('back').disabled = !path.length;
+  const mb = document.getElementById('mosaicBtn');
+  mb.hidden = here.type !== 'picture';
+  if(here.type !== 'picture' && mosaic){ mosaic = false; }
+  mb.setAttribute('aria-pressed', mosaic); mb.classList.toggle('on', mosaic); mb.textContent = mosaic ? 'See the picture' : 'See its pixels';
+  document.getElementById('opened').textContent = opened.toLocaleString();
+  document.getElementById('depth').textContent = here.depth;
+  document.getElementById('found').textContent = `${[...found].filter(id => byId.has(id)).length} of ${ATLAS.length}`;
+  const crumbs = [...path.map(p => p.node), here].map(n => n.type === 'static' ? 'Static' : `“${short(byId.get(n.id).prompt, 22)}”`);
+  document.getElementById('crumbs').textContent = crumbs.join(' › ');
+  const what = document.getElementById('what'), addr = document.getElementById('addr'), nearWrap = document.getElementById('nearWrap');
+  if(here.type === 'static'){
+    document.getElementById('whatLabel').textContent = "You're looking at";
+    what.textContent = here.depth === 0
+      ? 'Static. Every pixel here is a picture whose colours average out to that pixel\'s colour. A dozen of them hold AI pictures.'
+      : 'More static: one of the countless pictures that average out to the colour you clicked. Somewhere in it, a pixel or two holds meaning.';
+    addr.textContent = `Address: seed ${here.seed}${here.base ? `, averaging rgb(${here.base.map(Math.round).join(', ')})` : ''}`;
+    nearWrap.hidden = true;
+    document.getElementById('hint').textContent = 'Click any pixel to zoom in. Arrow keys and Enter work too; Escape zooms out.';
+  } else {
+    const it = byId.get(here.id);
+    document.getElementById('whatLabel').textContent = isDemo ? 'A demo picture' : 'An AI picture';
+    what.innerHTML = `<q>${esc(it.prompt)}</q>`;
+    document.getElementById('nearLabel').textContent = isDemo ? 'Closest in colour (demo; CLIP once the atlas is built)' : 'Closest in meaning (CLIP)';
+    addr.textContent = isDemo ? 'Demo picture. With the real atlas, this shows the prompt and seed that made it: its address in AI space.'
+      : it.seed != null
+      ? `Address in AI space: this prompt + seed ${it.seed}${it.cfg ? ` · guidance ${it.cfg}` : ''}${it.steps ? ` · ${it.steps} steps` : ''}${it.sampler ? ` · ${it.sampler}` : ''}. Same prompt, same seed, same picture, every time.`
+      : 'No seed recorded for this picture.';
+    const near = document.getElementById('near'); near.innerHTML = '';
+    (it.nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
+      const b = document.createElement('button'); b.title = n.prompt;
+      const img = document.createElement('img'); img.alt = n.prompt; img.src = n.canvas ? n.canvas.toDataURL() : n.src;
+      b.appendChild(img); b.onclick = () => jump(n.id); near.appendChild(b);
+    });
+    nearWrap.hidden = false;
+    document.getElementById('hint').textContent = 'Every pixel of this picture is another AI picture with that average colour. Click one to fall in.';
+  }
+  drawMap(); requestDraw();
+}
+
+const mapCv = document.getElementById('map');
+let mapSpots = [];
+function drawMap(){
+  const dpr = Math.min(2, devicePixelRatio || 1), W = mapCv.clientWidth;
+  if(mapCv.width !== Math.round(W * dpr)){ mapCv.width = mapCv.height = Math.round(W * dpr); }
+  const g = mapCv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#07060b'; g.fillRect(0, 0, W, W);
+  const pad = 14, s = W - pad * 2, T = Math.max(14, Math.min(26, W / 14));
+  mapSpots = [];
+  // unfound pictures are faint dots in their own average colour
+  for(const it of ATLAS){ if(found.has(it.id)) continue;
+    g.fillStyle = `rgba(${it.avg},.55)`; g.beginPath(); g.arc(pad + it.map[0] * s, pad + it.map[1] * s, 2, 0, 7); g.fill(); }
+  // found ones as thumbnails
+  for(const it of ATLAS){ if(!found.has(it.id)) continue;
+    const x = pad + it.map[0] * s - T / 2, y = pad + it.map[1] * s - T / 2, img = pictureOf(it);
+    if(img) g.drawImage(img, x, y, T, T); else { g.fillStyle = `rgb(${it.avg})`; g.fillRect(x, y, T, T); }
+    mapSpots.push([it.id, x, y, T]);
+  }
+  if(here?.type === 'picture'){ const it = byId.get(here.id); g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(pad + it.map[0] * s - T / 2 - 2, pad + it.map[1] * s - T / 2 - 2, T + 4, T + 4); }
+  document.getElementById('mapNote').textContent = found.size
+    ? 'Click a picture you\'ve found to go back to it. Faint dots are pictures still hidden in the static.'
+    : 'Pictures you find appear here. Pictures that mean similar things sit together.';
+}
+mapCv.addEventListener('click', e => {
+  const r = mapCv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const hit = mapSpots.find(([, sx, sy, T]) => x >= sx && x <= sx + T && y >= sy && y <= sy + T);
+  if(hit) jump(hit[0]);
+});
+
+
+/* =========================================================
+   THE SOUND GUIDE
+   Over static you hear static. The nearer your cursor is to a pixel that holds an AI picture, the more the hiss
+   clears into a tone, pitched by where that picture sits on the map of meaning. Inside a picture, each pixel
+   you pass sounds the picture it opens into, so you can hear meaning move.
+   ========================================================= */
+const sound = (() => {
+  let ac = null, on = false, master, hiss, hissFilter, tone, toneGain, last = 0;
+  const SCALE = [0, 2, 4, 7, 9];
+  const pitchOf = it => { const step = Math.round(it.map[0] * 9); return 196 * Math.pow(2, (SCALE[step % 5] + 12 * Math.floor(step / 5)) / 12); };
+  function build(){
+    ac = new AudioContext(); master = ac.createGain(); master.gain.value = .6; master.connect(ac.destination);
+    const buf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate), d = buf.getChannelData(0); for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+    hissFilter = ac.createBiquadFilter(); hissFilter.type = 'bandpass'; hissFilter.frequency.value = 3000; hissFilter.Q.value = .4;
+    hiss = ac.createGain(); hiss.gain.value = 0; src.connect(hissFilter); hissFilter.connect(hiss); hiss.connect(master); src.start();
+    tone = ac.createOscillator(); tone.type = 'sine'; toneGain = ac.createGain(); toneGain.gain.value = 0;
+    const warm = ac.createOscillator(); warm.type = 'triangle'; const warmGain = ac.createGain(); warmGain.gain.value = .25;
+    tone.connect(toneGain); warm.connect(warmGain); warmGain.connect(toneGain); toneGain.connect(master); tone.start(); warm.start();
+    tone.warm = warm;
+  }
+  const set = (p, v, tc = .06) => p.setTargetAtTime(v, ac.currentTime, tc);
+  return {
+    wake(){ if(ac && ac.state === 'suspended') ac.resume(); },
+    toggle(){ if(!ac){ try{ build(); }catch{ return false; } } on = !on; if(!on){ set(hiss.gain, 0); set(toneGain.gain, 0); } else this.listen(here, hover); return on; },
+    listen(node, cell){
+      if(!ac || !on) return;
+      if(!node || cell == null || cell < 0){ set(hiss.gain, .02, .2); set(toneGain.gain, 0, .2); return; }
+      if(node.type === 'static'){
+        // distance in pixels to the nearest pixel that holds a picture
+        const x = cell % G, y = Math.floor(cell / G); let best = null, bd = Infinity;
+        for(const [c, id] of node.meaning){ const d = Math.hypot(c % G - x, Math.floor(c / G) - y); if(d < bd){ bd = d; best = id; } }
+        const near = best ? Math.exp(-bd / 3.5) : 0;
+        set(hiss.gain, .2 * (1 - near) + .015); set(hissFilter.frequency, 3000 - 2200 * near);
+        if(best){ const f = pitchOf(byId.get(best)); set(tone.frequency, f); set(tone.warm.frequency, f * 2); }
+        set(toneGain.gain, .2 * near * near);
+        if(bd === 0 && performance.now() - last > 400){ last = performance.now(); this.chime(byId.get(best)); }
+      } else {
+        const child = childOf(node, cell); if(!child) return;
+        const f = pitchOf(byId.get(child.id));
+        set(hiss.gain, .015); set(tone.frequency, f, .03); set(tone.warm.frequency, f * 2, .03); set(toneGain.gain, .1);
+      }
+    },
+    chime(it){
+      if(!ac || !on) return; const t = ac.currentTime, f = pitchOf(it);
+      [[f, 0], [f * 1.5, .1], [f * 2, .2]].forEach(([fr, dl]) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = fr;
+        g.gain.setValueAtTime(0, t + dl); g.gain.linearRampToValueAtTime(.12, t + dl + .02); g.gain.exponentialRampToValueAtTime(.0001, t + dl + 1.2);
+        o.connect(g); g.connect(master); o.start(t + dl); o.stop(t + dl + 1.3); });
+    },
+    found(it){ this.chime(it); },
+    whoosh(inward){
+      if(!ac || !on) return; const t = ac.currentTime;
+      set(hissFilter.frequency, inward ? 600 : 4000, .02); hissFilter.frequency.setTargetAtTime(inward ? 4500 : 800, t + .05, .25);
+      hiss.gain.setTargetAtTime(.22, t, .02); hiss.gain.setTargetAtTime(.04, t + .5, .2);
+    },
+  };
+})();
+document.getElementById('mosaicBtn').onclick = () => { mosaic = !mosaic; refresh(); };
+document.getElementById('soundBtn').onclick = e => {
+  const on = sound.toggle(); e.target.textContent = `Sound guide: ${on ? 'on' : 'off'}`; e.target.classList.toggle('on', on);
+};
+
+
+/* =========================================================
+   START
+   ========================================================= */
+addEventListener('resize', () => { drawMap(); requestDraw(); });
+loadAtlas().then(() => {
+  here = staticNode(20261021, null, 0);
+  refresh();
+});
+</script>
+</body>
+</html>
