@@ -187,6 +187,7 @@ class MusicMapApp {
     } else {
       if (!localStorage.getItem(HOWTO_KEY)) this.showHowto(true);
       void this.refreshPlaylists();
+      void this.fetchGenres();
     }
   }
 
@@ -337,38 +338,72 @@ class MusicMapApp {
     return cache[t.artistCredit.split(',')[0].trim().toLowerCase()] ?? [];
   }
 
+  /** Artist → genres from MusicBrainz, kept in memory and in this browser. */
+  private genreMemo: Record<string, string[]> | null = null;
   private genreCache(): Record<string, string[]> {
-    try {
-      return JSON.parse(localStorage.getItem('musicMap:artistGenres') ?? '{}');
-    } catch {
-      return {};
+    if (!this.genreMemo) {
+      try {
+        this.genreMemo = JSON.parse(localStorage.getItem('musicMap:artistGenres') ?? '{}');
+        // Earlier versions saved failed lookups as "no genres"; give those one more try.
+        if (!localStorage.getItem('musicMap:genresRetried')) {
+          for (const [k, v] of Object.entries(this.genreMemo!)) if (!v.length) delete this.genreMemo![k];
+          localStorage.setItem('musicMap:genresRetried', '1');
+        }
+      } catch {
+        this.genreMemo = {};
+      }
     }
+    return this.genreMemo!;
   }
 
-  /** Looks up genres for artists without them, one per second (MusicBrainz's limit). */
+  /**
+   * Looks up genres for artists without them, one per second (MusicBrainz's limit).
+   * Starts as soon as your library loads and keeps going in the background, most-saved
+   * artists first, so filtering by genre works without waiting in Genre mode.
+   */
+  private genreProgress = '';
   private async fetchGenres(): Promise<void> {
-    if (this.genreJob) return;
+    if (this.genreJob || this.datasetKind !== 'spotify') return;
     const cache = this.genreCache();
-    const names = [...new Set([...this.graph.tracks.values()].filter((t) => !t.genres.length).map((t) => t.artistCredit.split(',')[0].trim().toLowerCase()))].filter(
-      (n) => !(n in cache),
-    );
+    const counts = new Map<string, number>();
+    for (const t of this.graph.tracks.values()) {
+      if (t.genres.length) continue;
+      const name = t.artistCredit.split(',')[0].trim().toLowerCase();
+      if (name && !(name in cache)) counts.set(name, (counts.get(name) ?? 0) + (this.graph.inCollection(t.id) ? 2 : 1));
+    }
+    const names = [...counts].sort((x, y) => y[1] - x[1]).map(([n]) => n);
     if (!names.length) return;
     this.genreJob = true;
     let done = 0;
     for (const name of names) {
-      if (this.webMode !== 'genre' || this.view !== 'history') break;
+      if (this.datasetKind !== 'spotify') break;
       try {
         cache[name] = await artistGenres(name);
       } catch {
-        cache[name] = [];
+        // Unreachable right now: leave it out of the cache so it's tried again next time.
+        continue;
+      } finally {
+        done++;
       }
-      done++;
-      localStorage.setItem('musicMap:artistGenres', JSON.stringify(cache));
-      this.setWebStatus(`Finding genres on MusicBrainz… ${done} of ${names.length} artists`);
-      if (done % 8 === 0 || done === names.length) this.refreshWeb(true);
+      if (done % 8 === 0 || done === names.length) {
+        try {
+          localStorage.setItem('musicMap:artistGenres', JSON.stringify(cache));
+        } catch {
+          /* storage full: genres stay for this visit */
+        }
+        this.genreProgress = done < names.length ? `Finding genres on MusicBrainz… ${done} of ${names.length} artists` : '';
+        if (this.view === 'history' && !this.path.length) {
+          this.refreshWeb(true);
+          if (!this.webFilter) this.setWebStatus(this.genreProgress);
+        }
+      }
     }
     this.genreJob = false;
-    this.setWebStatus('');
+    this.genreProgress = '';
+    if (this.view === 'history' && !this.path.length) {
+      this.refreshWeb(true);
+      if (!this.webFilter) this.setWebStatus('');
+    }
   }
 
   private setWebStatus(text: string): void {
@@ -418,7 +453,7 @@ class MusicMapApp {
           outside: !saved,
           hubId: artists[0] ? personHub(artists[0]) : '',
           linkHubIds: others.map(personHub),
-          search: `${t.title} ${t.artistCredit} ${t.album?.name ?? ''} ${this.genresOf(t).join(' ')}`.toLowerCase(),
+          search: searchable(`${t.title} ${t.artistCredit} ${t.album?.name ?? ''} ${this.genresOf(t).join(' ')}`),
           morphFrom: this.albumKey(t),
         });
       }
@@ -460,7 +495,7 @@ class MusicMapApp {
           outside: saved === 0,
           hubId,
           linkHubIds: mode === 'artist' ? [...others].map(personHub) : [],
-          search: `${title} ${list.map((x) => x.title).join(' ')} ${t.artistCredit} ${genres.join(' ')}`.toLowerCase(),
+          search: searchable(`${title} ${list.map((x) => x.title).join(' ')} ${t.artistCredit} ${genres.join(' ')}`),
         });
       }
     }
@@ -474,9 +509,9 @@ class MusicMapApp {
       links.push({ a: itemOf(ta), b: itemOf(tb), kind: r.type === 'documented' ? 'other' : r.type, uncertain: r.evidence.status !== 'documented' });
     }
     this.web.setData(items, [...hubs.values()], links, { bare: mode === 'album' });
-    if (this.webFilter) this.web.setFilter(this.webFilter);
+    if (this.webFilter) this.web.setFilter(searchable(this.webFilter));
     document.querySelectorAll<HTMLButtonElement>('.mm-webbar__mode').forEach((b) => b.setAttribute('aria-pressed', `${b.dataset.mode === mode}`));
-    if (mode === 'genre' && this.datasetKind === 'spotify') void this.fetchGenres();
+    void this.fetchGenres();
   }
 
   private onWebSelect(kind: 'item' | 'hub', id: string, rect: DOMRect): void {
@@ -537,8 +572,9 @@ class MusicMapApp {
 
   private applyWebFilter(q: string): void {
     this.webFilter = q;
-    const n = this.web.setFilter(q);
-    this.setWebStatus(q ? `${n} match${n === 1 ? '' : 'es'}` : '');
+    const n = this.web.setFilter(searchable(q));
+    const waiting = this.genreJob ? ` · ${this.genreProgress || 'still finding genres'}` : '';
+    this.setWebStatus(q ? `${n} match${n === 1 ? '' : 'es'}${waiting}` : this.genreProgress);
   }
 
   private showWebTooltip(info: { title: string; sub: string; x: number; y: number } | null): void {
@@ -600,6 +636,7 @@ class MusicMapApp {
           ? `Imported ${data.collection?.length ?? 0} saved songs. To read your playlists, reconnect Spotify (it needs one more permission).`
           : `Imported ${data.collection?.length ?? 0} saved songs and ${playlists.length} of your playlists.${note ? ` ${note}` : ''}`;
       this.loadDataset();
+      void this.fetchGenres();
       this.renderChrome();
       this.render();
     } catch (err) {
@@ -2801,6 +2838,16 @@ class MusicMapApp {
     this.announcer.textContent = '';
     requestAnimationFrame(() => (this.announcer.textContent = message));
   }
+}
+
+/** Lower-case text with genre spellings evened out: "Hip-Hop" = "hip hop", "R&B" = "rnb". */
+function searchable(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/r\s*&\s*b|r\s*n\s*b|rhythm and blues/g, 'rnb')
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function initials(name: string): string {
