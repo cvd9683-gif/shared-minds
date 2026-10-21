@@ -3,13 +3,12 @@
 Shared Minds · Week 6. Open [`index.html`](index.html) through a local server (`python3 -m http.server`
 from the repo root, then go to `/week-6-every-image/`). It needs no build step to run.
 
-A square of static, 32 × 32 pixels. Every pixel is a whole picture: that picture's colours averaged
-down to one dot. Hover to peek inside a pixel, click to fall into it. Almost every pixel holds more
-static, because almost every possible picture is noise. A few hold pictures that people asked an AI
-to make. The sound guide hisses over static and clears into a tone as you get near one.
+Live static, 32 × 32 pixels: the way almost every possible picture looks. But every pixel is a whole
+picture squeezed down to one dot. Click any pixel and it zooms open into a picture someone asked an AI to
+make, picked at random from the pictures whose average colour is close to that pixel's.
 
 Inside an AI picture the rule keeps going: each of its pixels is another AI picture with that
-average colour. **See its pixels** shows the picture as a mosaic of them.
+average colour. **See its pixels** shows the picture as a mosaic of them. Zoom out to go back to the static.
 
 ## The numbers
 
@@ -21,18 +20,18 @@ average colour. **See its pixels** shows the picture as a mosaic of them.
 
 ## How it works
 
-- **Pictures inside pixels.** A static picture is made from a seed and a colour: 1,024 random pixels
-  that average out near the colour you clicked. A few of its pixels are salted with AI pictures,
-  each on a pixel the colour of its own average. In real pixel space the odds of landing on a
-  meaningful picture are effectively zero; the salting is what makes this one explorable.
+- **Pictures inside pixels.** The static is 1,024 random pixels, redrawn about eleven times a second. In real
+  pixel space, a random picture is almost certainly noise; here every pixel opens into one of the AI
+  pictures, so every click finds one.
 - **The atlas.** The AI pictures come from [DiffusionDB](https://poloclub.github.io/diffusiondb/), about
   14 million Stable Diffusion images shared on a public Discord, each with its prompt and seed.
 - **CLIP and UMAP.** CLIP turns each picture into 512 numbers by what it shows. UMAP flattens those
   numbers onto the map in the corner, so pictures that mean similar things sit together. The map
   starts dark; pictures appear on it as you find them. CLIP also picks each picture's six closest
   neighbours in meaning.
-- **Sound.** Over static, the hiss clears into a tone the closer your cursor is to a pixel that holds a
-  picture. The pitch comes from where that picture sits on the map, so similar pictures sound similar.
+- **Sound.** Static hisses, brighter over bright pixels. Opening a picture plays a chime pitched by where it
+  sits on the map, and inside a picture each pixel you pass sounds the picture it opens into, so similar
+  pictures sound similar.
 
 ## Building the atlas
 
