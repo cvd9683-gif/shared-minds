@@ -106,7 +106,11 @@ sup { font-size: .62em; line-height: 0; }
 .label { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #5c8a5e; margin-bottom: 6px; }
 .number { font-size: clamp(26px, 2.8vw, 42px); line-height: 1.05; letter-spacing: -.01em; white-space: nowrap; }
 .of { margin-top: 6px; font-size: 14px; color: #8a9b82; }
-.seed { margin-top: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #8a9b82; }
+.seed { display: inline-block; margin-top: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #8a9b82; border-bottom: 1px dotted #5c8a5e; cursor: help; }
+.seed:hover, .seed:focus-visible, .seed[aria-expanded="true"] { color: #e0dcd4; }
+/* the explanation's space is always there, so showing it doesn't move the seed out from under the cursor */
+.why { margin-top: 6px; opacity: 0; font-size: 13px; line-height: 1.5; color: #a9a49a; transition: opacity .25s ease; }
+.seed:hover + .why, .seed:focus-visible + .why, .seed[aria-expanded="true"] + .why { opacity: 1; }
 .note { font-size: 14px; line-height: 1.5; color: #a9a49a; }
 .prompt { font-size: 16px; line-height: 1.45; font-style: italic; color: #c3bfb6; }
 .digits {
@@ -247,7 +251,8 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
     </div>
     <div>
       <p class="prompt" id="prompt"></p>
-      <p class="seed" id="seed" title="The number that picked the random static Stable Diffusion started from. Same prompt, same seed: same picture."></p>
+      <button class="seed" id="seed" aria-describedby="seedWhy"></button>
+      <p class="why" id="seedWhy">Stable Diffusion starts every picture from random static. The seed is the number that picked which static; it then cleaned that static up toward the prompt. Same prompt and seed, same picture.</p>
     </div>
     <div class="near" id="near"></div>
     <div class="ways">
@@ -535,6 +540,7 @@ function open(c, via) {
   document.getElementById('digits').textContent = '';
   document.getElementById('prompt').textContent = `“${it.prompt.trim()}”`;
   document.getElementById('seed').textContent = `seed ${it.seed}`;
+  document.getElementById('seed').setAttribute('aria-expanded', 'false');
   document.getElementById('upBtn').hidden = !trail.length;
   const near = document.getElementById('near'); near.innerHTML = '';
   (it.nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
@@ -847,6 +853,11 @@ function nextLine() {
   document.getElementById('introStep').textContent = `${step + 1} / ${INTRO.length}`;
   document.getElementById('enter').hidden = step !== INTRO.length - 1;
 }
+// tapping the seed shows what it is (hovering does too)
+document.getElementById('seed').onclick = e => {
+  const b = e.currentTarget; b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') !== 'true');
+};
+
 // the title replays the introduction from the start
 document.getElementById('replay').onclick = () => {
   step = -1; intro.hidden = false; document.body.classList.add('intro-open'); nextLine();
