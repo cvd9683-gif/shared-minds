@@ -3719,3 +3719,9 @@ input::placeholder {
     min-height: 74vh;
   }
 }
+
+/* The year panel and its lines stay hidden away from the Personal Timeline, even with an album open. */
+.mm-zoom.is-pinned.is-away,
+.mm-zoom.is-away {
+  display: none;
+}
