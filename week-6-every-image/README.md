@@ -51,7 +51,9 @@ node build-atlas.mjs --from ~/Pictures/ai   # or any folder of your own images
 ```
 
 It writes `atlas/atlas.json`, each picture at 512 × 512 to `atlas/images/` and at 96 × 96 to
-`atlas/thumbs/`. Commit all three. `--reexport` rewrites the image files without re-running CLIP. DiffusionDB is unfiltered, so the script drops pictures by prompt words and by asking CLIP
+`atlas/thumbs/`. Commit all three. `--reexport` rewrites the image files without re-running CLIP.
+
+DiffusionDB is unfiltered, so the script drops pictures by prompt words and by asking CLIP
 whether they look explicit or violent. Look through `atlas/images/` anyway, add the original file
 name of anything you don't want to `tools/exclude.txt`, and run it again.
 
