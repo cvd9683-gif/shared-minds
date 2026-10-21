@@ -3687,3 +3687,35 @@ input::placeholder {
     margin: 104px 30px 40px;
   }
 }
+
+/* How-to card: clear of the zoom controls, in the Graph pad's square language */
+.mm-howto {
+  left: 72px;
+  bottom: 16px;
+  width: min(340px, calc(100% - 88px));
+  border: 1px solid var(--ink);
+  box-shadow: 0 16px 32px rgba(23, 21, 31, 0.12);
+}
+.mm-howto h2 {
+  font: 800 18px var(--font);
+  letter-spacing: -0.02em;
+}
+/* On narrow screens the map fills the window while the side panel is closed. */
+@media (max-width: 760px) {
+  body.mm:not(.panel-open) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  body:not(.panel-open) .mm-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  body:not(.panel-open) .mm-stage:not(.has-year) {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 74vh;
+  }
+}
