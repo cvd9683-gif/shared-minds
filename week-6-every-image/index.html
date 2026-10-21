@@ -244,31 +244,40 @@ const INTRO = [
    Built by tools/build-atlas.mjs.
    ================================================================ */
 const G = 32;
-let ATLAS = [], byId = new Map();
+let ATLAS = [], byId = new Map(), sprite = null;
 
 async function loadAtlas() {
   const res = await fetch('atlas/atlas.json', { cache: 'no-cache' });
   const data = await res.json();
-  ATLAS = data.items.map(it => ({ ...it, src: 'atlas/' + it.file, thumbSrc: 'atlas/' + (it.thumb || it.file) }));
+  ATLAS = data.items.map((it, i) => ({ ...it, i, src: 'atlas/' + it.file }));
   ATLAS.forEach(it => byId.set(it.id, it));
+  // every picture at 96 × 96 in one sheet, for the mosaic and the map
+  sprite = { ...data.sprite, img: new Image() };
+  sprite.img.onload = () => { sprite.ready = true; requestDraw(); drawMapSoon(); };
+  sprite.img.src = 'atlas/' + data.sprite.file;
   document.getElementById('source').textContent =
     `${ATLAS.length} pictures from ${data.source}, made with Stable Diffusion in 2022 and shared on a public Discord. Prompts and seeds as their makers wrote them.`;
 }
 
 const colorDist = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
 
-// small versions for the mosaic and the map, full ones (512 × 512) to look at
-function load(it, which) {
-  const key = which === 'full' ? 'img' : 'thumbImg';
-  if (!it[key]) {
-    const img = new Image();
-    img.src = which === 'full' ? it.src : it.thumbSrc;
-    img.onload = () => { img.ready = true; requestDraw(); if (which !== 'full') drawMapSoon(); };
-    it[key] = img;
-  }
-  return it[key].ready ? it[key] : null;
+// the full picture (512 × 512) loads when it's first needed
+function full(it) {
+  if (!it.img) { it.img = new Image(); it.img.onload = () => { it.img.ready = true; requestDraw(); }; it.img.src = it.src; }
+  return it.img.ready ? it.img : null;
 }
-const best = it => load(it, 'full') || load(it, 'thumb');
+
+// draw a picture: full size if it's here, else its thumbnail from the sheet, else its average colour
+function paint(g, it, x, y, w, h, small) {
+  const img = small ? null : full(it);
+  if (img) { g.drawImage(img, x, y, w, h); return; }
+  if (sprite && sprite.ready) {
+    const n = sprite.size;
+    g.drawImage(sprite.img, (it.i % sprite.cols) * n, Math.floor(it.i / sprite.cols) * n, n, n, x, y, w, h);
+    return;
+  }
+  g.fillStyle = `rgb(${it.avg})`; g.fillRect(x, y, w, h);
+}
 
 
 /* ================================================================
@@ -289,9 +298,10 @@ const pictureNode = (id, depth) => ({ type: 'picture', id, depth });
 
 function cellsOf(node) {
   if (node.px) return node.px;
-  const img = best(byId.get(node.id)); if (!img) return null;
+  const it = byId.get(node.id);
+  if (!full(it) && !(sprite && sprite.ready)) return null;
   const c = document.createElement('canvas'); c.width = c.height = G;
-  const g = c.getContext('2d'); g.drawImage(img, 0, 0, G, G);
+  const g = c.getContext('2d'); paint(g, it, 0, 0, G, G);
   node.px = g.getImageData(0, 0, G, G).data;
   return node.px;
 }
@@ -345,13 +355,11 @@ function drawNode(node, x, y, size) {
     // every pixel as the picture it opens into
     const cs = size / G;
     for (let cell = 0; cell < G * G; cell++) {
-      const t = byId.get(childOf(node, cell).id), img = load(t, 'thumb'), cx = x + (cell % G) * cs, cy = y + Math.floor(cell / G) * cs;
-      if (img) sg.drawImage(img, cx, cy, cs + .5, cs + .5); else { sg.fillStyle = `rgb(${t.avg})`; sg.fillRect(cx, cy, cs + .5, cs + .5); }
+      paint(sg, byId.get(childOf(node, cell).id), x + (cell % G) * cs, y + Math.floor(cell / G) * cs, cs + .5, cs + .5, true);
     }
     return;
   }
-  const img = best(it);
-  if (img) sg.drawImage(img, x, y, size, size); else { sg.fillStyle = `rgb(${it.avg})`; sg.fillRect(x, y, size, size); }
+  paint(sg, it, x, y, size, size);
 }
 
 let queued = false;
@@ -404,7 +412,7 @@ function remember(id) {
 function open(cell) {
   if (zoom || !here || cell < 0) return;
   const child = childOf(here, cell); if (!child) return;
-  const it = byId.get(child.id); load(it, 'full');
+  const it = byId.get(child.id); full(it);
   const outer = here;
   const arrive = () => { path.push({ node: outer, cell }); here = child; hover = -1; mosaic = false; remember(child.id); sound.arrive(it); refresh(); };
   sound.whoosh(true);
@@ -431,7 +439,7 @@ function jump(id) {
   if (zoom) return;
   path.push({ node: here, cell: null });
   here = pictureNode(id, (here?.depth || 0) + 1); mosaic = false;
-  remember(id); load(byId.get(id), 'full'); sound.arrive(byId.get(id)); refresh();
+  remember(id); full(byId.get(id)); sound.arrive(byId.get(id)); refresh();
 }
 
 function cellAt(e) {
@@ -512,7 +520,7 @@ function updateNear() {
   near.innerHTML = '';
   (byId.get(here.id).nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
     const b = document.createElement('button'); b.title = n.prompt;
-    const img = document.createElement('img'); img.alt = n.prompt; img.src = n.thumbSrc;
+    const img = document.createElement('img'); img.alt = n.prompt; img.src = n.src; img.loading = 'lazy';
     b.appendChild(img); b.onclick = () => jump(n.id); near.appendChild(b);
   });
   wrap.hidden = false;
@@ -535,8 +543,8 @@ function drawMap() {
   spots = [];
   for (const it of ATLAS) if (!found.has(it.id)) { g.fillStyle = `rgba(${it.avg},.5)`; g.beginPath(); g.arc(pad + it.map[0] * s, pad + it.map[1] * s, 1.8, 0, 7); g.fill(); }
   for (const it of ATLAS) if (found.has(it.id)) {
-    const x = pad + it.map[0] * s - T / 2, y = pad + it.map[1] * s - T / 2, img = load(it, 'thumb');
-    if (img) g.drawImage(img, x, y, T, T); else { g.fillStyle = `rgb(${it.avg})`; g.fillRect(x, y, T, T); }
+    const x = pad + it.map[0] * s - T / 2, y = pad + it.map[1] * s - T / 2;
+    paint(g, it, x, y, T, T, true);
     spots.push([it.id, x, y, T]);
   }
   if (here?.type === 'picture') { const it = byId.get(here.id); g.strokeStyle = '#e0dcd4'; g.lineWidth = 1.5; g.strokeRect(pad + it.map[0] * s - T / 2 - 2, pad + it.map[1] * s - T / 2 - 2, T + 4, T + 4); }

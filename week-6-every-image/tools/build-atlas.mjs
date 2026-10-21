@@ -15,7 +15,8 @@
 //      looks like it. Then look through atlas/images yourself, and list anything else in tools/exclude.txt.
 //   3. CLIP (clip-vit-base-patch32) turns each picture into 512 numbers by what it shows.
 //   4. UMAP flattens those numbers onto a 2D map, so pictures that mean similar things sit together.
-//   5. Writes atlas/atlas.json, each picture at 512 × 512 to atlas/images/ and at 96 × 96 to atlas/thumbs/.
+//   5. Writes atlas/atlas.json, each picture at 512 × 512 to atlas/images/, and all of them at 96 × 96
+//      in one sprite sheet, atlas/thumbs.jpg, for the mosaic and the map.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -127,17 +128,25 @@ const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] 
 function normalizeRows(rows) { return rows.map(r => { const n = Math.hypot(...r) || 1; return r.map(x => x / n); }); }
 
 
-/* ---------- writing a picture: 512 × 512 to look at, 96 × 96 for the mosaic and the map ---------- */
+/* ---------- writing pictures: 512 × 512 to look at, 96 × 96 in one sprite sheet for the mosaic and the map ---------- */
 
+const THUMB = 96, COLS = 20;
+const thumbs = [];
 async function writePicture(buf, id) {
   await sharp(buf).resize(512, 512, { fit: 'cover' }).jpeg({ quality: 84, mozjpeg: true }).toFile(path.join(OUT, 'images', `${id}.jpg`));
-  await sharp(buf).resize(96, 96, { fit: 'cover' }).jpeg({ quality: 78 }).toFile(path.join(OUT, 'thumbs', `${id}.jpg`));
+  thumbs.push(await sharp(buf).resize(THUMB, THUMB, { fit: 'cover' }).removeAlpha().png().toBuffer());
+}
+async function writeSprite() {
+  const rows = Math.ceil(thumbs.length / COLS);
+  await sharp({ create: { width: COLS * THUMB, height: rows * THUMB, channels: 3, background: '#000' } })
+    .composite(thumbs.map((input, i) => ({ input, left: (i % COLS) * THUMB, top: Math.floor(i / COLS) * THUMB })))
+    .jpeg({ quality: 80, mozjpeg: true }).toFile(path.join(OUT, 'thumbs.jpg'));
+  return { file: 'thumbs.jpg', size: THUMB, cols: COLS };
 }
 function freshFolders() {
-  for (const dir of ['images', 'thumbs']) {
-    fs.rmSync(path.join(OUT, dir), { recursive: true, force: true });
-    fs.mkdirSync(path.join(OUT, dir), { recursive: true });
-  }
+  fs.rmSync(path.join(OUT, 'images'), { recursive: true, force: true });
+  fs.rmSync(path.join(OUT, 'thumbs'), { recursive: true, force: true });
+  fs.mkdirSync(path.join(OUT, 'images'), { recursive: true });
 }
 
 
@@ -152,8 +161,9 @@ if (REEXPORT) {
     const c = byName.get(it.name);
     if (!c) throw new Error(`Can't find ${it.name} in the source any more.`);
     await writePicture(c.read(), it.id);
-    it.file = `images/${it.id}.jpg`; it.thumb = `thumbs/${it.id}.jpg`;
+    it.file = `images/${it.id}.jpg`; delete it.thumb;
   }
+  atlas.sprite = await writeSprite();
   fs.writeFileSync(path.join(OUT, 'atlas.json'), JSON.stringify(atlas));
   console.log(`Rewrote ${atlas.items.length} pictures.`);
   process.exit(0);
@@ -177,7 +187,7 @@ for (const c of candidates) {
   const id = String(kept.length).padStart(4, '0');
   await writePicture(buf, id);
   const avg = [...await sharp(buf).resize(1, 1, { fit: 'cover' }).removeAlpha().raw().toBuffer()];
-  kept.push({ id, file: `images/${id}.jpg`, thumb: `thumbs/${id}.jpg`, name: c.name, prompt: c.prompt, seed: c.seed, cfg: c.cfg, steps: c.steps, sampler: c.sampler, source: c.source, avg, vec });
+  kept.push({ id, file: `images/${id}.jpg`, name: c.name, prompt: c.prompt, seed: c.seed, cfg: c.cfg, steps: c.steps, sampler: c.sampler, source: c.source, avg, vec });
   if (kept.length % 25 === 0) console.log(`  ${kept.length} / ${LIMIT}`);
 }
 console.log(`Kept ${kept.length}; CLIP flagged and dropped ${dropped}.`);
@@ -195,8 +205,10 @@ const items = kept.map((k, i) => {
   return { ...rest, map: [(xy[i][0] - minX) / (maxX - minX || 1), (xy[i][1] - minY) / (maxY - minY || 1)], nn };
 });
 
+const sprite = await writeSprite();
 fs.writeFileSync(path.join(OUT, 'atlas.json'), JSON.stringify({
   built: new Date().toISOString(),
+  sprite,
   model: MODEL,
   source: FROM ? 'your folder' : `DiffusionDB 2M, parts ${PARTS.join(', ')}`,
   items,
