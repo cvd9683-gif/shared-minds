@@ -1,0 +1,14 @@
+{
+  "note": "Names for the regions of the current atlas, written by hand after looking at what CLIP grouped together. Used only when the build makes this many regions.",
+  "regions": 8,
+  "names": [
+    "ruins & future cities",
+    "glowing beasts & relics",
+    "dragons & warriors",
+    "faces, mostly men",
+    "temples & forests",
+    "animals & cartoons",
+    "houses & landscapes",
+    "faces, mostly women"
+  ]
+}

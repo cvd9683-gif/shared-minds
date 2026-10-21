@@ -149,6 +149,7 @@ sup { font-size: .62em; line-height: 0; }
 .mapview canvas { width: min(80vh, 60vw); height: min(80vh, 60vw); display: block; border: 1px solid #2a2f3a; cursor: crosshair; }
 .mapview h2 { font-weight: normal; font-size: 22px; margin-bottom: 10px; }
 .mapview p { font-size: 15px; line-height: 1.55; color: #a9a49a; margin-bottom: 14px; }
+.mapview .k { font-weight: normal; color: #e0dcd4; }
 .maphover { min-height: 4.6em; font-style: italic; color: #e0dcd4 !important; }
 .sources { list-style: none; margin: 4px 0 18px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.8; color: #5c8a5e; }
 
@@ -259,7 +260,8 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
   <canvas id="map" aria-label="Map of every picture; opened ones appear as thumbnails. Click one to open it."></canvas>
   <div>
     <h2>Map of meaning</h2>
-    <p>Similar pictures sit close, and sound alike. Lines join each picture to its nearest neighbours.</p>
+    <p><b class="k">Where a picture sits</b> is what it shows: CLIP grouped them into regions, and each region has its own pitch.</p>
+    <p><b class="k">Lines</b> join pictures that share a colour: the ones that could hide in the same dot of static.</p>
     <p class="maphover" id="mapHover">Hover a dot.</p>
     <ul class="sources">
       <li>DiffusionDB, part 1</li>
@@ -303,12 +305,18 @@ const INTRO = [
    its average colour, its place on the UMAP map and its nearest neighbours by CLIP.
    Built by tools/build-atlas.mjs. Thumbnails come in one sprite sheet.
    ================================================================ */
-let ATLAS = [], byId = new Map(), sprite = null;
+let ATLAS = [], byId = new Map(), sprite = null, REGIONS = [];
 
 async function loadAtlas() {
   const data = await (await fetch('atlas/atlas.json', { cache: 'no-cache' })).json();
   ATLAS = data.items.map((it, i) => ({ ...it, i, src: 'atlas/' + it.file }));
   ATLAS.forEach(it => byId.set(it.id, it));
+  // each region's middle, for its label on the map
+  REGIONS = (data.regions || []).map((r, j) => {
+    const members = ATLAS.filter(it => it.region === j);
+    const x = members.reduce((a, it) => a + it.map[0], 0) / members.length, y = members.reduce((a, it) => a + it.map[1], 0) / members.length;
+    return { ...r, x, y, top: Math.min(...members.map(it => it.map[1])), reach: Math.max(...members.map(it => Math.hypot(it.map[0] - x, it.map[1] - y))) };
+  });
   sprite = { ...data.sprite, img: new Image() };
   sprite.img.onload = () => { sprite.ready = true; drawMaps(); };
   sprite.img.src = 'atlas/' + data.sprite.file;
@@ -640,8 +648,8 @@ function drawMini() {
   for (const it of ATLAS) if (found.has(it.id)) thumb(m, it, pad + it.map[0] * s - T / 2, pad + it.map[1] * s - T / 2, T, T);
 }
 
-// the big map is alive while it's open: every picture joined to its three nearest in meaning,
-// and whatever you point at lights up with all six of its neighbours
+// the big map is alive while it's open. Position is meaning: pictures sit in regions by what they show.
+// Lines are colour: each picture joined to the three whose average colour is closest to its own.
 function drawBigMap(now) {
   if (!sprite?.ready) return;
   const r = Math.min(2, devicePixelRatio || 1), Wm = bigMap.clientWidth;
@@ -649,46 +657,62 @@ function drawBigMap(now) {
   if (bigMap.width !== Math.round(Wm * r)) bigMap.width = bigMap.height = Math.round(Wm * r);
   const m = bigMap.getContext('2d'); m.setTransform(r, 0, 0, r, 0, 0);
   m.fillStyle = '#07080b'; m.fillRect(0, 0, Wm, Wm);
-  const pad = 22, s = Wm - pad * 2;
+  const pad = 30, s = Wm - pad * 2;
   const P = it => [pad + it.map[0] * s, pad + it.map[1] * s];
   if (!edges) {
     const seen = new Set(); edges = [];
-    for (const it of ATLAS) for (const id of (it.nn || []).slice(0, 3)) {
+    for (const it of ATLAS) for (const id of (it.cn || [])) {
       const o = byId.get(id); if (!o) continue;
       const key = it.i < o.i ? `${it.i}-${o.i}` : `${o.i}-${it.i}`;
       if (!seen.has(key)) { seen.add(key); edges.push([it, o]); }
     }
   }
-  // which picture is under the pointer
   mapHover = null;
   if (mapPointer.x >= 0) {
     let best = 14 * 14;
     for (const it of ATLAS) { const [x, y] = P(it), d = (x - mapPointer.x) ** 2 + (y - mapPointer.y) ** 2; if (d < best) { best = d; mapHover = it; } }
   }
   const focus = mapHover || current?.it || null;
-  const near = new Set(focus ? (focus.nn || []) : []);
+  const twins = new Set(focus ? (focus.cn || []) : []);
 
+  // each region as a faint pool of light, with its name above it
+  m.textAlign = 'center'; m.font = '13px Georgia, serif';
+  for (const [j, g] of REGIONS.entries()) {
+    const lit = focus && focus.region === j, cx = pad + g.x * s, cy = pad + g.y * s, rr = g.reach * s + 18;
+    const halo = m.createRadialGradient(cx, cy, 0, cx, cy, rr);
+    halo.addColorStop(0, `rgba(138,155,130,${lit ? .16 : .08})`); halo.addColorStop(1, 'rgba(138,155,130,0)');
+    m.fillStyle = halo; m.beginPath(); m.arc(cx, cy, rr, 0, Math.PI * 2); m.fill();
+    m.fillStyle = lit ? 'rgba(224,220,212,.95)' : 'rgba(138,155,130,.8)';
+    const half = m.measureText(g.name).width / 2 + 4;
+    m.fillText(g.name, Math.min(Wm - half, Math.max(half, cx)), Math.max(14, pad + g.top * s - 12));
+  }
+
+  // colour lines, each drawn in the colour the two pictures share
   m.lineWidth = 1;
   for (const [a, b] of edges) {
     const [x1, y1] = P(a), [x2, y2] = P(b);
-    m.strokeStyle = `rgba(138,155,130,${focus ? .05 : .13})`;
+    const c = [0, 1, 2].map(k => (a.avg[k] + b.avg[k]) / 2 | 0);
+    m.strokeStyle = `rgba(${c},${focus ? .1 : .32})`;
     m.beginPath(); m.moveTo(x1, y1); m.lineTo(x2, y2); m.stroke();
   }
   if (focus) {
     const [fx, fy] = P(focus);
-    m.setLineDash([4, 5]); m.lineDashOffset = reduce ? 0 : -now / 40;
-    m.strokeStyle = 'rgba(224,220,212,.75)'; m.lineWidth = 1.2;
-    for (const id of near) { const o = byId.get(id); if (!o) continue; const [x, y] = P(o); m.beginPath(); m.moveTo(fx, fy); m.lineTo(x, y); m.stroke(); }
+    m.setLineDash([4, 5]); m.lineDashOffset = reduce ? 0 : -now / 40; m.lineWidth = 1.6;
+    for (const id of twins) {
+      const o = byId.get(id); if (!o) continue; const [x, y] = P(o);
+      m.strokeStyle = `rgb(${[0, 1, 2].map(k => Math.min(255, (focus.avg[k] + o.avg[k]) / 2 + 60) | 0)})`;
+      m.beginPath(); m.moveTo(fx, fy); m.lineTo(x, y); m.stroke();
+    }
     m.setLineDash([]);
   }
   for (const it of ATLAS) {
-    if (it === focus || near.has(it.id)) continue;
+    if (it === focus || twins.has(it.id)) continue;
     const [x, y] = P(it);
     if (found.has(it.id)) { thumb(m, it, x - 10, y - 10, 20, 20); continue; }
-    const tw = reduce ? .7 : .55 + .35 * Math.sin(now / 700 + it.i * 1.7);
-    m.fillStyle = `rgba(${it.avg},${tw})`; m.beginPath(); m.arc(x, y, 2.6, 0, 7); m.fill();
+    const tw = reduce ? .75 : .6 + .3 * Math.sin(now / 700 + it.i * 1.7);
+    m.fillStyle = `rgba(${it.avg},${tw})`; m.beginPath(); m.arc(x, y, 3, 0, 7); m.fill();
   }
-  for (const id of near) { const o = byId.get(id); if (!o) continue; const [x, y] = P(o); thumb(m, o, x - 17, y - 17, 34, 34); }
+  for (const id of twins) { const o = byId.get(id); if (!o) continue; const [x, y] = P(o); thumb(m, o, x - 17, y - 17, 34, 34); }
   if (focus) {
     const [x, y] = P(focus), T = 64;
     thumb(m, focus, x - T / 2, y - T / 2, T, T);
@@ -696,7 +720,7 @@ function drawBigMap(now) {
   }
   bigMap.style.cursor = mapHover ? 'pointer' : 'crosshair';
   const label = document.getElementById('mapHover');
-  const text = mapHover ? `“${mapHover.prompt.trim().slice(0, 110)}${mapHover.prompt.length > 110 ? '…' : ''}”` : 'Hover a dot.';
+  const text = mapHover ? `${REGIONS[mapHover.region]?.name ?? ''} · “${mapHover.prompt.trim().slice(0, 100)}${mapHover.prompt.length > 100 ? '…' : ''}”` : 'Hover a dot.';
   if (label.textContent !== text) label.textContent = text;
 }
 
@@ -724,7 +748,12 @@ bigMap.addEventListener('click', e => {
 const sound = (() => {
   let ac = null, on = false, master, wideGain, narrow, narrowGain, tone, toneGain;
   const SCALE = [0, 2, 4, 7, 9];
-  const pitchOf = it => { const step = Math.round(it.map[0] * 11); return 147 * Math.pow(2, (SCALE[step % 5] + 12 * Math.floor(step / 5)) / 12); };
+  // each region of the map has its own root note; within a region, where a picture sits picks a note of its scale
+  const ROOTS = [0, 3, 5, 7, 10, 12, 15, 17];
+  const pitchOf = it => {
+    const root = ROOTS[(it.region ?? Math.round(it.map[0] * 7)) % ROOTS.length], step = Math.round(it.map[1] * 4);
+    return 130.8 * Math.pow(2, (root + SCALE[step]) / 12);
+  };
   function build() {
     ac = new AudioContext(); master = ac.createGain(); master.gain.value = .6; master.connect(ac.destination);
     const buf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate), d = buf.getChannelData(0);

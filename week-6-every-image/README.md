@@ -32,15 +32,18 @@ the corner opens the full map of meaning.
   a fisheye magnifies it until the picture shows.
 - **The atlas.** The AI pictures come from [DiffusionDB](https://poloclub.github.io/diffusiondb/), about
   14 million Stable Diffusion images shared on a public Discord, each with its prompt and seed.
-- **CLIP and UMAP.** CLIP turns each picture into 512 numbers by what it shows. UMAP flattens those
-  numbers onto the map (bottom left), so pictures that mean similar things sit together. CLIP also
-  picks each picture's six closest neighbours in meaning. Open the map and every picture is joined
-  to its three nearest; point at one and its six neighbours light up. Pictures you've opened show
-  as thumbnails.
+- **The map: position is meaning, lines are colour.** CLIP turns each picture into 512 numbers by what
+  it shows. k-means groups those numbers into eight regions, and UMAP spreads each region into an
+  island, with similar regions placed near each other. CLIP did the grouping; I named the regions by
+  hand after looking at them (`tools/region-names.json`). It split portraits into mostly men and
+  mostly women by itself. Lines join each picture to the two whose average colour is closest: the
+  pictures that could hide in the same dot of static. So the map shows two kinds of closeness at
+  once, what pictures mean and what colour they are, and they rarely agree. The six thumbnails under
+  an opened picture are its closest in meaning.
 - **Sound.** White noise is the sound version of static: every frequency at once. Moving the lens,
   you hear the noise. Rest it on a dot and the noise narrows into one tone, the way attention narrows
-  static into a picture. The pitch comes from where that picture sits on the map, so pictures of
-  similar things sound alike. Opening a picture silences the static and plays its chord; inside a
+  static into a picture. Each region of the map has its own root note, and a picture's place in its
+  region picks a note of that scale, so pictures of similar things sound alike. Opening a picture silences the static and plays its chord; inside a
   picture there's no noise, only the tones of the pixels under the lens.
 
 ## Building the atlas
@@ -54,6 +57,7 @@ npm install
 node build-atlas.mjs                        # 400 pictures from DiffusionDB part 1
 node build-atlas.mjs --parts 1,2 --limit 800
 node build-atlas.mjs --from ~/Pictures/ai   # or any folder of your own images
+node build-atlas.mjs --remap                # redo only the map: regions, layout, neighbours
 ```
 
 It writes `atlas/atlas.json`, each picture at 512 × 512 to `atlas/images/`, and all of them at
