@@ -8,7 +8,7 @@
     <title>Music Map</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Hanken+Grotesk:wght@400;500;600&family=Kalam:wght@400;700&family=Schibsted+Grotesk:wght@400;500;700;800&family=Gloock&family=Reenie+Beanie&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body class="mm">
     <a class="mm-skip" href="#panel">Skip to details</a>
@@ -49,6 +49,11 @@
       <section class="mm-stage" id="stage" aria-label="Map" data-view="timeline">
         <nav class="mm-pathbar" id="pathbar" aria-label="Your path" hidden></nav>
 
+        <div class="mm-layout" id="layout-switch" role="radiogroup" aria-label="Layout">
+          <button type="button" role="radio" data-layout="timeline" aria-checked="true">Timeline</button>
+          <button type="button" role="radio" data-layout="compass" aria-checked="false">Compass</button>
+        </div>
+        <div class="mm-compass" id="compass" hidden></div>
         <div class="mm-canvas" id="canvas" aria-label="Timeline. Scroll sideways to move through time."></div>
         <div class="mm-webbar" id="webbar" hidden>
           <div class="mm-webbar__modes" role="group" aria-label="Map by">
@@ -76,11 +81,10 @@
           <button type="button" data-zoom="fit">Fit</button>
         </div>
         <div class="mm-stage-tools" id="stage-tools" hidden>
-          <label class="mm-toggle"><input type="checkbox" id="wider-toggle" /> Show wider web</label>
+          <label class="mm-toggle"><input type="checkbox" id="wider-toggle" /> Show the wider web</label>
           <span class="mm-muted mm-small">Scroll or pinch to zoom · drag to move</span>
         </div>
         <nav class="mm-yearnav" id="yearnav" aria-label="Jump to year"></nav>
-        <div class="mm-looks" id="looks" role="group" aria-label="Notebook look"></div>
         <button type="button" class="mm-demo-tag" id="demo-tag">Fictional demo data · connect Spotify in ⋯</button>
         <aside class="mm-blurb" id="blurb" hidden></aside>
         <aside class="mm-howto" id="howto" hidden aria-labelledby="howto-title">

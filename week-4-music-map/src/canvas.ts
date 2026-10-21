@@ -22,6 +22,8 @@ export interface CanvasItem {
   /** Shown in the tile's accessible name, e.g. "3 songs saved". */
   dateText: string;
   outside?: boolean;
+  /** Month (0–11) its first song was saved in this section; clusters the year by moment. */
+  month?: number;
 }
 
 export interface CanvasSection {
@@ -76,7 +78,106 @@ interface Section {
   tiles: Tile[];
 }
 
+/** How much the album under the pointer grows (1 = double size). */
+const GROW = 0.9;
 const LEFT = 60;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Packs a year's albums into month clusters. Each cluster is a tight, slightly wide
+ * spiral (biggest covers in the middle); clusters alternate above and below the
+ * axis and overlap horizontally with the cluster on the other side. Returns
+ * positions relative to the year's start (x) and the axis (y).
+ */
+function clusterLayout(items: CanvasItem[], sizes: number[], gap: number, half: number, small: boolean) {
+  // Months with saves, merged forward until each cluster has a few albums.
+  const groups: { months: number[]; idx: number[] }[] = [];
+  const byTime = items.map((_, i) => i).sort((p, q) => (items[p].month ?? -1) - (items[q].month ?? -1));
+  byTime.forEach((i) => {
+    const it = items[i];
+    const m = it.month ?? -1;
+    const last = groups[groups.length - 1];
+    if (last && (last.months.includes(m) || last.idx.length < 3)) {
+      if (!last.months.includes(m)) last.months.push(m);
+      last.idx.push(i);
+    } else groups.push({ months: [m], idx: [i] });
+  });
+  // A small last cluster joins the one before it.
+  if (groups.length > 1 && groups[groups.length - 1].idx.length < 3) {
+    const tail = groups.pop()!;
+    groups[groups.length - 1].idx.push(...tail.idx);
+    groups[groups.length - 1].months.push(...tail.months);
+  }
+
+  const pos: { x: number; y: number }[] = items.map(() => ({ x: 0, y: 0 }));
+  const labels: { x: number; y: number; text: string; above: boolean }[] = [];
+  const sideEnd = { up: 0, down: 0 };
+  let width = 0;
+  let side: 'up' | 'down' = 'up';
+  for (const g of groups) {
+    // 1. Pack the cluster around (0, 0): biggest first, spiralling out.
+    const order = [...g.idx].sort((p, q) => sizes[q] - sizes[p]);
+    // Busy months flatten so the cluster still fits between the year label and the bottom.
+    const area = g.idx.reduce((a, i) => a + (sizes[i] + gap * 2) ** 2, 0) / 0.78;
+    const flat = Math.max(0.2, Math.min(0.62, ((half * 0.94) ** 2 * Math.PI) / area));
+    const placed: { x: number; y: number; s: number }[] = [];
+    const fits = (cx: number, cy: number, s: number) =>
+      placed.every((p) => Math.abs(p.x - cx) * 2 >= p.s + s + gap * 2 || Math.abs(p.y - cy) * 2 >= p.s + s + gap * 2);
+    for (const i of order) {
+      const s = sizes[i];
+      let at = { x: 0, y: 0 };
+      for (let step = 0, ang = 0, r = 0; step < 6000; step++) {
+        const cx = Math.cos(ang) * r;
+        const cy = Math.sin(ang) * r * flat;
+        if (fits(cx, cy, s)) {
+          at = { x: cx, y: cy };
+          break;
+        }
+        ang += 0.5;
+        r += 0.7;
+      }
+      placed.push({ ...at, s });
+      pos[i] = at;
+    }
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let y0 = Infinity;
+    let y1 = -Infinity;
+    for (const p of placed) {
+      x0 = Math.min(x0, p.x - p.s / 2);
+      x1 = Math.max(x1, p.x + p.s / 2);
+      y0 = Math.min(y0, p.y - p.s / 2);
+      y1 = Math.max(y1, p.y + p.s / 2);
+    }
+    const w = x1 - x0;
+    const h = y1 - y0;
+    // 2. Sit it just off the line on this side (tall clusters straddle the line).
+    const lift = small ? 12 : 18;
+    const straddle = h / 2 + lift > half;
+    const cy = straddle ? 0 : side === 'up' ? -(h / 2 + lift) : h / 2 + lift;
+    // 3. Start after the last cluster on the same side, overlapping the other side's.
+    const otherEnd = side === 'up' ? sideEnd.down : sideEnd.up;
+    const sameEnd = side === 'up' ? sideEnd.up : sideEnd.down;
+    const left = straddle ? Math.max(sideEnd.up, sideEnd.down) + gap * 4 : Math.max(sameEnd + gap * 4, otherEnd - w * 0.45);
+    const cx = Math.max(0, left) - x0;
+    for (const i of g.idx) {
+      pos[i] = { x: pos[i].x + cx, y: pos[i].y - (y0 + h / 2) + cy };
+    }
+    const end = cx + x1;
+    if (straddle) sideEnd.up = sideEnd.down = end;
+    else if (side === 'up') sideEnd.up = end;
+    else sideEnd.down = end;
+    width = Math.max(width, end);
+    const named = g.months.filter((m) => m >= 0);
+    if (named.length) {
+      const text = named.length > 1 ? `${MONTHS[Math.min(...named)]}–${MONTHS[Math.max(...named)]}` : MONTHS[named[0]];
+      const above = cy < 0 || straddle;
+      labels.push({ x: cx + x0, y: above ? cy - h / 2 - 16 : cy + h / 2 + 4, text, above });
+    }
+    if (!straddle) side = side === 'up' ? 'down' : 'up';
+  }
+  return { pos, labels, width };
+}
 const PAD = 50;
 const GAP_W = 80;
 
@@ -189,60 +290,28 @@ export class TimelineCanvas {
         x += GAP_W;
       }
       const section: Section = { data: sec, x, w: 0, tiles: [] };
-      // Albums settle into loose clumps around the axis, in saved order from left to
-      // right: a wandering drift rather than a grid, but no cover ever hides another.
-      const GAP = small ? 4 : 6;
+      // Albums gather into tight clusters, one per month you saved them. Clusters
+      // interlock along the line, alternating above and below it, like a zipper:
+      // organised by time, clumped by moment, and no cover ever hides another.
+      const GAP = small ? 4 : 5;
       const half = this.colH / 2;
       const sizes = sec.items.map((it) => Math.min(small ? 84 : 124, Math.round((small ? 36 : 46) + (small ? 18 : 26) * (Math.sqrt(it.trackIds.length) - 1))));
-      const area = sizes.reduce((a, sz) => a + (sz + GAP) * (sz + GAP), 0);
-      // Roughly how wide the year needs to be at a loose packing density.
-      const span = Math.max(sizes[0] ?? 60, area / (2 * half * (sizes.length > 60 ? 0.5 : 0.62)));
       const start = x + PAD;
-      const phase = seeded(sec.key)() * Math.PI * 2;
-      // A coarse grid of placed covers, so each fit test only checks its neighbours.
-      const CELL = (small ? 84 : 124) + GAP * 2;
-      const grid = new Map<number, { x: number; y: number; s: number }[]>();
-      const cellKey = (gx: number, gy: number) => gx * 4096 + gy;
-      const place = (p: { x: number; y: number; s: number }) => {
-        const k = cellKey(Math.floor(p.x / CELL), Math.floor(p.y / CELL));
-        const list = grid.get(k);
-        if (list) list.push(p);
-        else grid.set(k, [p]);
-      };
-      const free = (cx: number, cy: number, sz: number) => {
-        if (cx - sz / 2 < start || Math.abs(cy - y0) + sz / 2 > half) return false;
-        const gx = Math.floor(cx / CELL);
-        const gy = Math.floor(cy / CELL);
-        for (let ix = gx - 1; ix <= gx + 1; ix++)
-          for (let iy = gy - 1; iy <= gy + 1; iy++)
-            for (const p of grid.get(cellKey(ix, iy)) ?? [])
-              if (Math.abs(p.x - cx) * 2 < p.s + sz + GAP * 2 && Math.abs(p.y - cy) * 2 < p.s + sz + GAP * 2) return false;
-        return true;
-      };
-      let maxX = start;
+      const layout = clusterLayout(sec.items, sizes, GAP, half, small);
+      const placeX = (v: number) => start + v;
+      const placeY = (v: number) => y0 + v;
+      for (const lab of layout.labels) {
+        const el = document.createElement('span');
+        el.className = `mm-month${lab.above ? ' is-above' : ''}`;
+        el.textContent = lab.text;
+        Object.assign(el.style, { left: `${placeX(lab.x)}px`, top: `${placeY(lab.y)}px` });
+        this.world.appendChild(el);
+      }
       sec.items.forEach((item, i) => {
         const rs = sizes[i];
         const rand = seeded(item.id);
-        const t = sec.items.length > 1 ? i / (sec.items.length - 1) : 0.5;
-        // The drift: a slow wave through the year, so albums gather into clumps above and below the line.
-        const ax = start + rs / 2 + t * Math.max(0, span - rs);
-        const ay = y0 + Math.sin(phase + t * 5.2) * (half - rs / 2) * 0.55 + (rand() - 0.5) * half * 0.3;
-        // Fallback if the spiral finds no room: start a new clump just to the right.
-        let px = maxX + GAP + rs / 2;
-        let py = y0 + (rand() - 0.5) * (half - rs / 2);
-        for (let step = 0, ang = rand() * Math.PI * 2, r = 0; step < 4000; step++) {
-          const cx = ax + Math.cos(ang) * r;
-          const cy = ay + Math.sin(ang) * r * 0.8;
-          if (free(cx, cy, rs)) {
-            px = cx;
-            py = cy;
-            break;
-          }
-          ang += 0.62;
-          r += 1.3;
-        }
-        place({ x: px, y: py, s: rs });
-        maxX = Math.max(maxX, px + rs / 2);
+        const px = placeX(layout.pos[i].x);
+        const py = placeY(layout.pos[i].y);
         const tile: Tile = {
           item,
           section,
@@ -276,7 +345,7 @@ export class TimelineCanvas {
         section.tiles.push(tile);
         this.tiles.push(tile);
       });
-      const cursor = maxX + GAP;
+      const cursor = placeX(layout.width) + GAP;
       section.w = Math.max(small ? 140 : 180, cursor - x + PAD - GAP);
 
       const el = document.createElement('section');
@@ -324,16 +393,22 @@ export class TimelineCanvas {
       if (this.dragging) return e.preventDefault();
       this.cb.onSelect(item.id, section.data.key, b.getBoundingClientRect());
     });
-    b.addEventListener('pointerenter', () => {
+    b.addEventListener('pointerenter', (e) => {
+      if (e.pointerType !== 'touch' && !this.dragging && !this.pinned) this.anchor = { t: tile, x: tile.x, y: tile.y };
       this.queueZoom(section.data.key);
       this.hot(item.id, true);
       this.cb.onHover(item.id, b);
+      this.kick();
     });
     b.addEventListener('pointerleave', () => {
+      if (this.anchor?.t === tile) this.anchor = null;
       this.hot(item.id, false);
       this.cb.onHover(null, null);
+      this.kick();
     });
     b.addEventListener('focus', () => {
+      // Only keyboard focus scrolls the canvas; a mouse click must never move it.
+      if (!b.matches(':focus-visible')) return;
       this.centerOn(tile.rx);
       if (!this.pinned) this.showZoom(section.data.key);
       this.lens.ts = 1;
@@ -452,6 +527,13 @@ export class TimelineCanvas {
    * The panel only switches years once the pointer rests on one, so passing over
    * other years on the way up to the panel doesn't change what it shows.
    */
+  /**
+   * The album under the pointer, held exactly where it was when the pointer reached it.
+   * It grows in place and its neighbours make room around it, so what you aim at
+   * never slides out from under the cursor.
+   */
+  private anchor: { t: Tile; x: number; y: number } | null = null;
+
   private dwell = 0;
   private dwellKey: string | null = null;
   private queueZoom(key: string): void {
@@ -491,8 +573,9 @@ export class TimelineCanvas {
     const l = this.lens;
     const px = this.touch ? this.width / 2 : this.ptr.x;
     const py = this.touch ? this.axisY * c.k + c.ty : this.ptr.y;
-    const lx = (px - c.tx) / c.k;
-    const ly = (py - c.ty) / c.k;
+    const anchor = this.dragging || this.pinned ? null : this.anchor;
+    const lx = anchor ? anchor.x : (px - c.tx) / c.k;
+    const ly = anchor ? anchor.y : (py - c.ty) / c.k;
     const le = snap ? 1 : 0.2;
     l.x += (lx - l.x) * le;
     l.y += (ly - l.y) * le;
@@ -513,17 +596,24 @@ export class TimelineCanvas {
       if (t.item.id === pinnedId) {
         ts = t.rs * 1.8;
         z = 400;
-      } else if (onScreen && !pinnedId) {
-        // 2D magnifier: positions scale out from the pointer and sizes grow with them,
-        // so the album under the cursor stays under it and its neighbours make room.
-        const dx = t.rx - l.x;
-        const dy = t.ry - l.y;
-        const f = Math.exp(-(dx * dx + dy * dy) / (2 * R * R)) * l.s;
-        const push = look().lens;
-        tx = l.x + dx * (1 + push * f);
-        ty = l.y + dy * (1 + push * f);
-        ts = t.rs * (1 + 1.05 * f);
-        z = t.z + Math.round(f * 200);
+      } else if (anchor && t === anchor.t) {
+        // The album you're on stays exactly where it is and grows.
+        tx = anchor.x;
+        ty = anchor.y;
+        ts = t.rs * (1 + GROW * l.s);
+        z = 300;
+      } else if (anchor && onScreen && !pinnedId) {
+        // Neighbours only step aside by as much as it grew, fading with distance,
+        // so the rest of the year stays where your eye left it.
+        const a = anchor.t;
+        const dx = t.rx - anchor.x;
+        const dy = t.ry - anchor.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const room = (a.rs * GROW * l.s) / 2 + 4;
+        const fall = Math.exp(-((d - a.rs / 2) ** 2) / (2 * (a.rs * 1.1) ** 2)) * look().lens;
+        tx = t.rx + (dx / d) * room * fall;
+        ty = t.ry + (dy / d) * room * fall;
+        z = t.z + Math.round(fall * 60);
       }
       if (!onScreen && Math.abs(t.x - tx) < 0.5 && Math.abs(t.s - ts) < 0.5) continue;
       if (snap || !onScreen) {
@@ -754,6 +844,7 @@ export class TimelineCanvas {
       'wheel',
       (e) => {
         e.preventDefault();
+        this.anchor = null;
         const p = this.local(e);
         if (e.ctrlKey) {
           this.zoomBy(Math.exp(-e.deltaY * 0.01), p.x, p.y);
@@ -835,6 +926,7 @@ export class TimelineCanvas {
       moved += Math.abs(dx) + Math.abs(dy);
       if (moved > 6 && !this.dragging) {
         this.dragging = true;
+        this.anchor = null;
         this.root.classList.add('is-dragging');
         try {
           this.root.setPointerCapture(e.pointerId);

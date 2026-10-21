@@ -41,6 +41,7 @@ export class MusicGraph {
     data.people?.forEach((p) => this.people.set(p.id, p));
     data.collection?.forEach((c) => this.collection.set(c.trackId, c));
     data.playlists?.forEach((p) => this.playlists.set(p.id, p));
+    if (data.playlists) this.plIndex = null;
     if (data.playlistsNote !== undefined) this.playlistsNote = data.playlistsNote;
     data.relationships?.forEach((r) => {
       if (this.rels.has(r.id)) return;
@@ -57,6 +58,7 @@ export class MusicGraph {
     this.collection.clear();
     this.playlists.clear();
     this.playlistsNote = '';
+    this.plIndex = null;
     this.adjacency.clear();
   }
 
@@ -75,10 +77,31 @@ export class MusicGraph {
   }
 
   /** Playlists (created by the listener) that contain this track. */
+  /** Replaces the playlists (a fresh read from Spotify). */
+  setPlaylists(list: Playlist[], note: string): void {
+    this.playlists.clear();
+    list.forEach((p) => this.playlists.set(p.id, p));
+    this.playlistsNote = note;
+    this.plIndex = null;
+  }
+
+  /** Song id or title|artist key → the playlists holding it, built once per playlist read. */
+  private plIndex: Map<string, Set<Playlist>> | null = null;
+
   playlistsFor(trackId: string): Playlist[] {
+    if (!this.plIndex) {
+      const idx = new Map<string, Set<Playlist>>();
+      const add = (k: string, p: Playlist) => (idx.get(k) ?? idx.set(k, new Set()).get(k)!).add(p);
+      for (const p of this.playlists.values()) {
+        p.trackIds.forEach((id) => add(id, p));
+        p.keys?.forEach((k) => add(`k:${k}`, p));
+      }
+      this.plIndex = idx;
+    }
     const t = this.tracks.get(trackId);
-    const key = t ? songKey(t.title, t.artistCredit.split(',')[0].trim()) : '';
-    return [...this.playlists.values()].filter((p) => p.trackIds.includes(trackId) || (!!key && !!p.keys?.includes(key)));
+    const out = new Set(this.plIndex.get(trackId) ?? []);
+    if (t) this.plIndex.get(`k:${songKey(t.title, t.artistCredit.split(',')[0].trim())}`)?.forEach((p) => out.add(p));
+    return [...out];
   }
 
   inCollection(trackId: string): boolean {

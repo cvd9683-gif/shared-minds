@@ -2,8 +2,9 @@
 
 Weekly assignments for ITP's Shared Minds class. Cathy Doss.
 
-The index page is [`index.html`](index.html) — open it in a browser, or serve the folder
-with `python3 -m http.server`.
+**Live site: [shared-minds-two.vercel.app](https://shared-minds-two.vercel.app/)**, the class
+page with every week. The page itself is [`index.html`](index.html); to run it locally, serve the
+folder with `python3 -m http.server`.
 
 ---
 
@@ -54,7 +55,7 @@ connected to it. Each route is recorded as a journey — JSON saved under your n
 localStorage, or Firebase once configured — so you can return to the original track, listen
 again, and note what you hear now. Connects to Spotify for your saved tracks and search.
 
-**[Open the map](week-4-music-map/site/)**
+**[Open the map](https://shared-minds-two.vercel.app/week-4-music-map/site/)**
 · [Source and setup](week-4-music-map/)
 
 ---
@@ -65,7 +66,7 @@ A habit tracker where every habit you keep grows a singing plant on your own isl
 plants stand together like a choir, each kind singing one part, and friends sail between
 islands to leave each other plants. Finish a habit for a week and you grow something rarer.
 
-**[Grow your island](week-5-my-dancing-trees/)**
+**[Grow your island](https://shared-minds-two.vercel.app/week-5-my-dancing-trees/)**
 · [Source and write-up](week-5-my-dancing-trees/)
 
 ---
@@ -76,6 +77,6 @@ A screen of TV static where every dot is a whole picture, squeezed down to its a
 cursor is a lens: under it the dots swell into AI-generated pictures from DiffusionDB. Open one to
 see its number among all 10<sup>7,398</sup> possible pictures, and the prompt and seed that found it.
 
-**[Look closer](week-6-every-image/)**
+**[Look closer](https://shared-minds-two.vercel.app/week-6-every-image/)**
 · [Source and write-up](week-6-every-image/)
-· Earlier sketch: [Eyes Closed](week-6-eyes-closed/)
+· Earlier sketch: [Eyes Closed](https://shared-minds-two.vercel.app/week-6-eyes-closed/)

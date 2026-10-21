@@ -83,6 +83,9 @@ export class NetworkView {
   private hoverId: string | null = null;
   private reducedMotion = false;
   private labelsEl: HTMLDivElement;
+  /** Lane rules and names for the ordered (lineage / career) layouts, in world space. */
+  private lanesEl: HTMLDivElement;
+  private lanes: { y: number; x0: number; x1: number; label: string; note?: string; kind: 'lane' | 'axis' }[] = [];
   /** Camera for the web: every layer is drawn in world space, then zoomed and panned. */
   private view = { k: 1, tx: 0, ty: 0 };
   private userMoved = false;
@@ -106,6 +109,10 @@ export class NetworkView {
     this.labelsEl.className = 'mm-edge-labels';
     this.labelsEl.setAttribute('aria-hidden', 'true');
     nodesEl.before(this.labelsEl);
+    this.lanesEl = document.createElement('div');
+    this.lanesEl.className = 'mm-lanes';
+    this.lanesEl.setAttribute('aria-hidden', 'true');
+    svg.before(this.lanesEl);
     svg.innerHTML = `<defs>${['ink', 'path', 'faint'].map(
       (k) => `<marker id="mm-arrow-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" class="mm-arrow mm-arrow--${k}"/></marker>`,
     ).join('')}</defs><g class="mm-edges__g"></g>`;
@@ -142,6 +149,8 @@ export class NetworkView {
     this.shown.clear();
     this.svg.querySelector('.mm-edges__g')!.innerHTML = '';
     this.labelsEl.innerHTML = '';
+    this.lanesEl.innerHTML = '';
+    this.lanes = [];
     this.axisEl.innerHTML = '';
     this.axisEl.hidden = true;
   }
@@ -155,7 +164,12 @@ export class NetworkView {
     const stageRect = this.nodesEl.getBoundingClientRect();
     const web = scene.mode === 'history';
     const newNodes = scene.nodes.some((n) => !this.drawn.has(n.id));
-    const targets = web ? this.layoutWeb(scene) : this.layoutRelations(scene);
+    // A song or artist on its own reads as an ordered page; the wider web stays a web.
+    const ordered = web && !scene.nodes.some((n) => n.role === 'wider');
+    this.lanes = [];
+    const targets = ordered ? this.layoutOrdered(scene) : web ? this.layoutWeb(scene) : this.layoutRelations(scene);
+    this.renderLanes();
+    this.nodesEl.parentElement?.classList.toggle('is-ordered', ordered);
 
     // Create, update and remove node elements.
     const keep = new Set(scene.nodes.map((n) => n.id));
@@ -337,7 +351,7 @@ export class NetworkView {
   private setView(k: number, tx: number, ty: number, animate: boolean): void {
     this.view = { k, tx, ty };
     const t = `translate(${tx}px, ${ty}px) scale(${k})`;
-    for (const el of [this.nodesEl, this.svg as unknown as HTMLElement, this.labelsEl]) {
+    for (const el of [this.nodesEl, this.svg as unknown as HTMLElement, this.labelsEl, this.lanesEl]) {
       el.style.transformOrigin = '0 0';
       el.style.transition = animate ? 'transform 0.7s cubic-bezier(0.22, 1, 0.36, 1)' : 'none';
       el.style.transform = t;
@@ -372,6 +386,11 @@ export class NetworkView {
       y0 = Math.min(y0, p.y - r - 10);
       y1 = Math.max(y1, p.y + r + 46);
     });
+    for (const l of this.lanes) {
+      x0 = Math.min(x0, l.x0);
+      x1 = Math.max(x1, l.x1);
+      y0 = Math.min(y0, l.y - 30);
+    }
     // Leave room for the guide panel on the right on wide screens.
     const left = this.width < 700 ? 12 : 80;
     const top = 64;
@@ -527,6 +546,130 @@ export class NetworkView {
   }
 
   // ---- Layouts ----------------------------------------------------------------
+
+  /**
+   * The ordered page for one song: what it comes from on the left, what it lives on
+   * in on the right, read along the arrow of time. Samples (the original recording,
+   * reused) run in the top lane; interpolations, covers and remixes (re-performed)
+   * in the bottom lane; the people who made it in a row beneath. For an artist: their
+   * songs along the top in release order, the people they make music with beneath.
+   */
+  private layoutOrdered(scene: Scene): Map<string, Pt> {
+    const currentId = scene.path[scene.path.length - 1];
+    const current = this.graph.node(currentId);
+    const out = new Map<string, Pt>();
+    out.set(currentId, { x: 0, y: 0 });
+    const SLOT = 150;
+    const PERSON = 112;
+    const yearOf = (id: string) => {
+      const t = this.graph.tracks.get(id);
+      return t?.release ? Number(t.release.value.slice(0, 4)) : NaN;
+    };
+    const byYear = (a: string, b: string) => (yearOf(a) || 9999) - (yearOf(b) || 9999);
+    const others = scene.nodes.filter((n) => n.id !== currentId);
+    const relsTo = (id: string) => scene.edges.filter((e) => (e.rel.from === currentId && e.rel.to === id) || (e.rel.to === currentId && e.rel.from === id)).map((e) => e.rel);
+    // Rows of slots on one side of the song, nearest first, wrapping away from the axis.
+    const row = (ids: string[], y: number, dir: -1 | 1, side: -1 | 1, perRow = 5) => {
+      ids.forEach((id, i) => {
+        const r = Math.floor(i / perRow);
+        const c = i % perRow;
+        out.set(id, { x: side * (SLOT * 1.15 + c * SLOT), y: y + dir * r * 168 });
+      });
+    };
+    const centred = (ids: string[], y: number, step: number, perRow = 8, dir: 1 | -1 = 1) => {
+      ids.forEach((id, i) => {
+        const r = Math.floor(i / perRow);
+        const inRow = Math.min(perRow, ids.length - r * perRow);
+        const c = i % perRow;
+        out.set(id, { x: (c - (inRow - 1) / 2) * step, y: y + dir * r * 120 });
+      });
+    };
+    const topY = -250;
+    const botY = 250;
+    const peopleY = 470;
+    const span = (ids: string[]) => {
+      const xs = ids.map((id) => out.get(id)?.x ?? 0);
+      return xs.length ? [Math.min(...xs), Math.max(...xs)] : [0, 0];
+    };
+
+    if (current?.kind === 'track') {
+      const lanes = { sample: { from: [] as string[], to: [] as string[] }, redo: { from: [] as string[], to: [] as string[] } };
+      const people: string[] = [];
+      const loose: string[] = [];
+      for (const n of others) {
+        if (this.graph.people.has(n.id)) {
+          if (relsTo(n.id).length) people.push(n.id);
+          else loose.push(n.id);
+          continue;
+        }
+        const rels = relsTo(n.id);
+        const rel = rels.find((r) => r.type === 'samples') ?? rels.find((r) => r.type === 'interpolates') ?? rels.find((r) => r.type === 'documented') ?? rels[0];
+        if (!rel) {
+          loose.push(n.id);
+          continue;
+        }
+        // The song this one draws from is its source (left); a song drawing from it comes after (right).
+        const source = rel.from === currentId;
+        const lane = rel.type === 'samples' ? lanes.sample : lanes.redo;
+        (source ? lane.from : lane.to).push(n.id);
+      }
+      lanes.sample.from.sort(byYear).reverse();
+      lanes.redo.from.sort(byYear).reverse();
+      lanes.sample.to.sort(byYear);
+      lanes.redo.to.sort(byYear);
+      row(lanes.sample.from, topY, -1, -1);
+      row(lanes.sample.to, topY, -1, 1);
+      row(lanes.redo.from, botY, 1, -1);
+      row(lanes.redo.to, botY, 1, 1);
+      const redoRows = Math.ceil(Math.max(lanes.redo.from.length, lanes.redo.to.length) / 5);
+      // An empty lane keeps its name and note but gives its height to the people row.
+      const pY = redoRows ? peopleY + (redoRows - 1) * 168 : botY + 110;
+      centred(people, pY, PERSON);
+      // Steps of your path that aren't next to this song wait at the top left.
+      loose.forEach((id, i) => out.set(id, { x: -SLOT * 1.15 - i * SLOT, y: topY - 230 }));
+
+      const all = [...out.values()];
+      const x0 = Math.min(-SLOT * 2.2, ...all.map((p) => p.x)) - 90;
+      const x1 = Math.max(SLOT * 2.2, ...all.map((p) => p.x)) + 90;
+      const nS = lanes.sample.from.length + lanes.sample.to.length;
+      const nR = lanes.redo.from.length + lanes.redo.to.length;
+      this.lanes = [
+        { kind: 'axis', y: 0, x0, x1, label: '' },
+        { kind: 'lane', y: topY - 84, x0, x1, label: 'Samples', note: nS ? 'the original recording, reused' : 'No samples recorded either way yet' },
+        { kind: 'lane', y: botY - 84, x0, x1, label: 'Interpolations, covers & remixes', note: nR ? 'the music re-performed' : 'None recorded yet' },
+      ];
+      if (people.length) {
+        const [p0, p1] = span(people);
+        this.lanes.push({ kind: 'lane', y: pY - 72, x0: Math.min(x0, p0 - 80), x1: Math.max(x1, p1 + 80), label: 'Made by', note: 'performers, writers, producers' });
+      }
+    } else {
+      // An artist: their songs in release order above, the people they work with below.
+      const works = others.filter((n) => this.graph.tracks.has(n.id)).map((n) => n.id).sort(byYear);
+      const folks = others.filter((n) => this.graph.people.has(n.id)).map((n) => n.id);
+      centred(works, topY, SLOT, 7, -1);
+      centred(folks, botY, PERSON, 8);
+      const all = [...out.values()];
+      const x0 = Math.min(-SLOT * 2.2, ...all.map((p) => p.x)) - 90;
+      const x1 = Math.max(SLOT * 2.2, ...all.map((p) => p.x)) + 90;
+      this.lanes = [
+        { kind: 'lane', y: topY - 84, x0, x1, label: 'Their songs in your map', note: works.length ? 'oldest to newest' : 'None in your map yet' },
+        { kind: 'lane', y: botY - 72, x0, x1, label: 'Who they make music with', note: folks.length ? 'shared credits and groups' : 'No shared credits yet' },
+      ];
+    }
+    // Dragged nodes stay where you put them.
+    this.manual.forEach((p, id) => out.has(id) && out.set(id, p));
+    return out;
+  }
+
+  private renderLanes(): void {
+    this.lanesEl.innerHTML = this.lanes
+      .map((l) =>
+        l.kind === 'axis'
+          ? `<div class="mm-lane mm-lane--axis" style="left:${l.x0}px;top:${l.y}px;width:${l.x1 - l.x0}px"><span class="mm-lane__end is-left">← Where it comes from</span><span class="mm-lane__end is-right">Where it lives on →</span></div>`
+          : `<div class="mm-lane" style="left:${l.x0}px;top:${l.y}px;width:${l.x1 - l.x0}px"><span class="mm-lane__name">${escapeHtml(l.label)}</span>${l.note ? `<span class="mm-lane__note">${escapeHtml(l.note)}</span>` : ''}</div>`,
+      )
+      .join('');
+  }
 
   /**
    * Historical view as a web: the current song at the centre, its connections in a

@@ -313,6 +313,12 @@ export class LibraryWeb {
   }
 
   /** Turns a few loaded covers into thumbnails per frame, so a big library never blocks. */
+  /** The brand typeface, read from the page so the canvas matches the HTML. */
+  private font = '';
+  private fontFamily(): string {
+    return (this.font ||= getComputedStyle(this.canvas).getPropertyValue('--font').trim() || 'sans-serif');
+  }
+
   private makeThumbs(): boolean {
     const start = performance.now();
     while (this.thumbQueue.length && performance.now() - start < 6) {
@@ -474,7 +480,7 @@ export class LibraryWeb {
       if (related.size && !hot) continue;
       if (this.match && !this.match.has(cr.item)) continue;
       const a = hubPos(cr.hub);
-      ctx.strokeStyle = hot ? accent : 'rgba(26, 29, 51, 0.07)';
+      ctx.strokeStyle = hot ? accent : 'rgba(75, 43, 191, 0.1)';
       ctx.lineWidth = hot ? 1.2 : 0.6;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
@@ -547,12 +553,12 @@ export class LibraryWeb {
         ctx.setLineDash([]);
       }
       if (s > 84 && !faded(n)) {
-        ctx.font = '500 11px "Helvetica Neue", Helvetica, Arial, sans-serif';
+        ctx.font = `500 11px ${this.fontFamily()}`;
         const t = n.item.title.length > 28 ? `${n.item.title.slice(0, 27)}…` : n.item.title;
         const tw = ctx.measureText(t).width;
         ctx.fillStyle = 'rgba(255,255,255,0.9)';
         ctx.fillRect(n.sx - tw / 2 - 3, n.sy + s / 2 + 3, tw + 6, 15);
-        ctx.fillStyle = '#1a1d33';
+        ctx.fillStyle = '#17151f';
         ctx.fillText(t, n.sx, n.sy + s / 2 + 5);
       }
     }
@@ -569,13 +575,13 @@ export class LibraryWeb {
       const matched = !this.match || h.items.some((n) => this.match!.has(n));
       if (!hot && (!matched || !(screenR > 46 || (biggest.has(h) && screenR > 22)))) continue;
       ctx.globalAlpha = related.size && !hot ? 0.4 : 1;
-      ctx.font = `${hot ? 600 : 500} ${hot ? 13 : 12}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      ctx.font = `${hot ? 700 : 500} ${hot ? 13 : 12}px ${this.fontFamily()}`;
       const label = h.hub.name;
       const tw = ctx.measureText(label).width;
       const ly = h.items.length ? hp.y - (h.r - 6) * cam.k * m : hp.y - 14;
       ctx.fillStyle = 'rgba(255,255,255,0.94)';
       ctx.fillRect(hp.x - tw / 2 - 6, ly - 10, tw + 12, 20);
-      ctx.fillStyle = hot ? accent : '#1a1d33';
+      ctx.fillStyle = hot ? accent : '#17151f';
       ctx.fillText(label, hp.x, ly);
       if (!h.items.length) {
         ctx.beginPath();
