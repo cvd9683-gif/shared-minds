@@ -3,16 +3,14 @@
 Shared Minds · Week 6. Open [`index.html`](index.html) through a local server (`python3 -m http.server`
 from the repo root, then go to `/week-6-every-image/`). It needs no build step to run.
 
-Live static, 32 × 32 pixels: the way almost every possible picture looks. But every pixel is a whole
-picture squeezed down to one dot. Click any pixel and it zooms open into a picture someone asked an AI to
-make: the closest in colour among the pictures you haven't seen yet, so nothing repeats until
-you've seen all of them.
+The whole screen is TV static, and every dot is a picture squeezed down to its average colour. The
+cursor is a lens: under it the static holds still and the dots swell until you can see what they are.
+Click the dot in the middle to open it.
 
-It opens with a short intro, one line at a time, on how big that space is. Then it's just the static.
-Scroll in or click to open a pixel; scroll out, press Escape, or use **zoom out** to come back, and
-**all the way out** returns to the static from any depth. Inside an AI picture the rule keeps going:
-each of its pixels is another AI picture with that average colour, and **see its pixels** shows the
-picture as a mosaic of them. **map** opens the map of meaning.
+An opened picture shows its two addresses. In pixel space it's one number: its 32 × 32 pixels read
+as a single number in base 256, about 7,398 digits long, and you can see every digit. In AI space
+it's the prompt and seed that led Stable Diffusion to it. Below them are the six pictures closest
+to it in meaning, and **map** shows where everything sits.
 
 ## The numbers
 
@@ -24,23 +22,24 @@ picture as a mosaic of them. **map** opens the map of meaning.
 
 ## How it works
 
-- **Pictures inside pixels.** The static is 1,024 random pixels, redrawn about eleven times a second. In real
-  pixel space, a random picture is almost certainly noise; here every pixel opens into one of the AI
-  pictures, so every click finds one.
+- **The static and the lens.** The screen is a grid of 6-pixel dots, redrawn about twelve times a
+  second. Every 20 × 20 block of dots holds all 400 pictures once, shuffled differently per block, so
+  neighbours never repeat. Under the lens a dot settles into its picture's real average colour, and
+  a fisheye magnifies it until the picture shows.
 - **The atlas.** The AI pictures come from [DiffusionDB](https://poloclub.github.io/diffusiondb/), about
   14 million Stable Diffusion images shared on a public Discord, each with its prompt and seed.
 - **CLIP and UMAP.** CLIP turns each picture into 512 numbers by what it shows. UMAP flattens those
-  numbers onto the map in the corner, so pictures that mean similar things sit together. The map
+  numbers onto the map (the **map** link), so pictures that mean similar things sit together. The map
   starts dark; pictures appear on it as you find them. CLIP also picks each picture's six closest
   neighbours in meaning.
-- **Sound.** Static hisses, brighter over bright pixels. Opening a picture plays a chime pitched by where it
-  sits on the map, and inside a picture each pixel you pass sounds the picture it opens into, so similar
-  pictures sound similar.
+- **Sound.** White noise is the sound version of static: every frequency at once. Moving the lens,
+  you hear the noise. Rest it on a dot and the noise narrows into one tone, the way attention narrows
+  static into a picture. The pitch comes from where that picture sits on the map, so pictures of
+  similar things sound alike. Opening a picture plays its chord.
 
 ## Building the atlas
 
-The atlas in `atlas/` holds 400 pictures from DiffusionDB part 1. If it's missing, the page runs on a
-small demo set of drawings placed by colour. To rebuild it, or build a bigger one, run this (it
+The atlas in `atlas/` holds 400 pictures from DiffusionDB part 1; the page needs it to run. To rebuild it, or build a bigger one, run this (it
 downloads a DiffusionDB part of several hundred MB and the CLIP model, about 350 MB):
 
 ```sh

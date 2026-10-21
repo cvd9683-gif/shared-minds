@@ -9,8 +9,8 @@
 
 /* ------------------------------------------------
    Every Image.
-   The page is the static: one square of noise in the dark, and a few words around it.
-   Same dark ground and serif as the rest of the Shared Minds pieces.
+   The whole screen is static. The cursor is a lens: under it the dots swell and turn out to be
+   pictures. Same dark ground and serif as the rest of the Shared Minds pieces.
    ------------------------------------------------ */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -25,69 +25,84 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:focus-visible, canvas:focus-visible { outline: 1px solid #8a9b82; outline-offset: 4px; }
 
-button:focus-visible, canvas:focus-visible {
-  outline: 1px solid #8a9b82;
-  outline-offset: 4px;
-}
+#tv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: none; touch-action: none; }
 
 /* ------------------------------------------------
-   THE STATIC
+   WORDS AT THE EDGES
+   They sit on a soft dark band so they stay readable over the static.
    ------------------------------------------------ */
 
-#stage {
-  position: fixed;
-  display: block;
-  cursor: zoom-in;
-  touch-action: manipulation;
-}
-
-/* ------------------------------------------------
-   WORDS AROUND THE EDGE
-   ------------------------------------------------ */
-
-.corner {
+.edge {
   position: fixed;
   z-index: 3;
-  top: calc(env(safe-area-inset-top, 0px) + 18px);
-  font-size: 15px;
-  color: #8a9b82;
+  font-size: 14px;
+  color: #a9a49a;
+  padding: 6px 10px;
+  background: rgba(7, 8, 11, .82);
+  border-radius: 4px;
 }
 
-.corner.left { left: max(20px, env(safe-area-inset-left, 0px)); }
-.corner.right { right: max(20px, env(safe-area-inset-right, 0px)); display: flex; gap: 18px; }
-
-.corner .name { color: #e0dcd4; }
-
-.trail { margin-top: 4px; font-size: 13px; max-width: 40vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.trail button { color: #8a9b82; border-bottom: 1px solid #3b5e3d; }
-.trail button:hover { color: #e0dcd4; }
+.edge.tl { top: calc(env(safe-area-inset-top, 0px) + 14px); left: max(14px, env(safe-area-inset-left, 0px)); color: #e0dcd4; font-size: 15px; }
+.edge.tr { top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); display: flex; gap: 16px; }
+.edge.bl { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: max(14px, env(safe-area-inset-left, 0px)); }
+.edge.br { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); }
+.edge b { font-weight: normal; color: #e0dcd4; }
 
 .link { color: #8a9b82; border-bottom: 1px solid transparent; }
 .link:hover, .link[aria-pressed="true"] { color: #e0dcd4; border-bottom-color: #5c8a5e; }
 
-.caption {
+sup { font-size: .62em; line-height: 0; }
+
+/* ------------------------------------------------
+   AN OPENED PICTURE
+   ------------------------------------------------ */
+
+.view {
   position: fixed;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
-  transform: translateX(-50%);
-  width: min(720px, calc(100vw - 40px));
-  text-align: center;
+  inset: 0;
+  z-index: 4;
+  background: rgba(7, 8, 11, .9);
+  display: grid;
+  grid-template-columns: auto minmax(0, 380px);
+  gap: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 64px max(24px, env(safe-area-inset-right, 0px)) 48px max(24px, env(safe-area-inset-left, 0px));
+  opacity: 0;
+  transition: opacity .45s ease;
 }
 
-.caption .say { font-size: 17px; line-height: 1.45; }
-.caption .say q { font-style: italic; quotes: "\201C" "\201D"; }
-.caption .small { margin-top: 6px; font-size: 13px; color: #8a9b82; }
-.caption .actions { margin-top: 8px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; font-size: 14px; }
+.view.shown { opacity: 1; }
 
-sup { font-size: .6em; line-height: 0; }
+.view .frame { width: min(62vh, 52vw); aspect-ratio: 1 / 1; }
+.view .frame img { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+.about { display: flex; flex-direction: column; gap: 22px; max-height: 80vh; overflow-y: auto; }
+.label { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #5c8a5e; margin-bottom: 6px; }
+.number { font-size: 26px; line-height: 1.2; word-break: break-all; }
+.note { font-size: 14px; line-height: 1.5; color: #a9a49a; }
+.prompt { font-size: 19px; line-height: 1.4; font-style: italic; }
+.digits {
+  margin-top: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #8a9b82;
+  word-break: break-all;
+  padding: 8px 10px;
+  border: 1px solid #2a2f3a;
+}
+.near { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.near button { aspect-ratio: 1 / 1; overflow: hidden; border: 1px solid #2a2f3a; }
+.near img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.view .close { align-self: start; }
+
+.flying { position: fixed; z-index: 5; object-fit: cover; pointer-events: none; transition: all .6s cubic-bezier(.2, .7, .1, 1); }
 
 /* ------------------------------------------------
    THE MAP OF MEANING (opens from the right)
@@ -95,11 +110,11 @@ sup { font-size: .6em; line-height: 0; }
 
 .mappanel {
   position: fixed;
-  z-index: 2;
   top: 0; right: 0; bottom: 0;
+  z-index: 2;
   width: min(360px, 100vw);
-  padding: calc(env(safe-area-inset-top, 0px) + 56px) 20px 20px;
-  background: rgba(14, 17, 23, .94);
+  padding: calc(env(safe-area-inset-top, 0px) + 64px) 20px 20px;
+  background: rgba(14, 17, 23, .96);
   border-left: 1px solid #2a2f3a;
   display: flex;
   flex-direction: column;
@@ -110,10 +125,6 @@ sup { font-size: .6em; line-height: 0; }
 .mappanel h2 { font-weight: normal; font-size: 19px; }
 .mappanel p { font-size: 14px; line-height: 1.5; color: #a9a49a; }
 #map { width: 100%; aspect-ratio: 1 / 1; display: block; background: #07080b; border: 1px solid #2a2f3a; cursor: crosshair; }
-.near { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.near button { aspect-ratio: 1 / 1; overflow: hidden; border: 1px solid #2a2f3a; }
-.near img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.label { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #5c8a5e; }
 
 /* ------------------------------------------------
    THE INTRO
@@ -122,16 +133,16 @@ sup { font-size: .6em; line-height: 0; }
 .intro {
   position: fixed;
   inset: 0;
+  z-index: 6;
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(7, 8, 11, .88);
+  background: rgba(7, 8, 11, .9);
   transition: background .9s ease;
   cursor: pointer;
-  z-index: 5;
 }
 
-.intro.thin { background: rgba(7, 8, 11, .25); }
+.intro.thin { background: rgba(7, 8, 11, .2); }
 
 .intro .line {
   max-width: 34ch;
@@ -139,7 +150,10 @@ sup { font-size: .6em; line-height: 0; }
   font-size: clamp(22px, 3.4vw, 34px);
   line-height: 1.35;
   text-wrap: balance;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, .8);
+  text-shadow: 0 1px 14px #000, 0 0 2px #000;
+  padding: 18px 24px;
+  border-radius: 8px;
+  background: rgba(7, 8, 11, .72);
   animation: arrive .9s ease both;
 }
 
@@ -157,64 +171,73 @@ sup { font-size: .6em; line-height: 0; }
   color: #8a9b82;
 }
 
-.intro .enter {
-  margin-top: 28px;
-  font-size: 18px;
-  padding: 10px 26px;
-  border: 1px solid #5c8a5e;
-  background: #2e4a30;
-  border-radius: 6px;
-}
-
+.intro .enter { margin-top: 28px; font-size: 18px; padding: 10px 26px; border: 1px solid #5c8a5e; background: #2e4a30; border-radius: 6px; }
 .intro .enter:hover { background: #3b5e3d; }
 
-/* while the intro is up, it's the only thing speaking */
-body.intro-open .corner, body.intro-open .caption { visibility: hidden; }
+body.intro-open .edge { visibility: hidden; }
 
 @keyframes arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   .intro .line { animation: none; }
-  .intro { transition: none; }
+  .intro, .view, .flying { transition: none; }
 }
 
-@media (max-width: 640px) {
-  .trail { max-width: 55vw; }
-  .caption .say { font-size: 15px; }
+@media (max-width: 760px) {
+  .view { display: block; overflow-y: auto; padding-top: 64px; }
+  .view .frame { width: 100%; margin-bottom: 22px; }
+  .about { max-height: none; padding-bottom: 40px; }
+  .edge.bl { display: none; }
 }
 </style>
 </head>
 <body class="intro-open">
 
-<canvas id="stage" tabindex="0" aria-label="A square of static, 32 by 32 pixels. Every pixel opens into a picture. Click one, or use the arrow keys and Enter."></canvas>
+<canvas id="tv" tabindex="0" aria-label="A screen of static. Every dot is a picture. Move to look closer; click to open the dot under the lens. Arrow keys move the lens and Enter opens."></canvas>
 
-<div class="corner left">
-  <div class="name">Every Image</div>
-  <div class="trail" id="trail"></div>
-</div>
-
-<div class="corner right">
-  <button class="link" id="soundBtn" aria-pressed="false">sound off</button>
+<div class="edge tl">Every Image</div>
+<div class="edge tr">
+  <span id="foundCount"></span>
   <button class="link" id="mapBtn" aria-pressed="false">map</button>
+  <button class="link" id="soundBtn" aria-pressed="false">sound off</button>
 </div>
+<div class="edge bl">16,777,216<sup>1,024</sup> ≈ 10<sup>7,398</sup> possible pictures</div>
+<div class="edge br" id="hint">Move across the static. Rest on a dot to hear it. Click to open it.</div>
 
-<div class="caption" id="caption"></div>
+<section class="view" id="view" hidden aria-label="An opened picture">
+  <div class="frame"><img id="viewImg" alt=""></div>
+  <div class="about">
+    <div>
+      <p class="label">Its number among every possible picture</p>
+      <p class="number" id="number"></p>
+      <p class="note" id="numberNote"></p>
+      <button class="link" id="digitsBtn" style="margin-top:6px;font-size:14px">show every digit</button>
+      <div class="digits" id="digits" hidden></div>
+    </div>
+    <div>
+      <p class="label">How an AI found it</p>
+      <p class="prompt" id="prompt"></p>
+      <p class="note" id="seed" style="margin-top:6px"></p>
+    </div>
+    <div>
+      <p class="label">Closest in meaning</p>
+      <div class="near" id="near"></div>
+    </div>
+    <button class="link close" id="closeBtn">back to the static</button>
+  </div>
+</section>
 
 <aside class="mappanel" id="mapPanel" hidden>
   <h2>A map of meaning</h2>
-  <p>Every picture here, placed by CLIP and UMAP: pictures that show similar things sit near each other. They appear as you find them.</p>
-  <canvas id="map" aria-label="Map of every picture; found ones appear as thumbnails. Click one to go there."></canvas>
-  <div id="nearWrap" hidden>
-    <p class="label">Closest in meaning</p>
-    <div class="near" id="near" style="margin-top:8px"></div>
-  </div>
+  <p>Every picture in the static, placed by CLIP and UMAP: pictures that show similar things sit near each other, and sound alike. The ones you've opened show as thumbnails.</p>
+  <canvas id="map" aria-label="Map of every picture; opened ones appear as thumbnails. Click one to open it."></canvas>
   <p id="source"></p>
 </aside>
 
 <div class="intro" id="intro" role="dialog" aria-label="Introduction">
   <div>
     <div class="line" id="introLine"></div>
-    <div style="text-align:center"><button class="enter" id="enter" hidden>Open a pixel</button></div>
+    <div style="text-align:center"><button class="enter" id="enter" hidden>Look closer</button></div>
   </div>
   <div class="foot"><span id="introStep"></span><button class="link" id="skip">skip</button></div>
 </div>
@@ -231,9 +254,9 @@ const INTRO = [
   'Any pixel can be any colour, whatever its neighbours are. So the pictures this square can hold number 16,777,216 × 16,777,216 × 16,777,216 × … one thousand and twenty-four times.',
   '<span class="big">10<sup>7,398</sup></span>A 1 followed by 7,398 zeros.<small>There are about 10<sup>80</sup> atoms in the observable universe.</small>',
   'In there is every moment of your life, every face that has ever lived, every one that never will, and every painting no one has painted yet.',
-  'Almost all of it looks like this.',
+  'Almost all of it looks like this.<small>And sounds like this: white noise is every frequency at once, the way static is every colour at once.</small>',
   'AI image models don’t make pictures out of nothing. They search this space for the tiny corner that looks like what we’ve already seen.',
-  'Here, every pixel of the static is one of those pictures, squeezed into a single dot.',
+  'Every dot of this static is one of those pictures, squeezed down to its average colour. Look closer.',
 ];
 
 
@@ -241,292 +264,258 @@ const INTRO = [
    THE ATLAS
    400 Stable Diffusion pictures from DiffusionDB, with the prompt and seed that made each one,
    its average colour, its place on the UMAP map and its nearest neighbours by CLIP.
-   Built by tools/build-atlas.mjs.
+   Built by tools/build-atlas.mjs. Thumbnails come in one sprite sheet.
    ================================================================ */
-const G = 32;
 let ATLAS = [], byId = new Map(), sprite = null;
 
 async function loadAtlas() {
-  const res = await fetch('atlas/atlas.json', { cache: 'no-cache' });
-  const data = await res.json();
+  const data = await (await fetch('atlas/atlas.json', { cache: 'no-cache' })).json();
   ATLAS = data.items.map((it, i) => ({ ...it, i, src: 'atlas/' + it.file }));
   ATLAS.forEach(it => byId.set(it.id, it));
-  // every picture at 96 × 96 in one sheet, for the mosaic and the map
   sprite = { ...data.sprite, img: new Image() };
-  sprite.img.onload = () => { sprite.ready = true; requestDraw(); drawMapSoon(); };
+  sprite.img.onload = () => { sprite.ready = true; drawMap(); };
   sprite.img.src = 'atlas/' + data.sprite.file;
   document.getElementById('source').textContent =
     `${ATLAS.length} pictures from ${data.source}, made with Stable Diffusion in 2022 and shared on a public Discord. Prompts and seeds as their makers wrote them.`;
 }
 
-const colorDist = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
-
-// the full picture (512 × 512) loads when it's first needed
-function full(it) {
-  if (!it.img) { it.img = new Image(); it.img.onload = () => { it.img.ready = true; requestDraw(); }; it.img.src = it.src; }
-  return it.img.ready ? it.img : null;
-}
-
-// draw a picture: full size if it's here, else its thumbnail from the sheet, else its average colour
-function paint(g, it, x, y, w, h, small) {
-  const img = small ? null : full(it);
-  if (img) { g.drawImage(img, x, y, w, h); return; }
-  if (sprite && sprite.ready) {
-    const n = sprite.size;
-    g.drawImage(sprite.img, (it.i % sprite.cols) * n, Math.floor(it.i / sprite.cols) * n, n, n, x, y, w, h);
-    return;
-  }
-  g.fillStyle = `rgb(${it.avg})`; g.fillRect(x, y, w, h);
+function thumb(g, it, x, y, w, h) {
+  const n = sprite.size;
+  g.drawImage(sprite.img, (it.i % sprite.cols) * n, Math.floor(it.i / sprite.cols) * n, n, n, x, y, w, h);
 }
 
 
 /* ================================================================
-   PICTURES INSIDE PIXELS
-   The static is 1,024 random pixels, redrawn about eleven times a second.
-   A pixel opens into an AI picture you haven't seen yet, one of the three whose average colour is closest to it.
-   A picture's pixels open into other AI pictures with that average colour, so it keeps going.
+   WHICH PICTURE IS WHICH DOT
+   The screen is a grid of dots. Every block of 20 × 20 dots holds all 400 pictures once, shuffled
+   differently in every block, so neighbouring dots never repeat. Under the lens, a dot shows its
+   picture's real average colour; elsewhere it's live static.
    ================================================================ */
 function hash(a, b) { let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x632be5ab, 0xc2b2ae35); h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; return h >>> 0; }
-
-function noise() {
-  const px = new Uint8ClampedArray(G * G * 4);
-  for (let i = 0; i < G * G; i++) { px[i * 4] = Math.random() * 256; px[i * 4 + 1] = Math.random() * 256; px[i * 4 + 2] = Math.random() * 256; px[i * 4 + 3] = 255; }
-  return px;
-}
-const staticNode = () => ({ type: 'static', depth: 0, px: noise() });
-const pictureNode = (id, depth) => ({ type: 'picture', id, depth });
-
-function cellsOf(node) {
-  if (node.px) return node.px;
-  const it = byId.get(node.id);
-  if (!full(it) && !(sprite && sprite.ready)) return null;
-  const c = document.createElement('canvas'); c.width = c.height = G;
-  const g = c.getContext('2d'); paint(g, it, 0, 0, G, G);
-  node.px = g.getImageData(0, 0, G, G).data;
-  return node.px;
-}
-
-function childOf(node, cell) {
-  const px = cellsOf(node); if (!px) return null;
-  const col = [px[cell * 4], px[cell * 4 + 1], px[cell * 4 + 2]];
-  if (node.type === 'static') {
-    // the closest in colour among the pictures you haven't seen yet, so nothing repeats until you've seen them all
-    const unseen = ATLAS.filter(it => !found.has(it.id));
-    const pool = unseen.length ? unseen : ATLAS;
-    const close = pool.slice().sort((a, b) => colorDist(a.avg, col) - colorDist(b.avg, col)).slice(0, 3);
-    return pictureNode(close[Math.floor(Math.random() * close.length)].id, 1);
-  }
-  // inside a picture, the same pixel always opens into the same picture
-  if (!node.tiles) node.tiles = [];
-  if (!node.tiles[cell]) {
-    const close = ATLAS.filter(it => it.id !== node.id).sort((a, b) => colorDist(a.avg, col) - colorDist(b.avg, col)).slice(0, 4);
-    node.tiles[cell] = close[hash(parseInt(node.id, 10) || 0, cell) % close.length].id;
-  }
-  return pictureNode(node.tiles[cell], node.depth + 1);
+let perm = [];
+function pictureAt(i, j) {
+  const B = 20, n = ATLAS.length;
+  const k = (i % B) + B * (j % B) + hash(Math.floor(i / B), Math.floor(j / B));
+  return ATLAS[perm[k % n]];
 }
 
 
 /* ================================================================
-   DRAWING AND ZOOMING
+   THE STATIC AND THE LENS
    ================================================================ */
-const stage = document.getElementById('stage'), sg = stage.getContext('2d');
+const tv = document.getElementById('tv'), g = tv.getContext('2d');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let here = null, path = [], hover = -1, zoom = null, mosaic = false, S = 0;
-let found = new Set(); try { found = new Set(JSON.parse(localStorage.getItem('every-image-found')) || []); } catch {}
+let W = 0, H = 0, dpr = 1, CELL = 6, cols = 0, rows = 0, R = 200;
+const noiseCv = document.createElement('canvas'), ng = noiseCv.getContext('2d');
+let noiseImg = null;
 
-function layout() {
-  // the biggest square that fits, with room for the words above and below
-  const dpr = Math.min(2, devicePixelRatio || 1), narrow = innerWidth < 640;
-  S = Math.floor(Math.min(innerWidth - 32, innerHeight - (narrow ? 210 : 170)));
-  const x = Math.round((innerWidth - S) / 2), y = Math.round((innerHeight - S) / 2 - (narrow ? 10 : 6));
-  Object.assign(stage.style, { left: x + 'px', top: y + 'px', width: S + 'px', height: S + 'px' });
-  stage.width = stage.height = Math.round(S * dpr);
-  sg.setTransform(dpr, 0, 0, dpr, 0, 0);
-  requestDraw();
+function resize() {
+  dpr = Math.min(2, devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  CELL = W < 640 ? 5 : 6;
+  R = Math.round(Math.min(220, Math.max(130, Math.min(W, H) * .24)));
+  cols = Math.ceil(W / CELL); rows = Math.ceil(H / CELL);
+  tv.width = Math.round(W * dpr); tv.height = Math.round(H * dpr);
+  noiseCv.width = cols; noiseCv.height = rows;
+  noiseImg = ng.createImageData(cols, rows);
+  freshNoise();
 }
 
-const pxCanvas = document.createElement('canvas'); pxCanvas.width = pxCanvas.height = G;
-function drawNode(node, x, y, size) {
-  if (node.type === 'static') {
-    pxCanvas.getContext('2d').putImageData(new ImageData(node.px, G, G), 0, 0);
-    sg.imageSmoothingEnabled = false; sg.drawImage(pxCanvas, x, y, size, size);
-    return;
-  }
-  const it = byId.get(node.id);
-  sg.imageSmoothingEnabled = true; sg.imageSmoothingQuality = 'high';
-  if (mosaic && node === here && !zoom) {
-    // every pixel as the picture it opens into
-    const cs = size / G;
-    for (let cell = 0; cell < G * G; cell++) {
-      paint(sg, byId.get(childOf(node, cell).id), x + (cell % G) * cs, y + Math.floor(cell / G) * cs, cs + .5, cs + .5, true);
+function freshNoise() {
+  const d = noiseImg.data;
+  for (let k = 0; k < d.length; k += 4) { d[k] = Math.random() * 256; d[k + 1] = Math.random() * 256; d[k + 2] = Math.random() * 256; d[k + 3] = 255; }
+  ng.putImageData(noiseImg, 0, 0);
+}
+
+// where you're looking, and how long you've rested there
+const lens = { x: -1, y: -1, on: false, focus: 0, lastMove: 0, speed: 0 };
+let center = null;      // the dot under the middle of the lens: { i, j, it, x, y, size }
+
+function draw(now) {
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(noiseCv, 0, 0, cols * CELL, rows * CELL);
+
+  center = null;
+  if (lens.on && ATLAS.length && sprite?.ready) drawLens();
+}
+
+// a fisheye: dots near the middle swell, dots near the rim squeeze, the rim meets the static
+function drawLens() {
+  const K = 9 + 7 * lens.focus;                    // magnification grows while you rest
+  const ci = Math.floor(lens.x / CELL), cj = Math.floor(lens.y / CELL), rc = Math.ceil(R / CELL) + 1;
+  const dots = [];
+  for (let j = cj - rc; j <= cj + rc; j++) {
+    if (j < 0 || j >= rows) continue;
+    for (let i = ci - rc; i <= ci + rc; i++) {
+      if (i < 0 || i >= cols) continue;
+      const cx = (i + .5) * CELL, cy = (j + .5) * CELL, dx = cx - lens.x, dy = cy - lens.y, d = Math.hypot(dx, dy);
+      if (d > R) continue;
+      const t = d / R, m = (K + 1) * t / (K * t + 1);                 // where it lands, as a share of the radius
+      const radial = (K + 1) / (K * t + 1) ** 2, tangential = t ? m / t : K + 1;
+      const s = Math.max(radial, tangential) * CELL * .94;
+      const u = d ? m * R / d : 0;
+      dots.push({ i, j, x: lens.x + dx * u, y: lens.y + dy * u, s, t });
     }
-    return;
   }
-  paint(sg, it, x, y, size, size);
+  dots.sort((a, b) => a.s - b.s);
+  g.fillStyle = '#07080b';
+  g.beginPath(); g.arc(lens.x, lens.y, R, 0, Math.PI * 2); g.fill();
+  g.imageSmoothingEnabled = true;
+  const nd = noiseImg.data;
+  for (const p of dots) {
+    const it = pictureAt(p.i, p.j);
+    // at the rim the dot is still static; toward the middle it settles into its picture's colour
+    const settle = Math.min(1, Math.max(0, (1 - p.t) / .35));
+    const k = (p.j * cols + p.i) * 4;
+    const r = nd[k] + (it.avg[0] - nd[k]) * settle, gg = nd[k + 1] + (it.avg[1] - nd[k + 1]) * settle, b = nd[k + 2] + (it.avg[2] - nd[k + 2]) * settle;
+    g.fillStyle = `rgb(${r | 0},${gg | 0},${b | 0})`;
+    g.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+    if (p.s > 14) {
+      // big enough to see what it is
+      g.globalAlpha = Math.min(1, (p.s - 14) / 26);
+      thumb(g, it, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+      g.globalAlpha = 1;
+    }
+  }
+  const last = dots[dots.length - 1];
+  if (last) {
+    center = { ...last, it: pictureAt(last.i, last.j) };
+    g.strokeStyle = 'rgba(224,220,212,.95)'; g.lineWidth = 1.5;
+    g.strokeRect(last.x - last.s / 2 - 2, last.y - last.s / 2 - 2, last.s + 4, last.s + 4);
+  }
+  g.strokeStyle = 'rgba(224,220,212,.18)'; g.lineWidth = 1;
+  g.beginPath(); g.arc(lens.x, lens.y, R, 0, Math.PI * 2); g.stroke();
 }
 
-let queued = false;
-function requestDraw() { if (!queued) { queued = true; requestAnimationFrame(draw); } }
-
-function draw() {
-  queued = false;
-  sg.clearRect(0, 0, S, S);
-  if (!here) return;
-  if (zoom) {
-    // the outer picture grows until the chosen pixel fills the square; the inner one fades in inside it
-    const t = Math.min(1, (performance.now() - zoom.start) / zoom.ms);
-    const e = t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-    const p = zoom.out ? 1 - e : e;
-    const k = Math.pow(G, p), cs = S / G, cx = (zoom.cell % G + .5) * cs, cy = (Math.floor(zoom.cell / G) + .5) * cs;
-    const ox = cx + (S / 2 - cx) * p, oy = cy + (S / 2 - cy) * p;
-    drawNode(zoom.outer, ox - cx * k, oy - cy * k, S * k);
-    const inner = cs * k;
-    sg.globalAlpha = Math.min(1, Math.max(0, (p - .3) / .5));
-    drawNode(zoom.inner, ox - inner / 2, oy - inner / 2, inner);
-    sg.globalAlpha = 1;
-    if (t < 1) requestDraw(); else { const done = zoom; zoom = null; done.finish(); requestDraw(); }
-    return;
-  }
-  drawNode(here, 0, 0, S);
-  if (hover >= 0) {
-    const cs = S / G;
-    sg.strokeStyle = 'rgba(255,255,255,.9)'; sg.lineWidth = 1.5;
-    sg.strokeRect((hover % G) * cs + .5, Math.floor(hover / G) * cs + .5, cs - 1, cs - 1);
-  }
-}
-
-// live static: fresh noise about eleven times a second
 let lastNoise = 0;
-(function flicker(now) {
-  if (here && here.type === 'static' && !zoom && !reduce && now - lastNoise > 90) { lastNoise = now; here.px = noise(); requestDraw(); }
-  requestAnimationFrame(flicker);
-})(0);
+function frame(now) {
+  if (!reduce && now - lastNoise > 80) { lastNoise = now; freshNoise(); }
+  // attention: the longer the lens rests, the more the dot under it comes into focus
+  const resting = lens.on && now - lens.lastMove > 120;
+  lens.focus += ((resting ? 1 : 0) - lens.focus) * (resting ? .025 : .2);
+  if (view.hidden) draw(now);
+  sound.listen(lens.on ? center?.it : null, lens.focus, lens.speed);
+  lens.speed *= .9;
+  requestAnimationFrame(frame);
+}
 
 
 /* ================================================================
-   GOING IN AND OUT
+   MOVING THE LENS, OPENING A DOT
    ================================================================ */
-function remember(id) {
-  if (found.has(id)) return;
-  found.add(id);
-  try { localStorage.setItem('every-image-found', JSON.stringify([...found])); } catch {}
+function moveLens(x, y) {
+  const dx = x - lens.x, dy = y - lens.y;
+  lens.speed = Math.min(1, lens.speed + Math.hypot(dx, dy) / 80);
+  lens.x = x; lens.y = y; lens.on = true; lens.lastMove = performance.now();
 }
 
-function open(cell) {
-  if (zoom || !here || cell < 0) return;
-  const child = childOf(here, cell); if (!child) return;
-  const it = byId.get(child.id); full(it);
-  const outer = here;
-  const arrive = () => { path.push({ node: outer, cell }); here = child; hover = -1; mosaic = false; remember(child.id); sound.arrive(it); refresh(); };
-  sound.whoosh(true);
-  if (reduce) { arrive(); return; }
-  zoom = { outer, inner: child, cell, start: performance.now(), ms: 1100, out: false, finish: arrive };
-  requestDraw();
-}
-
-// one level out, or (all) every level back to the static
-function back(all) {
-  if (zoom || !path.length) return;
-  const removed = path.splice(all ? 0 : path.length - 1);
-  const land = removed[0];                                     // where we end up
-  const inner = removed[1] ? removed[1].node : here;           // what shrinks back into its pixel
-  const finish = () => { here = land.node; hover = -1; mosaic = false; refresh(); };
-  sound.whoosh(false);
-  if (reduce || land.cell == null) { finish(); return; }
-  zoom = { outer: land.node, inner, cell: land.cell, start: performance.now(), ms: removed.length > 1 ? 1300 : 800, out: true, finish };
-  requestDraw();
-}
-
-// straight to a picture from the map, without zooming
-function jump(id) {
-  if (zoom) return;
-  path.push({ node: here, cell: null });
-  here = pictureNode(id, (here?.depth || 0) + 1); mosaic = false;
-  remember(id); full(byId.get(id)); sound.arrive(byId.get(id)); refresh();
-}
-
-function cellAt(e) {
-  const r = stage.getBoundingClientRect();
-  const x = Math.floor((e.clientX - r.left) / r.width * G), y = Math.floor((e.clientY - r.top) / r.height * G);
-  return x < 0 || y < 0 || x >= G || y >= G ? -1 : y * G + x;
-}
-
-stage.addEventListener('pointermove', e => {
-  if (zoom || !here || e.pointerType !== 'mouse') return;
-  const cell = cellAt(e);
-  if (cell !== hover) { hover = cell; requestDraw(); sound.over(here, cell); }
+tv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons) moveLens(e.clientX, e.clientY); });
+tv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') lens.on = false; });
+tv.addEventListener('pointerdown', e => {
+  sound.wake();
+  if (e.pointerType !== 'mouse') {
+    // on a touch screen, the first tap puts the lens there; tapping its middle opens the dot
+    const near = lens.on && Math.hypot(e.clientX - lens.x, e.clientY - lens.y) < 30;
+    if (!near) { moveLens(e.clientX, e.clientY); return; }
+  }
+  if (center) open(center);
 });
-stage.addEventListener('pointerleave', () => { hover = -1; requestDraw(); sound.over(null); });
-stage.addEventListener('click', e => { sound.wake(); open(cellAt(e)); });
 
-// scroll in to open the pixel under the cursor, scroll out to come back
-let wheelLock = 0;
-addEventListener('wheel', e => {
-  if (!intro.hidden || (e.target.closest && e.target.closest('.mappanel'))) return;
-  e.preventDefault();
-  if (zoom || performance.now() < wheelLock || Math.abs(e.deltaY) < 4) return;
-  wheelLock = performance.now() + 500;
-  if (e.deltaY < 0) open(cellAt(e)); else back(false);
-}, { passive: false });
-
-stage.addEventListener('keydown', e => {
-  if (!here) return;
-  if (hover < 0) hover = (G / 2) * G + G / 2;
-  const x = hover % G, y = Math.floor(hover / G);
+tv.addEventListener('keydown', e => {
   const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-  if (moves[e.key]) { e.preventDefault(); const [dx, dy] = moves[e.key]; hover = Math.min(G - 1, Math.max(0, y + dy)) * G + Math.min(G - 1, Math.max(0, x + dx)); sound.over(here, hover); requestDraw(); }
-  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sound.wake(); open(hover); }
-});
-addEventListener('keydown', e => {
-  if (!intro.hidden) return;
-  if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); back(e.shiftKey); }
+  if (moves[e.key]) {
+    e.preventDefault();
+    if (!lens.on) { lens.x = W / 2; lens.y = H / 2; }
+    moveLens(Math.min(W - 1, Math.max(0, lens.x + moves[e.key][0] * CELL)), Math.min(H - 1, Math.max(0, lens.y + moves[e.key][1] * CELL)));
+  } else if ((e.key === 'Enter' || e.key === ' ') && center) { e.preventDefault(); open(center); }
 });
 
 
 /* ================================================================
-   THE WORDS AROUND IT
+   AN OPENED PICTURE: its two addresses
+   In pixel space it is one number: its 1,024 pixels, each three values from 0 to 255, written one
+   after another as digits of a number in base 256. That number, in ordinary digits, is up to 7,398
+   digits long, and no other 32 × 32 picture has it.
+   In AI space it is a prompt and a seed: the same two always lead the model to the same picture.
    ================================================================ */
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const short = (s, n) => !s ? '' : s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s;
+const view = document.getElementById('view'), viewImg = document.getElementById('viewImg');
+let found = new Set(); try { found = new Set(JSON.parse(localStorage.getItem('every-image-found')) || []); } catch {}
+let openId = null, openedAt = 0;
 
-function refresh() {
-  const cap = document.getElementById('caption');
-  if (here.type === 'static') {
-    cap.innerHTML = `<p class="say">Static. One of about 10<sup>7,398</sup> pictures this square could be.</p>
-      <p class="small">Click any pixel to open it, or scroll in.${found.size ? ` ${found.size} of ${ATLAS.length} pictures found.` : ''}</p>`;
-  } else {
-    const it = byId.get(here.id);
-    cap.innerHTML = `<p class="say"><q>${esc(short(it.prompt, 180))}</q></p>
-      <p class="small">Its address: this prompt and seed ${it.seed}. Same prompt, same seed, same picture, every time.</p>
-      <p class="actions">
-        <button class="link" id="mosaicBtn" aria-pressed="${mosaic}">${mosaic ? 'see the picture' : 'see its pixels'}</button>
-        <button class="link" id="outBtn">zoom out</button>
-        ${path.length > 1 ? '<button class="link" id="allOutBtn">all the way out</button>' : ''}
-      </p>`;
-    document.getElementById('mosaicBtn').onclick = () => { mosaic = !mosaic; refresh(); };
-    document.getElementById('outBtn').onclick = () => back(false);
-    const all = document.getElementById('allOutBtn'); if (all) all.onclick = () => back(true);
-  }
-  // where you are: static › … › this picture
-  const trail = document.getElementById('trail');
-  trail.innerHTML = '';
-  if (path.length) {
-    const b = document.createElement('button'); b.textContent = 'static'; b.onclick = () => back(true);
-    trail.append(b, ` › ${path.length > 1 ? `${path.length - 1} more › ` : ''}${short(byId.get(here.id).prompt, 26)}`);
-  }
-  updateNear(); drawMap(); requestDraw();
+function numberOf(it) {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const cg = c.getContext('2d'); cg.drawImage(viewImg, 0, 0, 32, 32);
+  const d = cg.getImageData(0, 0, 32, 32).data;
+  let hex = '';
+  for (let k = 0; k < d.length; k += 4) hex += d[k].toString(16).padStart(2, '0') + d[k + 1].toString(16).padStart(2, '0') + d[k + 2].toString(16).padStart(2, '0');
+  return BigInt('0x' + hex).toString();
 }
 
-function updateNear() {
-  const wrap = document.getElementById('nearWrap'), near = document.getElementById('near');
-  if (here.type !== 'picture') { wrap.hidden = true; return; }
-  near.innerHTML = '';
-  (byId.get(here.id).nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
+function showNumber(it) {
+  const n = numberOf(it);
+  const group = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  document.getElementById('number').textContent = `No. ${group(n.slice(0, 12))}…${n.slice(-6)}`;
+  document.getElementById('numberNote').innerHTML =
+    `A number ${n.length.toLocaleString()} digits long, out of about 10<sup>7,398</sup>. It's this picture's pixels, read as one enormous number. No other picture of this size has it.`;
+  document.getElementById('digits').textContent = n;
+}
+
+function open(c) {
+  const it = c.it;
+  openId = it.id; openedAt = performance.now();
+  if (!found.has(it.id)) { found.add(it.id); try { localStorage.setItem('every-image-found', JSON.stringify([...found])); } catch {} }
+  showFound();
+  sound.open(it);
+  viewImg.src = it.src; viewImg.alt = it.prompt;
+  document.getElementById('prompt').textContent = `“${it.prompt.trim()}”`;
+  document.getElementById('seed').textContent = `Someone typed this into Stable Diffusion with seed ${it.seed}. The same prompt and seed always lead to this same picture.`;
+  document.getElementById('digits').hidden = true; document.getElementById('digitsBtn').textContent = 'show every digit';
+  const near = document.getElementById('near'); near.innerHTML = '';
+  (it.nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
     const b = document.createElement('button'); b.title = n.prompt;
     const img = document.createElement('img'); img.alt = n.prompt; img.src = n.src; img.loading = 'lazy';
-    b.appendChild(img); b.onclick = () => jump(n.id); near.appendChild(b);
+    b.appendChild(img); b.onclick = () => open({ it: n }); near.appendChild(b);
   });
-  wrap.hidden = false;
+  // the number is read from the picture's own pixels, once it has loaded
+  document.getElementById('number').textContent = 'Counting…';
+  document.getElementById('numberNote').textContent = '';
+  viewImg.onload = () => { if (openId === it.id) showNumber(it); };
+
+  // the dot flies up into place
+  const wasHidden = view.hidden;
+  view.hidden = false;
+  requestAnimationFrame(() => {
+    view.classList.add('shown');
+    if (!wasHidden || reduce || c.x == null) return;
+    const to = viewImg.getBoundingClientRect();
+    const fly = document.createElement('img'); fly.className = 'flying'; fly.src = it.src;
+    Object.assign(fly.style, { left: c.x - c.s / 2 + 'px', top: c.y - c.s / 2 + 'px', width: c.s + 'px', height: c.s + 'px' });
+    document.body.appendChild(fly); viewImg.style.visibility = 'hidden';
+    requestAnimationFrame(() => Object.assign(fly.style, { left: to.left + 'px', top: to.top + 'px', width: to.width + 'px', height: to.height + 'px' }));
+    setTimeout(() => { fly.remove(); viewImg.style.visibility = ''; }, 650);
+  });
+  drawMap();
+}
+
+function close() {
+  if (view.hidden) return;
+  view.classList.remove('shown'); sound.close();
+  setTimeout(() => { view.hidden = true; tv.focus({ preventScroll: true }); }, reduce ? 0 : 400);
+  openId = null; drawMap();
+}
+
+document.getElementById('closeBtn').onclick = close;
+// a click on the dark around the picture closes it, but not the tail of the tap that opened it
+view.addEventListener('click', e => { if (e.target === view && performance.now() - openedAt > 500) close(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && !view.hidden) close(); });
+document.getElementById('digitsBtn').onclick = e => {
+  const d = document.getElementById('digits'); d.hidden = !d.hidden;
+  e.target.textContent = d.hidden ? 'show every digit' : 'hide the digits';
+};
+
+function showFound() {
+  document.getElementById('foundCount').innerHTML = found.size ? `<b>${found.size}</b> of ${ATLAS.length} opened` : '';
 }
 
 
@@ -534,91 +523,86 @@ function updateNear() {
    THE MAP
    ================================================================ */
 const mapCv = document.getElementById('map');
-let spots = [], mapQueued = false;
-function drawMapSoon() { if (!mapQueued) { mapQueued = true; setTimeout(() => { mapQueued = false; drawMap(); }, 200); } }
+let spots = [];
 function drawMap() {
-  if (document.getElementById('mapPanel').hidden || !ATLAS.length) return;
-  const dpr = Math.min(2, devicePixelRatio || 1), W = mapCv.clientWidth;
-  if (mapCv.width !== Math.round(W * dpr)) mapCv.width = mapCv.height = Math.round(W * dpr);
-  const g = mapCv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = '#07080b'; g.fillRect(0, 0, W, W);
-  const pad = 14, s = W - pad * 2, T = Math.max(14, Math.min(24, W / 14));
+  if (document.getElementById('mapPanel').hidden || !sprite?.ready) return;
+  const r = Math.min(2, devicePixelRatio || 1), Wm = mapCv.clientWidth;
+  if (mapCv.width !== Math.round(Wm * r)) mapCv.width = mapCv.height = Math.round(Wm * r);
+  const m = mapCv.getContext('2d'); m.setTransform(r, 0, 0, r, 0, 0);
+  m.fillStyle = '#07080b'; m.fillRect(0, 0, Wm, Wm);
+  const pad = 14, s = Wm - pad * 2, T = Math.max(14, Math.min(24, Wm / 14));
   spots = [];
-  for (const it of ATLAS) if (!found.has(it.id)) { g.fillStyle = `rgba(${it.avg},.5)`; g.beginPath(); g.arc(pad + it.map[0] * s, pad + it.map[1] * s, 1.8, 0, 7); g.fill(); }
+  for (const it of ATLAS) if (!found.has(it.id)) { m.fillStyle = `rgba(${it.avg},.55)`; m.beginPath(); m.arc(pad + it.map[0] * s, pad + it.map[1] * s, 1.8, 0, 7); m.fill(); }
   for (const it of ATLAS) if (found.has(it.id)) {
     const x = pad + it.map[0] * s - T / 2, y = pad + it.map[1] * s - T / 2;
-    paint(g, it, x, y, T, T, true);
-    spots.push([it.id, x, y, T]);
+    thumb(m, it, x, y, T, T); spots.push([it.id, x, y, T]);
+    if (it.id === openId) { m.strokeStyle = '#e0dcd4'; m.lineWidth = 1.5; m.strokeRect(x - 2, y - 2, T + 4, T + 4); }
   }
-  if (here?.type === 'picture') { const it = byId.get(here.id); g.strokeStyle = '#e0dcd4'; g.lineWidth = 1.5; g.strokeRect(pad + it.map[0] * s - T / 2 - 2, pad + it.map[1] * s - T / 2 - 2, T + 4, T + 4); }
 }
 mapCv.addEventListener('click', e => {
-  const r = mapCv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const b = mapCv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
   const hit = spots.find(([, sx, sy, T]) => x >= sx && x <= sx + T && y >= sy && y <= sy + T);
-  if (hit) jump(hit[0]);
+  if (hit) open({ it: byId.get(hit[0]) });
 });
 document.getElementById('mapBtn').onclick = e => {
-  const panel = document.getElementById('mapPanel'); panel.hidden = !panel.hidden;
-  e.target.setAttribute('aria-pressed', !panel.hidden); drawMap();
+  const p = document.getElementById('mapPanel'); p.hidden = !p.hidden;
+  e.target.setAttribute('aria-pressed', !p.hidden); drawMap();
 };
 
 
 /* ================================================================
    SOUND
-   Static hisses, brighter over bright pixels. Falling in is a rush of noise; arriving is a chime,
-   pitched by where the picture sits on the map of meaning, so similar pictures sound alike.
-   Inside a picture, each pixel you pass plays the picture it opens into.
+   White noise is to sound what static is to pictures: every frequency at once.
+   While the lens moves you hear the noise. Rest it on a dot and the noise narrows into one tone,
+   the way attention narrows static into a picture. The tone's pitch comes from where that picture sits
+   on the map of meaning, so pictures of similar things sound alike. Opening a picture plays its chord.
    ================================================================ */
 const sound = (() => {
-  let ac = null, on = false, master, hiss, filt, tone, toneGain;
+  let ac = null, on = false, master, wide, wideGain, narrow, narrowGain, tone, toneGain;
   const SCALE = [0, 2, 4, 7, 9];
-  const pitchOf = it => { const step = Math.round(it.map[0] * 9); return 196 * Math.pow(2, (SCALE[step % 5] + 12 * Math.floor(step / 5)) / 12); };
+  const pitchOf = it => { const step = Math.round(it.map[0] * 11); return 147 * Math.pow(2, (SCALE[step % 5] + 12 * Math.floor(step / 5)) / 12) ; };
   function build() {
-    ac = new AudioContext(); master = ac.createGain(); master.gain.value = .55; master.connect(ac.destination);
+    ac = new AudioContext(); master = ac.createGain(); master.gain.value = .6; master.connect(ac.destination);
     const buf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
-    filt = ac.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = 2500; filt.Q.value = .5;
-    hiss = ac.createGain(); hiss.gain.value = 0; src.connect(filt); filt.connect(hiss); hiss.connect(master); src.start();
+    const src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.start();
+    // the whole noise
+    wide = ac.createBiquadFilter(); wide.type = 'lowpass'; wide.frequency.value = 7000;
+    wideGain = ac.createGain(); wideGain.gain.value = 0;
+    src.connect(wide); wide.connect(wideGain); wideGain.connect(master);
+    // the same noise narrowed to one pitch
+    narrow = ac.createBiquadFilter(); narrow.type = 'bandpass'; narrow.Q.value = 40; narrow.frequency.value = 440;
+    narrowGain = ac.createGain(); narrowGain.gain.value = 0;
+    src.connect(narrow); narrow.connect(narrowGain); narrowGain.connect(master);
     tone = ac.createOscillator(); tone.type = 'sine'; toneGain = ac.createGain(); toneGain.gain.value = 0;
     tone.connect(toneGain); toneGain.connect(master); tone.start();
   }
-  const set = (p, v, tc = .06) => p.setTargetAtTime(v, ac.currentTime, tc);
-  function settle() {
-    if (!ac) return;
-    if (!on) { set(hiss.gain, 0); set(toneGain.gain, 0); return; }
-    set(hiss.gain, here && here.type === 'static' ? .12 : .012, .3);
-    set(toneGain.gain, 0, .3);
-  }
+  const set = (p, v, tc = .08) => p.setTargetAtTime(v, ac.currentTime, tc);
+  let opened = false;
   return {
     get on() { return on; },
-    set(v) { if (v && !ac) { try { build(); } catch { return; } } on = v; settle(); },
+    set(v) { if (v && !ac) { try { build(); } catch { return; } } on = v; if (!on && ac) { set(wideGain.gain, 0); set(narrowGain.gain, 0); set(toneGain.gain, 0); } },
     wake() { if (ac && ac.state === 'suspended') ac.resume(); },
-    over(node, cell) {
-      if (!ac || !on) return;
-      if (!node || cell == null || cell < 0) { settle(); return; }
-      if (node.type === 'static') {
-        const px = node.px, lum = (px[cell * 4] + px[cell * 4 + 1] + px[cell * 4 + 2]) / 765;
-        set(filt.frequency, 900 + 3600 * lum, .03);
-      } else {
-        const child = childOf(node, cell); if (!child) return;
-        set(tone.frequency, pitchOf(byId.get(child.id)), .02); set(toneGain.gain, .07, .02);
-      }
+    listen(it, focus, speed) {
+      if (!ac || !on || opened) return;
+      if (!it) { set(wideGain.gain, .05, .3); set(narrowGain.gain, 0, .3); set(toneGain.gain, 0, .3); return; }
+      const f = pitchOf(it);
+      set(narrow.frequency, f * 2, .05); set(tone.frequency, f, .05);
+      set(wideGain.gain, .09 * (1 - focus) + .03 * speed, .1);
+      set(narrowGain.gain, 1.6 * focus, .1);
+      set(toneGain.gain, .07 * focus * focus, .15);
     },
-    whoosh(inward) {
-      if (!ac || !on) return; const t = ac.currentTime;
-      filt.frequency.setTargetAtTime(inward ? 600 : 4500, t, .02); filt.frequency.setTargetAtTime(inward ? 5000 : 900, t + .05, .3);
-      hiss.gain.setTargetAtTime(.2, t, .03); setTimeout(settle, 700);
-    },
-    arrive(it) {
-      if (!ac || !on) return; const t = ac.currentTime, f = pitchOf(it);
-      [[f, 0], [f * 1.5, .12], [f * 2, .24]].forEach(([fr, dl]) => {
-        const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = fr;
-        g.gain.setValueAtTime(0, t + dl); g.gain.linearRampToValueAtTime(.1, t + dl + .02); g.gain.exponentialRampToValueAtTime(.0001, t + dl + 1.6);
-        o.connect(g); g.connect(master); o.start(t + dl); o.stop(t + dl + 1.7);
+    open(it) {
+      if (!ac || !on) return; opened = true;
+      set(wideGain.gain, 0, .2); set(narrowGain.gain, 0, .2); set(toneGain.gain, 0, .2);
+      const t = ac.currentTime, f = pitchOf(it);
+      [[f, 0], [f * 1.25, .1], [f * 1.5, .2], [f * 2, .3]].forEach(([fr, dl]) => {
+        const o = ac.createOscillator(), gn = ac.createGain(); o.frequency.value = fr;
+        gn.gain.setValueAtTime(0, t + dl); gn.gain.linearRampToValueAtTime(.08, t + dl + .03); gn.gain.exponentialRampToValueAtTime(.0001, t + dl + 2.4);
+        o.connect(gn); gn.connect(master); o.start(t + dl); o.stop(t + dl + 2.5);
       });
-      settle();
     },
+    close() { opened = false; },
   };
 })();
 const soundBtn = document.getElementById('soundBtn');
@@ -628,7 +612,6 @@ soundBtn.onclick = () => { sound.set(!sound.on); showSound(); };
 
 /* ================================================================
    THE INTRO
-   One line at a time over the static. Click, or press space, for the next.
    ================================================================ */
 const intro = document.getElementById('intro'), introLine = document.getElementById('introLine');
 let step = -1;
@@ -638,17 +621,17 @@ function nextLine() {
   introLine.innerHTML = INTRO[step];
   introLine.style.animation = 'none'; void introLine.offsetWidth; introLine.style.animation = '';
   intro.classList.toggle('thin', step === 6);
+  if (step === 6 && !sound.on) { sound.set(true); showSound(); }     // let them hear the static here
   document.getElementById('introStep').textContent = `${step + 1} / ${INTRO.length}`;
   document.getElementById('enter').hidden = step !== INTRO.length - 1;
 }
 function finishIntro() {
   intro.hidden = true;
   document.body.classList.remove('intro-open');
-  sound.set(true); showSound();   // the click that ends the intro is allowed to start sound
-  stage.focus({ preventScroll: true });
-  if (ATLAS.length) refresh();
+  if (!sound.on) { sound.set(true); showSound(); }
+  tv.focus({ preventScroll: true });
 }
-intro.addEventListener('click', e => { if (e.target.closest('#skip') || e.target.closest('#enter')) return; nextLine(); });
+intro.addEventListener('click', e => { sound.wake(); if (e.target.closest('#skip') || e.target.closest('#enter')) return; nextLine(); });
 document.getElementById('enter').onclick = finishIntro;
 document.getElementById('skip').onclick = finishIntro;
 addEventListener('keydown', e => {
@@ -661,12 +644,16 @@ addEventListener('keydown', e => {
 /* ================================================================
    START
    ================================================================ */
-addEventListener('resize', () => { layout(); drawMap(); });
-here = staticNode();
-layout();
+addEventListener('resize', () => { resize(); drawMap(); });
+resize();
 nextLine();
-loadAtlas().then(refresh).catch(() => {
-  document.getElementById('caption').innerHTML = '<p class="say">The pictures didn’t load. Run tools/build-atlas.mjs to build atlas/, then reload.</p>';
+requestAnimationFrame(frame);
+loadAtlas().then(() => {
+  perm = ATLAS.map((_, i) => i);
+  for (let i = perm.length - 1; i > 0; i--) { const j = hash(i, 7) % (i + 1); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+  showFound();
+}).catch(() => {
+  document.getElementById('hint').textContent = 'The pictures didn’t load. Run tools/build-atlas.mjs to build atlas/, then reload.';
 });
 </script>
 </body>
