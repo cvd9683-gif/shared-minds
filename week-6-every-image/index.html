@@ -151,6 +151,7 @@ sup { font-size: .62em; line-height: 0; }
 .mapview p { font-size: 15px; line-height: 1.55; color: #a9a49a; margin-bottom: 14px; }
 .mapview .k { font-weight: normal; color: #e0dcd4; }
 .maphover { min-height: 4.6em; font-style: italic; color: #e0dcd4 !important; }
+.sources span { display: inline-block; width: 7.5em; color: #4a5d47; }
 .sources { list-style: none; margin: 4px 0 18px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.8; color: #5c8a5e; }
 
 /* ------------------------------------------------
@@ -224,7 +225,7 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
 
 <canvas id="tv" tabindex="0" aria-label="A screen of static. Every dot is a picture. Move to look closer; click to open the dot under the lens. Arrow keys move the lens and Enter opens."></canvas>
 
-<div class="edge tl">Every Image</div>
+<button class="edge tl" id="replay" title="Play the introduction again">Every Image</button>
 <div class="edge tr">
   <span id="foundCount"></span>
   <button class="link" id="soundBtn" aria-pressed="false">sound off</button>
@@ -246,7 +247,7 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
     </div>
     <div>
       <p class="prompt" id="prompt"></p>
-      <p class="seed" id="seed"></p>
+      <p class="seed" id="seed" title="The number that picked the random static Stable Diffusion started from. Same prompt, same seed: same picture."></p>
     </div>
     <div class="near" id="near"></div>
     <div class="ways">
@@ -264,10 +265,10 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
     <p><b class="k">Lines</b> join pictures that share a colour: the ones that could hide in the same dot of static.</p>
     <p class="maphover" id="mapHover">Hover a dot.</p>
     <ul class="sources">
-      <li>DiffusionDB, part 1</li>
-      <li>Stable Diffusion, 2022</li>
-      <li>CLIP ViT-B/32</li>
-      <li>UMAP</li>
+      <li><span>pictures</span> DiffusionDB, part 1</li>
+      <li><span>made by</span> Stable Diffusion, 2022</li>
+      <li><span>meaning</span> CLIP ViT-B/32</li>
+      <li><span>layout</span> UMAP</li>
     </ul>
     <button class="link" id="mapClose">close</button>
   </div>
@@ -846,6 +847,10 @@ function nextLine() {
   document.getElementById('introStep').textContent = `${step + 1} / ${INTRO.length}`;
   document.getElementById('enter').hidden = step !== INTRO.length - 1;
 }
+// the title replays the introduction from the start
+document.getElementById('replay').onclick = () => {
+  step = -1; intro.hidden = false; document.body.classList.add('intro-open'); nextLine();
+};
 function finishIntro() {
   intro.hidden = true;
   document.body.classList.remove('intro-open');
