@@ -33,9 +33,10 @@ the corner opens the full map of meaning.
 - **The atlas.** The AI pictures come from [DiffusionDB](https://poloclub.github.io/diffusiondb/), about
   14 million Stable Diffusion images shared on a public Discord, each with its prompt and seed.
 - **CLIP and UMAP.** CLIP turns each picture into 512 numbers by what it shows. UMAP flattens those
-  numbers onto the map (bottom left), so pictures that mean similar things sit together. The map
-  starts dark; pictures appear on it as you find them. CLIP also picks each picture's six closest
-  neighbours in meaning.
+  numbers onto the map (bottom left), so pictures that mean similar things sit together. CLIP also
+  picks each picture's six closest neighbours in meaning. Open the map and every picture is joined
+  to its three nearest; point at one and its six neighbours light up. Pictures you've opened show
+  as thumbnails.
 - **Sound.** White noise is the sound version of static: every frequency at once. Moving the lens,
   you hear the noise. Rest it on a dot and the noise narrows into one tone, the way attention narrows
   static into a picture. The pitch comes from where that picture sits on the map, so pictures of

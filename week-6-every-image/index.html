@@ -48,7 +48,8 @@ button:focus-visible, canvas:focus-visible { outline: 1px solid #8a9b82; outline
 
 .edge.tl { top: calc(env(safe-area-inset-top, 0px) + 14px); left: max(14px, env(safe-area-inset-left, 0px)); color: #e0dcd4; font-size: 15px; }
 .edge.tr { top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); display: flex; gap: 16px; }
-.edge.bc { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.edge.tc { top: calc(env(safe-area-inset-top, 0px) + 14px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 16px; color: #e0dcd4; }
+.edge.tc span { color: #8a9b82; font-size: 14px; }
 .edge.br { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); max-width: 300px; }
 .edge b { font-weight: normal; color: #e0dcd4; }
 
@@ -103,21 +104,25 @@ sup { font-size: .62em; line-height: 0; }
 
 .about { display: flex; flex-direction: column; gap: 22px; max-height: 80vh; overflow-y: auto; }
 .label { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #5c8a5e; margin-bottom: 6px; }
-.number { font-size: 26px; line-height: 1.2; word-break: break-all; }
+.number { font-size: clamp(26px, 2.8vw, 42px); line-height: 1.05; letter-spacing: -.01em; white-space: nowrap; }
+.of { margin-top: 6px; font-size: 14px; color: #8a9b82; }
+.seed { margin-top: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #8a9b82; }
 .note { font-size: 14px; line-height: 1.5; color: #a9a49a; }
-.prompt { font-size: 19px; line-height: 1.4; font-style: italic; }
+.prompt { font-size: 16px; line-height: 1.45; font-style: italic; color: #c3bfb6; }
 .digits {
-  margin-top: 8px;
-  max-height: 160px;
-  overflow-y: auto;
+  margin-top: 14px;
+  max-height: 128px;
+  overflow: hidden;
   font-family: ui-monospace, Menlo, monospace;
-  font-size: 11px;
-  line-height: 1.5;
-  color: #8a9b82;
+  font-size: 10px;
+  line-height: 1.35;
+  letter-spacing: .04em;
+  color: #5c8a5e;
   word-break: break-all;
-  padding: 8px 10px;
-  border: 1px solid #2a2f3a;
+  -webkit-mask-image: linear-gradient(#000 55%, transparent);
+  mask-image: linear-gradient(#000 55%, transparent);
 }
+.digits:hover { overflow-y: auto; -webkit-mask-image: none; mask-image: none; }
 .near { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .near button { aspect-ratio: 1 / 1; overflow: hidden; border: 1px solid #2a2f3a; }
 .near img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -143,7 +148,9 @@ sup { font-size: .62em; line-height: 0; }
 }
 .mapview canvas { width: min(80vh, 60vw); height: min(80vh, 60vw); display: block; border: 1px solid #2a2f3a; cursor: crosshair; }
 .mapview h2 { font-weight: normal; font-size: 22px; margin-bottom: 10px; }
-.mapview p { font-size: 15px; line-height: 1.55; color: #a9a49a; margin-bottom: 12px; }
+.mapview p { font-size: 15px; line-height: 1.55; color: #a9a49a; margin-bottom: 14px; }
+.maphover { min-height: 4.6em; font-style: italic; color: #e0dcd4 !important; }
+.sources { list-style: none; margin: 4px 0 18px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.8; color: #5c8a5e; }
 
 /* ------------------------------------------------
    THE INTRO
@@ -206,7 +213,8 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
   .frame { width: 100%; margin-bottom: 40px; }
   .about { max-height: none; padding-bottom: 40px; }
   .mapview canvas { width: 100%; height: auto; aspect-ratio: 1 / 1; margin-bottom: 20px; }
-  .edge.br, .edge.bc { display: none; }
+  .edge.br { display: none; }
+  .edge.tc { top: calc(env(safe-area-inset-top, 0px) + 58px); font-size: 14px; }
   .mini canvas { width: 90px; height: 90px; }
 }
 </style>
@@ -220,32 +228,26 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
   <span id="foundCount"></span>
   <button class="link" id="soundBtn" aria-pressed="false">sound off</button>
 </div>
-<div class="edge bc">16,777,216<sup>1,024</sup> ≈ 10<sup>7,398</sup> possible pictures</div>
-<div class="edge br" id="hint">Move across the static. Rest on a dot to hear it. Click to open it.</div>
+<div class="edge tc">16,777,216<sup>1,024</sup> ≈ 10<sup>7,398</sup> <span>possible pictures</span></div>
+<div class="edge br" id="hint">move · rest to listen · click to open</div>
 <button class="mini" id="mini" aria-label="Open the map of meaning"><canvas id="miniMap"></canvas><span>map of meaning</span></button>
 
 <section class="view" id="view" hidden aria-label="An opened picture">
   <div class="frame">
     <canvas id="pic" tabindex="0" aria-label="The opened picture. Every pixel of it is another picture; move over it to look closer and click to open one."></canvas>
-    <p class="tip">Its pixels are pictures too. Move over it, and click one.</p>
+    <p class="tip">its pixels are pictures too</p>
   </div>
   <div class="about">
     <div>
-      <p class="label">Its number among every possible picture</p>
       <p class="number" id="number"></p>
-      <p class="note" id="numberNote"></p>
-      <button class="link" id="digitsBtn" style="margin-top:6px;font-size:14px">show every digit</button>
-      <div class="digits" id="digits" hidden></div>
+      <p class="of">of 16,777,216<sup>1,024</sup> possible pictures</p>
+      <div class="digits" id="digits" title="Every digit of this picture's number"></div>
     </div>
     <div>
-      <p class="label">How an AI found it</p>
       <p class="prompt" id="prompt"></p>
-      <p class="note" id="seed" style="margin-top:6px"></p>
+      <p class="seed" id="seed"></p>
     </div>
-    <div>
-      <p class="label">Closest in meaning</p>
-      <div class="near" id="near"></div>
-    </div>
+    <div class="near" id="near"></div>
     <div class="ways">
       <button class="link" id="upBtn" hidden>back</button>
       <button class="link" id="closeBtn">back to the static</button>
@@ -256,11 +258,16 @@ body.intro-open .edge, body.intro-open .mini { visibility: hidden; }
 <section class="mapview" id="mapView" hidden aria-label="Map of meaning">
   <canvas id="map" aria-label="Map of every picture; opened ones appear as thumbnails. Click one to open it."></canvas>
   <div>
-    <h2>A map of meaning</h2>
-    <p>Every picture in the static, placed by what it shows. An AI model called CLIP turned each one into 512 numbers; UMAP laid those numbers out flat, so pictures that mean similar things sit near each other. They also sound alike.</p>
-    <p>Pictures you've opened show up here. Click one to open it again.</p>
-    <p id="source" style="font-size:13px"></p>
-    <button class="link" id="mapClose">close the map</button>
+    <h2>Map of meaning</h2>
+    <p>Similar pictures sit close, and sound alike. Lines join each picture to its nearest neighbours.</p>
+    <p class="maphover" id="mapHover">Hover a dot.</p>
+    <ul class="sources">
+      <li>DiffusionDB, part 1</li>
+      <li>Stable Diffusion, 2022</li>
+      <li>CLIP ViT-B/32</li>
+      <li>UMAP</li>
+    </ul>
+    <button class="link" id="mapClose">close</button>
   </div>
 </section>
 
@@ -305,8 +312,6 @@ async function loadAtlas() {
   sprite = { ...data.sprite, img: new Image() };
   sprite.img.onload = () => { sprite.ready = true; drawMaps(); };
   sprite.img.src = 'atlas/' + data.sprite.file;
-  document.getElementById('source').textContent =
-    `${ATLAS.length} pictures from ${data.source}, made with Stable Diffusion in 2022 and shared on a public Discord.`;
 }
 
 function thumb(g, it, x, y, w, h) {
@@ -499,9 +504,7 @@ function showNumber(px) {
   for (let k = 0; k < px.length; k += 4) hex += px[k].toString(16).padStart(2, '0') + px[k + 1].toString(16).padStart(2, '0') + px[k + 2].toString(16).padStart(2, '0');
   const n = BigInt('0x' + hex).toString();
   const group = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  document.getElementById('number').textContent = `No. ${group(n.slice(0, 12))}…${n.slice(-6)}`;
-  document.getElementById('numberNote').innerHTML =
-    `A number ${n.length.toLocaleString()} digits long, out of about 10<sup>7,398</sup>. It's this picture's pixels, read as one enormous number. No other picture of this size has it.`;
+  document.getElementById('number').textContent = `No. ${group(n.slice(0, 9))}…${n.slice(-3)}`;
   document.getElementById('digits').textContent = n;
 }
 
@@ -519,11 +522,10 @@ function open(c, via) {
   img.onload = () => { if (current?.it === it) { img.ready = true; readPixels(); } };
   img.src = it.src;
 
-  document.getElementById('number').textContent = 'Counting…';
-  document.getElementById('numberNote').textContent = '';
+  document.getElementById('number').textContent = 'No. …';
+  document.getElementById('digits').textContent = '';
   document.getElementById('prompt').textContent = `“${it.prompt.trim()}”`;
-  document.getElementById('seed').textContent = `Someone typed this into Stable Diffusion with seed ${it.seed}. The same prompt and seed always lead to this same picture.`;
-  document.getElementById('digits').hidden = true; document.getElementById('digitsBtn').textContent = 'show every digit';
+  document.getElementById('seed').textContent = `seed ${it.seed}`;
   document.getElementById('upBtn').hidden = !trail.length;
   const near = document.getElementById('near'); near.innerHTML = '';
   (it.nn || []).map(id => byId.get(id)).filter(Boolean).forEach(n => {
@@ -561,10 +563,6 @@ document.getElementById('closeBtn').onclick = close;
 document.getElementById('upBtn').onclick = up;
 // a click on the dark around the picture closes it, but not the tail of the tap that opened it
 view.addEventListener('click', e => { if (e.target === view && performance.now() - openedAt > 500) close(); });
-document.getElementById('digitsBtn').onclick = e => {
-  const d = document.getElementById('digits'); d.hidden = !d.hidden;
-  e.target.textContent = d.hidden ? 'show every digit' : 'hide the digits';
-};
 
 function picPoint(e) { const r = pic.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
 function movePicLens(x, y) { picLens.x = x; picLens.y = y; picLens.on = true; picLens.lastMove = performance.now(); }
@@ -624,36 +622,95 @@ addEventListener('keydown', e => {
 /* ================================================================
    THE MAPS: a small one in the corner, a big one when you click it
    ================================================================ */
-const mapView = document.getElementById('mapView');
-let spots = [];
-function drawMapOn(cv, big) {
+const mapView = document.getElementById('mapView'), bigMap = document.getElementById('map');
+const mapPointer = { x: -1, y: -1 };
+let mapHover = null, edges = null;
+
+// the small map in the corner: dots, and thumbnails for what you've opened
+function drawMini() {
+  const cv = document.getElementById('miniMap');
   if (!sprite?.ready) return;
   const r = Math.min(2, devicePixelRatio || 1), Wm = cv.clientWidth;
   if (!Wm) return;
   if (cv.width !== Math.round(Wm * r)) cv.width = cv.height = Math.round(Wm * r);
   const m = cv.getContext('2d'); m.setTransform(r, 0, 0, r, 0, 0);
   m.fillStyle = '#07080b'; m.fillRect(0, 0, Wm, Wm);
-  const pad = big ? 16 : 6, s = Wm - pad * 2, T = big ? Math.max(16, Math.min(30, Wm / 20)) : 7;
-  if (big) spots = [];
-  for (const it of ATLAS) if (!found.has(it.id)) {
-    m.fillStyle = `rgba(${it.avg},.6)`; m.beginPath(); m.arc(pad + it.map[0] * s, pad + it.map[1] * s, big ? 2 : 1, 0, 7); m.fill();
-  }
-  for (const it of ATLAS) if (found.has(it.id)) {
-    const x = pad + it.map[0] * s - T / 2, y = pad + it.map[1] * s - T / 2;
-    thumb(m, it, x, y, T, T);
-    if (big) spots.push([it.id, x, y, T]);
-    if (current?.it === it) { m.strokeStyle = '#e0dcd4'; m.lineWidth = 1.5; m.strokeRect(x - 2, y - 2, T + 4, T + 4); }
-  }
+  const pad = 6, s = Wm - pad * 2, T = 7;
+  for (const it of ATLAS) if (!found.has(it.id)) { m.fillStyle = `rgba(${it.avg},.6)`; m.beginPath(); m.arc(pad + it.map[0] * s, pad + it.map[1] * s, 1, 0, 7); m.fill(); }
+  for (const it of ATLAS) if (found.has(it.id)) thumb(m, it, pad + it.map[0] * s - T / 2, pad + it.map[1] * s - T / 2, T, T);
 }
-function drawMaps() { drawMapOn(document.getElementById('miniMap'), false); if (!mapView.hidden) drawMapOn(document.getElementById('map'), true); }
-document.getElementById('mini').onclick = () => { mapView.hidden = false; drawMaps(); };
-function closeMap() { mapView.hidden = true; }
+
+// the big map is alive while it's open: every picture joined to its three nearest in meaning,
+// and whatever you point at lights up with all six of its neighbours
+function drawBigMap(now) {
+  if (!sprite?.ready) return;
+  const r = Math.min(2, devicePixelRatio || 1), Wm = bigMap.clientWidth;
+  if (!Wm) return;
+  if (bigMap.width !== Math.round(Wm * r)) bigMap.width = bigMap.height = Math.round(Wm * r);
+  const m = bigMap.getContext('2d'); m.setTransform(r, 0, 0, r, 0, 0);
+  m.fillStyle = '#07080b'; m.fillRect(0, 0, Wm, Wm);
+  const pad = 22, s = Wm - pad * 2;
+  const P = it => [pad + it.map[0] * s, pad + it.map[1] * s];
+  if (!edges) {
+    const seen = new Set(); edges = [];
+    for (const it of ATLAS) for (const id of (it.nn || []).slice(0, 3)) {
+      const o = byId.get(id); if (!o) continue;
+      const key = it.i < o.i ? `${it.i}-${o.i}` : `${o.i}-${it.i}`;
+      if (!seen.has(key)) { seen.add(key); edges.push([it, o]); }
+    }
+  }
+  // which picture is under the pointer
+  mapHover = null;
+  if (mapPointer.x >= 0) {
+    let best = 14 * 14;
+    for (const it of ATLAS) { const [x, y] = P(it), d = (x - mapPointer.x) ** 2 + (y - mapPointer.y) ** 2; if (d < best) { best = d; mapHover = it; } }
+  }
+  const focus = mapHover || current?.it || null;
+  const near = new Set(focus ? (focus.nn || []) : []);
+
+  m.lineWidth = 1;
+  for (const [a, b] of edges) {
+    const [x1, y1] = P(a), [x2, y2] = P(b);
+    m.strokeStyle = `rgba(138,155,130,${focus ? .05 : .13})`;
+    m.beginPath(); m.moveTo(x1, y1); m.lineTo(x2, y2); m.stroke();
+  }
+  if (focus) {
+    const [fx, fy] = P(focus);
+    m.setLineDash([4, 5]); m.lineDashOffset = reduce ? 0 : -now / 40;
+    m.strokeStyle = 'rgba(224,220,212,.75)'; m.lineWidth = 1.2;
+    for (const id of near) { const o = byId.get(id); if (!o) continue; const [x, y] = P(o); m.beginPath(); m.moveTo(fx, fy); m.lineTo(x, y); m.stroke(); }
+    m.setLineDash([]);
+  }
+  for (const it of ATLAS) {
+    if (it === focus || near.has(it.id)) continue;
+    const [x, y] = P(it);
+    if (found.has(it.id)) { thumb(m, it, x - 10, y - 10, 20, 20); continue; }
+    const tw = reduce ? .7 : .55 + .35 * Math.sin(now / 700 + it.i * 1.7);
+    m.fillStyle = `rgba(${it.avg},${tw})`; m.beginPath(); m.arc(x, y, 2.6, 0, 7); m.fill();
+  }
+  for (const id of near) { const o = byId.get(id); if (!o) continue; const [x, y] = P(o); thumb(m, o, x - 17, y - 17, 34, 34); }
+  if (focus) {
+    const [x, y] = P(focus), T = 64;
+    thumb(m, focus, x - T / 2, y - T / 2, T, T);
+    m.strokeStyle = '#e0dcd4'; m.lineWidth = 1.5; m.strokeRect(x - T / 2 - 2, y - T / 2 - 2, T + 4, T + 4);
+  }
+  bigMap.style.cursor = mapHover ? 'pointer' : 'crosshair';
+  const label = document.getElementById('mapHover');
+  const text = mapHover ? `“${mapHover.prompt.trim().slice(0, 110)}${mapHover.prompt.length > 110 ? '…' : ''}”` : 'Hover a dot.';
+  if (label.textContent !== text) label.textContent = text;
+}
+
+function drawMaps() { drawMini(); }
+document.getElementById('mini').onclick = () => { mapView.hidden = false; };
+function closeMap() { mapView.hidden = true; mapPointer.x = -1; }
 document.getElementById('mapClose').onclick = closeMap;
 mapView.addEventListener('click', e => { if (e.target === mapView) closeMap(); });
-document.getElementById('map').addEventListener('click', e => {
-  const b = e.currentTarget.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
-  const hit = spots.find(([, sx, sy, T]) => x >= sx && x <= sx + T && y >= sy && y <= sy + T);
-  if (hit) { closeMap(); open({ it: byId.get(hit[0]) }, 'fresh'); }
+bigMap.addEventListener('pointermove', e => { const b = bigMap.getBoundingClientRect(); mapPointer.x = e.clientX - b.left; mapPointer.y = e.clientY - b.top; });
+bigMap.addEventListener('pointerleave', () => { mapPointer.x = -1; });
+bigMap.addEventListener('click', e => {
+  const b = bigMap.getBoundingClientRect(); mapPointer.x = e.clientX - b.left; mapPointer.y = e.clientY - b.top;
+  drawBigMap(performance.now());
+  if (mapHover) { const it = mapHover; closeMap(); open({ it }, 'fresh'); }
 });
 
 
@@ -732,6 +789,7 @@ function rest(l, now) {
 function frame(now) {
   if (!reduce && now - lastNoise > 80) { lastNoise = now; freshNoise(); }
   rest(lens, now); rest(picLens, now);
+  if (!mapView.hidden) drawBigMap(now);
   if (view.hidden) {
     drawStatic();
     sound.listen(lens.on ? center?.it : null, lens.focus, lens.speed, false);
