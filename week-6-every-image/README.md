@@ -7,8 +7,11 @@ Live static, 32 × 32 pixels: the way almost every possible picture looks. But e
 picture squeezed down to one dot. Click any pixel and it zooms open into a picture someone asked an AI to
 make, picked at random from the pictures whose average colour is close to that pixel's.
 
-Inside an AI picture the rule keeps going: each of its pixels is another AI picture with that
-average colour. **See its pixels** shows the picture as a mosaic of them. Zoom out to go back to the static.
+It opens with a short intro, one line at a time, on how big that space is. Then it's just the static.
+Scroll in or click to open a pixel; scroll out, press Escape, or use **zoom out** to come back, and
+**all the way out** returns to the static from any depth. Inside an AI picture the rule keeps going:
+each of its pixels is another AI picture with that average colour, and **see its pixels** shows the
+picture as a mosaic of them. **map** opens the map of meaning.
 
 ## The numbers
 
@@ -47,8 +50,8 @@ node build-atlas.mjs --parts 1,2 --limit 800
 node build-atlas.mjs --from ~/Pictures/ai   # or any folder of your own images
 ```
 
-It writes `atlas/atlas.json` and a 256 × 256 thumbnail of each picture to `atlas/images/`. Commit
-both. DiffusionDB is unfiltered, so the script drops pictures by prompt words and by asking CLIP
+It writes `atlas/atlas.json`, each picture at 512 × 512 to `atlas/images/` and at 96 × 96 to
+`atlas/thumbs/`. Commit all three. `--reexport` rewrites the image files without re-running CLIP. DiffusionDB is unfiltered, so the script drops pictures by prompt words and by asking CLIP
 whether they look explicit or violent. Look through `atlas/images/` anyway, add the original file
 name of anything you don't want to `tools/exclude.txt`, and run it again.
 

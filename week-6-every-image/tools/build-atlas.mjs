@@ -6,6 +6,7 @@
 //   node build-atlas.mjs                        # 400 pictures from DiffusionDB, part 1
 //   node build-atlas.mjs --parts 1,2 --limit 800
 //   node build-atlas.mjs --from ~/Pictures/ai   # your own folder of images instead
+//   node build-atlas.mjs --reexport             # only rewrite the image files of the current atlas
 //
 // What it does:
 //   1. Gets the pictures. DiffusionDB (poloclub/diffusiondb on Hugging Face) ships them in zip files of 1,000,
@@ -14,7 +15,7 @@
 //      looks like it. Then look through atlas/images yourself, and list anything else in tools/exclude.txt.
 //   3. CLIP (clip-vit-base-patch32) turns each picture into 512 numbers by what it shows.
 //   4. UMAP flattens those numbers onto a 2D map, so pictures that mean similar things sit together.
-//   5. Writes atlas/atlas.json and a 256 × 256 thumbnail of each picture to atlas/images/.
+//   5. Writes atlas/atlas.json, each picture at 512 × 512 to atlas/images/ and at 96 × 96 to atlas/thumbs/.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -36,8 +37,9 @@ const opt = (name, fallback) => { const i = args.indexOf(`--${name}`); return i 
 const LIMIT = Number(opt('limit', 400));
 const PARTS = opt('parts', '1').split(',').map(Number);
 const FROM = opt('from', null);
+const REEXPORT = args.includes('--reexport');
 
-const BLOCKED_WORDS = /\b(nude|naked|nsfw|lolita|loli|teen|seductive|temptress|nipple|breast|boob|sexy|sex|erotic|porn|lingerie|bikini|topless|gore|gory|blood|bloody|corpse|dead body|decapitat|murder|torture|suicide|swastika|nazi)\b/i;
+const BLOCKED_WORDS = /\b(nude|naked|nsfw|nympho\w*|fetish|bdsm|lust\w*|cleavage|busty|pin ?up|succubus|hentai|ecchi|schoolgirl|lolita|loli|teen|seductive|temptress|nipple|breast|boob|sexy|sex|erotic|porn|lingerie|bikini|topless|gore|gory|blood|bloody|corpse|dead body|decapitat|murder|torture|suicide|swastika|nazi)\b/i;
 const exclude = new Set(fs.existsSync(path.join(HERE, 'exclude.txt'))
   ? fs.readFileSync(path.join(HERE, 'exclude.txt'), 'utf8').split('\n').map(s => s.trim()).filter(Boolean) : []);
 
@@ -125,15 +127,44 @@ const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] 
 function normalizeRows(rows) { return rows.map(r => { const n = Math.hypot(...r) || 1; return r.map(x => x / n); }); }
 
 
+/* ---------- writing a picture: 512 × 512 to look at, 96 × 96 for the mosaic and the map ---------- */
+
+async function writePicture(buf, id) {
+  await sharp(buf).resize(512, 512, { fit: 'cover' }).jpeg({ quality: 84, mozjpeg: true }).toFile(path.join(OUT, 'images', `${id}.jpg`));
+  await sharp(buf).resize(96, 96, { fit: 'cover' }).jpeg({ quality: 78 }).toFile(path.join(OUT, 'thumbs', `${id}.jpg`));
+}
+function freshFolders() {
+  for (const dir of ['images', 'thumbs']) {
+    fs.rmSync(path.join(OUT, dir), { recursive: true, force: true });
+    fs.mkdirSync(path.join(OUT, dir), { recursive: true });
+  }
+}
+
+
 /* ---------- run ---------- */
+
+if (REEXPORT) {
+  // same pictures, same map, new image files: find each picture again by its original name
+  const atlas = JSON.parse(fs.readFileSync(path.join(OUT, 'atlas.json'), 'utf8'));
+  const byName = new Map((FROM ? fromFolder(FROM) : await fromDiffusionDB()).map(c => [c.name, c]));
+  freshFolders();
+  for (const it of atlas.items) {
+    const c = byName.get(it.name);
+    if (!c) throw new Error(`Can't find ${it.name} in the source any more.`);
+    await writePicture(c.read(), it.id);
+    it.file = `images/${it.id}.jpg`; it.thumb = `thumbs/${it.id}.jpg`;
+  }
+  fs.writeFileSync(path.join(OUT, 'atlas.json'), JSON.stringify(atlas));
+  console.log(`Rewrote ${atlas.items.length} pictures.`);
+  process.exit(0);
+}
 
 const candidates = (FROM ? fromFolder(FROM) : await fromDiffusionDB())
   .filter(c => !exclude.has(c.name) && !BLOCKED_WORDS.test(c.prompt || ''));
 console.log(`${candidates.length} candidates after the prompt filter.`);
 
 const clip = await loadClip();
-fs.rmSync(path.join(OUT, 'images'), { recursive: true, force: true });
-fs.mkdirSync(path.join(OUT, 'images'), { recursive: true });
+freshFolders();
 
 const kept = [];
 let dropped = 0;
@@ -144,9 +175,9 @@ for (const c of candidates) {
   const vec = await clip.embed(buf);
   if (clip.unsafe(vec) > 0.25) { dropped++; continue; }
   const id = String(kept.length).padStart(4, '0');
-  await sharp(buf).resize(256, 256, { fit: 'cover' }).jpeg({ quality: 82 }).toFile(path.join(OUT, 'images', `${id}.jpg`));
+  await writePicture(buf, id);
   const avg = [...await sharp(buf).resize(1, 1, { fit: 'cover' }).removeAlpha().raw().toBuffer()];
-  kept.push({ id, file: `images/${id}.jpg`, name: c.name, prompt: c.prompt, seed: c.seed, cfg: c.cfg, steps: c.steps, sampler: c.sampler, source: c.source, avg, vec });
+  kept.push({ id, file: `images/${id}.jpg`, thumb: `thumbs/${id}.jpg`, name: c.name, prompt: c.prompt, seed: c.seed, cfg: c.cfg, steps: c.steps, sampler: c.sampler, source: c.source, avg, vec });
   if (kept.length % 25 === 0) console.log(`  ${kept.length} / ${LIMIT}`);
 }
 console.log(`Kept ${kept.length}; CLIP flagged and dropped ${dropped}.`);
