@@ -247,3 +247,25 @@ export function lifeLine(p: ArtistProfile): string[] {
   if (p.end) out.push(`${group ? 'Disbanded' : p.type === 'Person' ? 'Died' : 'Ended'} ${p.end.slice(0, 4)}`);
   return out;
 }
+
+/**
+ * A song's Wikipedia summary, only when the article names the artist (so a song
+ * that shares its title with another isn't mistaken for it).
+ */
+export async function wikiSongSummary(title: string, artist: string): Promise<{ text: string; source: string; url: string } | null> {
+  const clean = title.replace(/\s*[([].*?[)\]]/g, '').replace(/\s-\s.*$/, '').trim();
+  const lead = artist.split(',')[0].trim();
+  for (const page of [`${clean} (${lead} song)`, `${clean} (song)`, clean]) {
+    try {
+      const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(page.replace(/ /g, '_'))}`);
+      if (!res.ok) continue;
+      const w = await res.json();
+      if (w.type !== 'standard' || !w.extract) continue;
+      if (!norm(w.extract).includes(norm(lead))) continue;
+      return { text: w.extract, source: 'Wikipedia', url: w.content_urls?.desktop?.page ?? '' };
+    } catch {
+      /* try the next title */
+    }
+  }
+  return null;
+}

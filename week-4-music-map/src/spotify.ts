@@ -330,39 +330,45 @@ export async function importSavedTracks(
  */
 export async function importPlaylists(
   onProgress?: (done: number, total: number) => void,
-  maxPlaylists = 60,
+  maxPlaylists = 400,
 ): Promise<{ playlists: Playlist[]; note: string }> {
   if (missingScopes().some((sc) => sc.startsWith('playlist'))) {
     return { playlists: [], note: 'reconnect' };
   }
   try {
-    const lists: { id: string; name: string; external_urls: { spotify: string } }[] = [];
+    const me = await api<{ id: string }>('/me');
+    type Listed = { id: string; name: string; collaborative?: boolean; owner?: { id: string }; external_urls: { spotify: string } };
+    const lists: Listed[] = [];
     let url: string | null = '/me/playlists?limit=50';
     while (url && lists.length < maxPlaylists) {
-      const page: { items: ({ id: string; name: string; external_urls: { spotify: string } } | null)[]; next: string | null } = await api(url);
+      const page: { items: (Listed | null)[]; next: string | null } = await api(url);
       page.items.forEach((p) => p && lists.length < maxPlaylists && lists.push(p));
       url = page.next;
     }
+    // Since Feb 2026 Spotify only returns the songs of playlists you made or collaborate
+    // on, so read those and count the rest instead of asking for each one and being refused.
+    const mine = lists.filter((p) => p.owner?.id === me.id || p.collaborative);
+    const followed = lists.length - mine.length;
     const playlists: Playlist[] = [];
     let refused = 0;
     let done = 0;
-    for (const p of lists) {
-      // Since Feb 2026 items live at /items (each entry's song under `item`), and only
-      // playlists you own or collaborate on return them; others answer 403 and are skipped.
+    for (const p of mine) {
       try {
         const { ids, keys } = await playlistTrackIds(p.id);
         playlists.push({ id: `spp:${p.id}`, name: p.name, url: p.external_urls.spotify, trackIds: ids, keys });
       } catch {
         refused++;
       }
-      onProgress?.(++done, lists.length);
+      onProgress?.(++done, mine.length);
     }
-    const note = !lists.length
-      ? 'Spotify returned no playlists for this account.'
-      : refused
-        ? `${refused} of ${lists.length} playlists couldn't be read (Spotify only shares playlists you made or collaborate on).`
-        : '';
-    return { playlists, note };
+    const parts: string[] = [];
+    if (!lists.length) parts.push('Spotify returned no playlists for this account.');
+    else {
+      parts.push(`Read ${playlists.length} playlist${playlists.length === 1 ? '' : 's'} you made.`);
+      if (followed) parts.push(`${followed} you follow can't be read: Spotify only shares songs from playlists you made or collaborate on.`);
+      if (refused) parts.push(`${refused} of yours couldn't be read right now.`);
+    }
+    return { playlists, note: parts.join(' ') };
   } catch (err) {
     return { playlists: [], note: `Playlists couldn't be read: ${(err as Error).message}` };
   }

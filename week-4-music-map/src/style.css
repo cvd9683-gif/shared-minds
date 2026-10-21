@@ -3174,183 +3174,14 @@ details summary {
 }
 
 
-/* ==== Notebook looks (Personal Timeline) ===========================================
-   Each look is one system: paper, ink, type and motion. Applied as html[data-look]
-   while the Personal Timeline is showing; springs and cover lean live in looks.ts. */
-
-.mm-looks {
-  position: absolute;
-  left: 50%;
-  bottom: 18px;
-  z-index: 1300;
-  transform: translateX(-50%);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  max-width: min(720px, calc(100% - 32px));
-  padding: 6px 8px;
-  border-radius: 999px;
-  background: var(--surface-glass);
-  border: 1px solid var(--rule);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  font: 500 12.5px var(--font);
-}
-.mm-looks__label {
-  padding: 0 8px 0 6px;
-  color: var(--muted);
-}
-.mm-looks__opt {
-  padding: 5px 12px;
-  border: 0;
-  border-radius: 999px;
-  background: none;
-  color: var(--ink);
-  cursor: pointer;
-  transition: background-color 0.16s ease, color 0.16s ease, transform 0.12s ease;
-}
-.mm-looks__opt:hover {
-  background: var(--saved-soft);
-}
-.mm-looks__opt:active {
-  transform: scale(0.97);
-}
-.mm-looks__opt[aria-pressed='true'] {
-  background: var(--saved);
-  color: var(--on-accent);
-}
-.mm-looks__line {
-  flex-basis: 100%;
-  margin: 2px 0 2px;
-  text-align: center;
-  font-weight: 400;
-  font-size: 12px;
-  color: var(--muted);
-}
-.mm-stage[data-view='timeline'] .mm-demo-tag {
-  bottom: 96px;
-}
-
-/* Shared: the year panel arrives instead of appearing */
-html[data-look] .mm-zoom:not([hidden]) {
-  animation: mm-look-in var(--look-in, 260ms) cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-@keyframes mm-look-in {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-    filter: blur(var(--look-blur, 0px));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  html[data-look] .mm-zoom:not([hidden]) {
-    animation: none;
-  }
-}
-html[data-look] ::selection {
-  background: var(--saved);
-  color: var(--on-accent);
-}
-html[data-look] body {
-  scrollbar-color: var(--rule) transparent;
-}
-
-/* ---- A. Composition book: ruled paper, red margin, ballpoint, your handwriting ------- */
-
-html[data-look='ruled'] {
-  --paper: #fcfcf9;
-  --paper-2: #f1f2ee;
-  --surface: #ffffff;
-  --surface-glass: rgba(255, 255, 255, 0.95);
-  --ink: #1d2340;
-  --ink-2: #3e4566;
-  --muted: #6b7190;
-  --rule: rgba(29, 35, 64, 0.14);
-  --line: #c9d6ea;
-  --saved: #2438b5;
-  --saved-soft: rgba(36, 56, 181, 0.08);
-  --font: 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
-  --display: 'Kalam', 'Hanken Grotesk', cursive;
-  --hand: 'Kalam', cursive;
-  --look-in: 280ms;
-}
-html[data-look='ruled'] .mm-stage {
-  background-color: var(--paper);
-  background-image:
-    linear-gradient(90deg, transparent 63px, rgba(225, 92, 104, 0.55) 63px, rgba(225, 92, 104, 0.55) 64px, transparent 64px, transparent 67px, rgba(225, 92, 104, 0.4) 67px, rgba(225, 92, 104, 0.4) 68px, transparent 68px),
-    repeating-linear-gradient(180deg, transparent 0 31px, #cbd9ee 31px 32px);
-}
-html[data-look='ruled'] .mm-canvas__axis,
-html[data-look='ruled'] .mm-canvas__axis::before,
-html[data-look='ruled'] .mm-canvas__axis::after {
-  border-width: 2px;
-}
-html[data-look='ruled'] .mm-sec__year {
-  font: 700 30px/1 var(--display);
-  letter-spacing: 0;
-  transform: rotate(-2deg);
-}
-html[data-look='ruled'] .mm-sec__caption {
-  font: 400 15px var(--hand);
-}
-html[data-look='ruled'] .mm-sec__divider {
-  border-left-style: dashed;
-  opacity: 0.3;
-}
-html[data-look='ruled'] .mm-cov {
-  background: #fff;
-  padding: 3px;
-  box-shadow: 0 1px 2px rgba(29, 35, 64, 0.16), 0 3px 8px rgba(29, 35, 64, 0.08);
-}
-/* A strip of tape across the top of each cover */
-html[data-look='ruled'] .mm-cov::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: -5px;
-  width: 42%;
-  height: 11px;
-  transform: translateX(-50%) rotate(-3deg);
-  background: rgba(248, 236, 184, 0.72);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-  z-index: 1;
-  pointer-events: none;
-}
-html[data-look='ruled'] .mm-zoom {
-  border: 1px solid var(--line);
-  background-color: #fff;
-  background-image: repeating-linear-gradient(180deg, transparent 0 23px, #e1e9f5 23px 24px);
-  box-shadow: 0 2px 4px rgba(29, 35, 64, 0.06), 0 18px 40px rgba(29, 35, 64, 0.12);
-  overflow: visible;
-}
-html[data-look='ruled'] .mm-zoom::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: -9px;
-  width: 92px;
-  height: 18px;
-  transform: translateX(-50%) rotate(-2deg);
-  background: rgba(248, 236, 184, 0.8);
-  z-index: 2;
-}
-html[data-look='ruled'] .mm-zoom__head strong {
-  font: 700 24px/1 var(--display);
-}
-html[data-look='ruled'] .mm-zoom__lines line {
-  stroke-width: 1.5;
-  stroke-dasharray: 5 4;
-}
-html[data-look='ruled'] .mm-view {
-  font-family: var(--font);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
+/* ==== Graph pad: the Music Map brand =================================================
+   A precise engineering pad. Lilac grid paper, signal orange for you (what you saved),
+   deep violet for music history, a heavy grotesk for names and dates, mono only for
+   measurements. Motion is quick and exact: short ease-out, firm springs. */
 
 /* ---- B. Graph pad: lilac grid, signal orange, measured type, perforated pages ------- */
 
-html[data-look='graph'] {
+:root {
   --paper: #ffffff;
   --paper-2: #f3f2f8;
   --surface: #ffffff;
@@ -3362,13 +3193,15 @@ html[data-look='graph'] {
   --line: #d9d5ea;
   --saved: #f2560f;
   --saved-soft: rgba(242, 86, 15, 0.09);
+  --release: #4b2bbf;
+  --release-soft: rgba(75, 43, 191, 0.08);
   --on-accent: #ffffff;
   --font: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif;
   --display: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif;
   --hand: var(--font);
   --look-in: 180ms;
 }
-html[data-look='graph'] .mm-stage {
+.mm-stage {
   background-color: #fff;
   background-image:
     linear-gradient(rgba(124, 108, 214, 0.22) 1px, transparent 1px),
@@ -3377,50 +3210,50 @@ html[data-look='graph'] .mm-stage {
     linear-gradient(90deg, rgba(124, 108, 214, 0.1) 1px, transparent 1px);
   background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
 }
-html[data-look='graph'] .mm-canvas__axis {
+.mm-canvas__axis {
   border-top-width: 2px;
   border-top-color: var(--ink);
 }
-html[data-look='graph'] .mm-canvas__axis::before,
-html[data-look='graph'] .mm-canvas__axis::after {
+.mm-canvas__axis::before,
+.mm-canvas__axis::after {
   border-color: var(--ink);
   border-width: 2px;
 }
 /* Millimetre ticks along the axis */
-html[data-look='graph'] .mm-canvas__axis {
+.mm-canvas__axis {
   background: repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 20px) 0 0 / 100% 6px no-repeat;
   height: 6px;
 }
-html[data-look='graph'] .mm-sec__tick {
+.mm-sec__tick {
   border-radius: 0;
   width: 9px;
   height: 9px;
   margin: -4.5px 0 0 -4.5px;
 }
-html[data-look='graph'] .mm-sec__year {
+.mm-sec__year {
   font: 800 34px/1 var(--display);
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
 }
-html[data-look='graph'] .mm-sec__caption {
+.mm-sec__caption {
   font: 500 12px var(--mono);
 }
-html[data-look='graph'] .mm-sec__divider {
+.mm-sec__divider {
   opacity: 0.35;
   border-left-width: 1px;
 }
-html[data-look='graph'] .mm-cov {
+.mm-cov {
   box-shadow: 0 0 0 1px rgba(23, 21, 31, 0.85);
 }
-html[data-look='graph'] .mm-cov.is-bloomed {
+.mm-cov.is-bloomed {
   box-shadow: 0 0 0 1px var(--ink), 0 12px 24px rgba(23, 21, 31, 0.18);
 }
-html[data-look='graph'] .mm-cov__count {
+.mm-cov__count {
   border-radius: 0;
   background: var(--saved);
   font-family: var(--mono);
 }
-html[data-look='graph'] .mm-zoom {
+.mm-zoom {
   border: 1px solid var(--ink);
   border-top: 0;
   background: #fff;
@@ -3428,7 +3261,7 @@ html[data-look='graph'] .mm-zoom {
   box-shadow: 0 16px 32px rgba(23, 21, 31, 0.12);
 }
 /* The perforated edge the page tears off along */
-html[data-look='graph'] .mm-zoom::before {
+.mm-zoom::before {
   content: '';
   position: absolute;
   left: 0;
@@ -3439,175 +3272,450 @@ html[data-look='graph'] .mm-zoom::before {
     radial-gradient(circle at 5px 4px, var(--paper-2) 2.2px, transparent 2.6px) 0 0 / 12px 8px repeat-x,
     var(--saved);
 }
-html[data-look='graph'] .mm-zoom__head strong {
+.mm-zoom__head strong {
   font: 800 22px/1 var(--display);
   letter-spacing: -0.03em;
 }
-html[data-look='graph'] .mm-zoom__grid {
+.mm-zoom__grid {
   gap: 1px;
 }
-html[data-look='graph'] .mm-zoom__lines line {
+.mm-zoom__lines line {
   stroke: var(--ink);
   stroke-width: 1;
 }
-html[data-look='graph'] .mm-view {
+.mm-view {
   font-family: var(--font);
   font-weight: 700;
   letter-spacing: -0.03em;
 }
-html[data-look='graph'] .mm-views__dot {
+.mm-views__dot {
   border-radius: 0;
   width: 10px;
   height: 10px;
 }
 
-/* ---- C. Black sketchbook: chalk lines, pastel marks, photo corners ------------------ */
 
-html[data-look='sketch'] {
-  --paper: #141312;
-  --paper-2: #24221f;
-  --surface: #1d1c1a;
-  --surface-glass: rgba(29, 28, 26, 0.94);
-  --ink: #f1ede4;
-  --ink-2: #c9c3b6;
-  --muted: #9b958a;
-  --rule: rgba(241, 237, 228, 0.16);
-  --line: rgba(241, 237, 228, 0.24);
-  --saved: #ffd23f;
-  --saved-soft: rgba(255, 210, 63, 0.12);
-  --on-accent: #141312;
-  --on-ink: #141312;
-  --font: 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
-  --display: 'Gloock', Georgia, serif;
-  --hand: 'Reenie Beanie', cursive;
-  --look-in: 340ms;
-  --look-blur: 6px;
-  color-scheme: dark;
+/* Shared: the year panel arrives instead of appearing */
+.mm-zoom:not([hidden]) {
+  animation: mm-look-in var(--look-in, 260ms) cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-html[data-look='sketch'] body.mm,
-html[data-look='sketch'] .mm-top {
-  background: var(--paper);
+@keyframes mm-look-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(var(--look-blur, 0px));
+  }
 }
-html[data-look='sketch'] .mm-stage {
-  background-color: var(--paper);
-  /* Paper tooth */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+@media (prefers-reduced-motion: reduce) {
+  .mm-zoom:not([hidden]) {
+    animation: none;
+  }
 }
-html[data-look='sketch'] .mm-canvas__axis {
-  border-top-width: 2px;
-  filter: drop-shadow(0 0 0.6px var(--saved));
-  opacity: 0.92;
-}
-html[data-look='sketch'] .mm-canvas__axis::before,
-html[data-look='sketch'] .mm-canvas__axis::after {
-  border-width: 2px;
-}
-html[data-look='sketch'] .mm-sec__year {
-  font: 400 36px/1 var(--display);
-  letter-spacing: -0.01em;
-}
-html[data-look='sketch'] .mm-sec__caption {
-  font: 400 21px/1 var(--hand);
-}
-html[data-look='sketch'] .mm-sec__divider {
-  border-left-style: dotted;
-  opacity: 0.4;
-}
-html[data-look='sketch'] .mm-cov {
-  background: #2a2825;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
-}
-/* Photo corners holding each cover to the page */
-html[data-look='sketch'] .mm-cov::before,
-html[data-look='sketch'] .mm-cov::after {
-  content: '';
-  position: absolute;
-  width: 22%;
-  height: 22%;
-  max-width: 18px;
-  max-height: 18px;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(135deg, rgba(241, 237, 228, 0.88) 50%, transparent 50%);
-}
-html[data-look='sketch'] .mm-cov::before {
-  left: -3px;
-  top: -3px;
-}
-html[data-look='sketch'] .mm-cov::after {
-  right: -3px;
-  bottom: -3px;
-  transform: rotate(180deg);
-}
-html[data-look='sketch'] .mm-cov__count {
+::selection {
   background: var(--saved);
   color: var(--on-accent);
 }
-html[data-look='sketch'] .mm-zoom {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+body {
+  scrollbar-color: var(--rule) transparent;
 }
-html[data-look='sketch'] .mm-zoom__head strong {
-  font: 400 26px/1 var(--display);
-}
-html[data-look='sketch'] .mm-zoom__lines line {
-  stroke-width: 1.5;
-  opacity: 0.6;
-}
-html[data-look='sketch'] .mm-view {
-  font-family: var(--display);
-  font-size: 26px;
-}
-html[data-look='sketch'] .mm-views__dot {
-  background: var(--rule);
-}
-html[data-look='sketch'] .mm-cov.is-selected,
-html[data-look='sketch'] .mm-cov.is-hot {
-  outline-color: var(--saved);
-}
+
+
 /* Year labels stay readable above covers the lens has lifted */
 .mm-sec__head {
   z-index: 260;
 }
 /* Form fields follow the paper */
-html[data-look] textarea,
-html[data-look] input[type='text'],
-html[data-look] input[type='search'] {
+textarea,
+input[type='text'],
+input[type='search'] {
   background: var(--surface);
   color: var(--ink);
   border-color: var(--line);
 }
-html[data-look='sketch'] textarea,
-html[data-look='sketch'] input[type='text'],
-html[data-look='sketch'] input[type='search'] {
-  background: var(--paper-2);
-}
-html[data-look] textarea::placeholder,
-html[data-look] input::placeholder {
+textarea::placeholder,
+input::placeholder {
   color: var(--muted);
 }
+
+/* Month labels beside each cluster of albums */
+.mm-month {
+  position: absolute;
+  z-index: 5;
+  font: 500 10px/14px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sec-accent);
+  opacity: 0.75;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Ordered song / artist page: lanes in world space, moving with the camera */
+.mm-lanes {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.mm-lane {
+  position: absolute;
+  height: 0;
+  border-top: 1px solid rgba(75, 43, 191, 0.22);
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.mm-lane__name {
+  transform: translateY(-130%);
+  font: 700 13px var(--font);
+  letter-spacing: 0.01em;
+  color: var(--release);
+  white-space: nowrap;
+}
+.mm-lane__note {
+  transform: translateY(-140%);
+  font: 500 10.5px var(--mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.mm-lane--axis {
+  border-top: 1.5px dashed rgba(23, 21, 31, 0.28);
+  justify-content: space-between;
+}
+.mm-lane__end {
+  transform: translateY(-150%);
+  font: 600 11px var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0 4px;
+}
+/* On the ordered page, only lines to the song or artist in focus are drawn; the rest appear on hover. */
+.mm-stage.is-ordered .mm-edge.is-faint:not(.is-hover) {
+  opacity: 0;
+}
+.mm-stage.is-ordered .mm-edge-label.is-faint:not(.is-hover) {
+  display: none;
+}
+.mm-lanes {
+  z-index: 1000;
+}
+.mm-stage.is-ordered .mm-edge-label.mm-edge--credit:not(.is-hover),
+.mm-stage.is-ordered .mm-edge-label.mm-edge--collaboration:not(.is-hover),
+.mm-stage.is-ordered .mm-edge-label.mm-edge--member_of:not(.is-hover) {
+  display: none;
+}
+.mm-sheet__about {
+  margin: 4px 0 6px;
+  padding: 12px 0 2px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ---- Layout switch (Personal): Timeline · Compass -------------------------------- */
+.mm-layout {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  z-index: 1200;
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--ink);
+  background: var(--surface);
+}
+.mm-layout button {
+  padding: 5px 12px;
+  border: 0;
+  background: none;
+  font: 600 12.5px var(--font);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.mm-layout button[aria-checked='true'] {
+  background: var(--saved);
+  color: var(--on-accent);
+}
+.mm-layout button:not([aria-checked='true']):hover {
+  background: var(--saved-soft);
+}
+
+/* ---- Compass: two axes you name, albums you place --------------------------------- */
+.mm-compass {
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+.mm-compass__field {
+  position: relative;
+  margin: 58px 40px 8px;
+  min-height: 0;
+}
+.mm-compass__title {
+  position: absolute;
+  left: 50%;
+  top: -48px;
+  transform: translateX(-50%);
+  width: min(560px, 70%);
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  background: transparent;
+  text-align: center;
+  font: 800 26px/1.2 var(--font);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  padding: 2px 4px 4px;
+}
+.mm-compass__title:focus,
+.mm-compass__label:focus {
+  outline: none;
+  border-color: var(--saved);
+}
+.mm-compass__axis {
+  position: absolute;
+  background: var(--ink);
+}
+.mm-compass__axis.is-x {
+  left: 3%;
+  right: 3%;
+  top: 50%;
+  height: 2px;
+}
+.mm-compass__axis.is-y {
+  top: 5%;
+  bottom: 5%;
+  left: 50%;
+  width: 2px;
+}
+.mm-compass__axis::before,
+.mm-compass__axis::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid var(--ink);
+  border-left: 2px solid var(--ink);
+}
+.mm-compass__axis.is-x::before { left: 0; top: -5px; transform: rotate(-45deg); transform-origin: 0 0; top: 1px; }
+.mm-compass__axis.is-x::after { right: -1px; top: -5px; transform: rotate(135deg); transform-origin: center; }
+.mm-compass__axis.is-y::before { top: 0; left: -5px; transform: rotate(45deg); transform-origin: center; }
+.mm-compass__axis.is-y::after { bottom: 0; left: -5px; transform: rotate(-135deg); transform-origin: center; }
+.mm-compass__label {
+  position: absolute;
+  width: 160px;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  background: rgba(255, 255, 255, 0.9);
+  font: 700 17px var(--font);
+  letter-spacing: -0.01em;
+  color: var(--saved);
+  text-align: center;
+  padding: 2px 4px;
+}
+.mm-compass__label:hover {
+  border-bottom-color: var(--line);
+}
+.mm-compass__label.is-top { left: 50%; top: 0; transform: translate(-50%, -110%); }
+.mm-compass__label.is-bottom { left: 50%; bottom: 0; transform: translate(-50%, 110%); }
+.mm-compass__label.is-left { left: 0; top: 50%; transform: translate(-30%, -50%) rotate(-90deg); }
+.mm-compass__label.is-right { right: 0; top: 50%; transform: translate(30%, -50%) rotate(90deg); }
+.mm-compass__covers {
+  position: absolute;
+  inset: 0;
+}
+.mm-compass__hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 18px);
+  margin: 0;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.92);
+  font: 500 12.5px var(--font);
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.mm-compass__cov {
+  position: absolute;
+  width: 74px;
+  height: 74px;
+  padding: 0;
+  border: 0;
+  background: var(--paper-2);
+  box-shadow: 0 0 0 1px rgba(23, 21, 31, 0.85);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s ease;
+  touch-action: none;
+}
+.mm-compass__cov img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  pointer-events: none;
+}
+.mm-compass__cov.is-placed:hover,
+.mm-compass__cov.is-placed:focus-visible {
+  z-index: 5;
+  transform: translate(-50%, -50%) scale(1.35);
+  box-shadow: 0 0 0 1px var(--ink), 0 14px 28px rgba(23, 21, 31, 0.22);
+}
+.mm-compass__name {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 4px);
+  max-width: 120px;
+  padding: 1px 4px;
+  background: var(--surface);
+  font: 600 10px var(--font);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.mm-compass__cov.is-placed:hover .mm-compass__name,
+.mm-compass__cov.is-placed:focus-visible .mm-compass__name {
+  opacity: 1;
+}
+.mm-compass__cov.is-lifting {
+  opacity: 0.25;
+}
+.mm-compass__cov.is-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 3000;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px var(--ink), 0 18px 36px rgba(23, 21, 31, 0.3);
+  transition: none;
+}
+.mm-compass__tray {
+  border-top: 1px solid var(--ink);
+  background: var(--surface-glass);
+  padding: 8px 16px 12px;
+  transition: background-color 0.15s ease;
+}
+.mm-compass__tray.is-target {
+  background: var(--saved-soft);
+}
+.mm-compass__trayhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.mm-compass__filter {
+  width: min(340px, 50%);
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font: 500 13px var(--font);
+  color: var(--ink);
+}
+.mm-compass__count {
+  margin-right: auto;
+  font: 500 11px var(--mono);
+  color: var(--muted);
+}
+.mm-compass__list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  scrollbar-width: thin;
+}
+.mm-compass__list .mm-compass__cov {
+  position: relative;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  transform: none;
+}
+.mm-compass__list .mm-compass__cov:hover {
+  transform: translateY(-3px);
+}
+.mm-stage.is-compass .mm-yearnav,
+.mm-stage.is-compass .mm-demo-tag {
+  display: none;
+}
 @media (max-width: 600px) {
-  .mm-looks {
-    left: 68px;
-    right: 10px;
-    bottom: 12px;
-    transform: none;
-    max-width: none;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    border-radius: 14px;
-    scrollbar-width: none;
+  .mm-compass__field {
+    margin: 58px 22px 8px;
   }
-  .mm-looks__label,
-  .mm-looks__line {
-    display: none;
+  .mm-compass__cov {
+    width: 52px;
+    height: 52px;
   }
-  .mm-looks__opt {
-    flex: none;
+}
+.mm-compass {
+  grid-template-columns: minmax(0, 1fr);
+}
+.mm-compass__tray {
+  min-width: 0;
+}
+.mm-stage.is-compass .mm-canvas,
+.mm-stage.is-compass .mm-zoom,
+.mm-stage.is-compass .mm-zoom__lines {
+  visibility: hidden;
+}
+.mm-compass__field {
+  margin: 104px 56px 40px;
+}
+.mm-compass__title {
+  top: -92px;
+}
+.mm-compass__label {
+  background: transparent;
+  width: 140px;
+}
+.mm-compass__label.is-top { transform: translate(-50%, -125%); }
+.mm-compass__label.is-bottom { transform: translate(-50%, 115%); }
+@media (max-width: 600px) {
+  .mm-compass__field {
+    margin: 104px 30px 40px;
   }
-  .mm-stage[data-view='timeline'] .mm-demo-tag {
-    bottom: 64px;
+}
+
+/* How-to card: clear of the zoom controls, in the Graph pad's square language */
+.mm-howto {
+  left: 72px;
+  bottom: 16px;
+  width: min(340px, calc(100% - 88px));
+  border: 1px solid var(--ink);
+  box-shadow: 0 16px 32px rgba(23, 21, 31, 0.12);
+}
+.mm-howto h2 {
+  font: 800 18px var(--font);
+  letter-spacing: -0.02em;
+}
+/* On narrow screens the map fills the window while the side panel is closed. */
+@media (max-width: 760px) {
+  body.mm:not(.panel-open) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  body:not(.panel-open) .mm-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  body:not(.panel-open) .mm-stage:not(.has-year) {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 74vh;
   }
 }

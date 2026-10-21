@@ -71,12 +71,13 @@ interface GSong extends GSongRef {
   writer_artists?: GArtist[];
   custom_performances?: { label: string; artists: GArtist[] }[];
   song_relationships?: { relationship_type: string; songs: GSongRef[] }[];
+  description?: { plain?: string };
 }
 
 const norm = (s: string) =>
   s
     .toLowerCase()
-    .replace(/\(.*?\)|\[.*?\]|feat\..*$/g, '')
+    .replace(/\(.*?\)|\[.*?\]|feat\..*$|\s-\s.*(remaster|version|edit|mix|live).*$/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
@@ -116,9 +117,11 @@ export interface GeniusResult {
 export async function enrichFromGenius(track: Track, known: { tracks: Track[]; people: Person[] }): Promise<GeniusResult> {
   const artist = track.artistCredit.split(',')[0].trim();
   const found = await genius<{ hits: { result: GSongRef }[] }>(`/search?q=${encodeURIComponent(`${track.title} ${artist}`)}`);
-  const hit = found.hits
-    .map((h) => h.result)
-    .find((r) => norm(r.title) === norm(track.title) && norm(r.primary_artist.name).includes(norm(artist).split(' ')[0]));
+  const sameArtist = (r: GSongRef) => norm(r.primary_artist.name).includes(norm(artist).split(' ')[0]) || norm(artist).includes(norm(r.primary_artist.name));
+  const results = found.hits.map((h) => h.result);
+  const hit =
+    results.find((r) => norm(r.title) === norm(track.title) && sameArtist(r)) ??
+    results.find((r) => sameArtist(r) && (norm(r.title).startsWith(norm(track.title)) || norm(track.title).startsWith(norm(r.title))));
   if (!hit) return { data: {}, added: 0, message: `Genius has no confident match for “${track.title}”.` };
 
   const { song } = await genius<{ song: GSong }>(`/songs/${hit.id}?text_format=plain`);
@@ -196,6 +199,11 @@ export async function enrichFromGenius(track: Track, known: { tracks: Track[]; p
   song.writer_artists?.forEach((a) => credit(a, 'writer'));
   song.custom_performances?.slice(0, 8).forEach((p) => p.artists.slice(0, 4).forEach((a) => credit(a, p.label.toLowerCase())));
 
+  // Genius's "About" text: the song's story in the community's words.
+  const about = song.description?.plain?.trim();
+  if (about && about !== '?' && about.length > 40) {
+    tracks.push({ ...track, about: { text: about, source: 'Genius', url: song.url } });
+  }
   const links = rels.filter((r) => r.type !== 'credit').length;
   return {
     data: { tracks, people: [...people.values()], relationships: rels },

@@ -76,7 +76,12 @@ export function extendLibrary(data: Partial<Dataset>): void {
     const ids = new Set(list.map((x) => x.id));
     for (const x of extra ?? []) if (!ids.has(x.id)) list.push(x);
   };
-  add(lib.tracks, data.tracks);
+  // Tracks are replaced by newer copies (e.g. one that now carries its story).
+  for (const t of data.tracks ?? []) {
+    const i = lib.tracks.findIndex((x) => x.id === t.id);
+    if (i >= 0) lib.tracks[i] = t;
+    else lib.tracks.push(t);
+  }
   add(lib.people, data.people);
   add(lib.relationships, data.relationships);
   saveLibrary(lib);
