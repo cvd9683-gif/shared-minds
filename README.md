@@ -72,11 +72,10 @@ islands to leave each other plants. Finish a habit for a week and you grow somet
 
 ## Week 6 — Every Image
 
-A square of static where every pixel is a whole picture, averaged down to one dot. Click a pixel
-to fall into it. Almost everything inside is more static, but a few pixels hold AI-generated
-pictures from DiffusionDB, mapped by meaning with CLIP and UMAP. A sound guide hisses over static
-and clears into a tone near meaning.
+A screen of TV static where every dot is a whole picture, squeezed down to its average colour. The
+cursor is a lens: under it the dots swell into AI-generated pictures from DiffusionDB. Open one to
+see its number among all 10<sup>7,398</sup> possible pictures, and the prompt and seed that found it.
 
-**[Fall into the static](week-6-every-image/)**
+**[Look closer](week-6-every-image/)**
 · [Source and write-up](week-6-every-image/)
 · Earlier sketch: [Eyes Closed](week-6-eyes-closed/)
